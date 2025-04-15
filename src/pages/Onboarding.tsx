@@ -20,7 +20,8 @@ const Onboarding = () => {
   };
 
   const handleSignInLink = () => {
-    // Direct redirect to home since we don't have a separate sign-in page
+    // Mark user as authenticated
+    localStorage.setItem('isAuthenticated', 'true');
     navigate('/home');
   };
 
@@ -39,6 +40,8 @@ const Onboarding = () => {
   };
 
   const handleFinishTour = () => {
+    // Mark user as authenticated
+    localStorage.setItem('isAuthenticated', 'true');
     // Navigate to home screen when onboarding is complete
     navigate('/home');
   };

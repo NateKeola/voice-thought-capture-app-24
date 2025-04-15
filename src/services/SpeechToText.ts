@@ -1,41 +1,106 @@
 
-// This is a mock service for speech-to-text conversion
-// In a real app, you would use a real speech recognition API
+// This service provides speech-to-text functionality using the Web Speech API
 
 export interface TranscriptionResult {
   text: string;
   confidence: number;
 }
 
-export const transcribeAudio = async (audioUrl: string): Promise<TranscriptionResult> => {
-  console.log('Transcribing audio:', audioUrl);
-  
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  // Mock different types of transcriptions based on timestamp
-  const timestamp = parseInt(audioUrl.split('_')[1]);
-  const remainder = timestamp % 3;
-  
-  let transcription: string;
-  
-  switch (remainder) {
-    case 0:
-      transcription = "Remember to pick up groceries tonight after work, especially milk and eggs.";
-      break;
-    case 1:
-      transcription = "I should look into that new JavaScript framework for the project.";
-      break;
-    case 2:
-      transcription = "Need to schedule a dentist appointment for next week.";
-      break;
-    default:
-      transcription = "This is a test memo recording.";
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+// Check browser compatibility
+const isSpeechRecognitionSupported = () => {
+  return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+};
+
+// Create a speech recognition instance
+const createRecognitionInstance = () => {
+  // @ts-ignore - TypeScript doesn't have built-in types for the Web Speech API
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    throw new Error('Speech recognition is not supported in this browser');
   }
-  
+  return new SpeechRecognition();
+};
+
+// Live transcription with continuous results
+export const startLiveTranscription = (
+  onInterimResult: (text: string) => void,
+  onFinalResult: (result: TranscriptionResult) => void,
+  onError: (error: Error) => void
+) => {
+  if (!isSpeechRecognitionSupported()) {
+    onError(new Error('Speech recognition is not supported in this browser'));
+    return { stop: () => {} };
+  }
+
+  try {
+    const recognition = createRecognitionInstance();
+    
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+      let highestConfidence = 0;
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        const confidence = event.results[i][0].confidence;
+        
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
+          if (confidence > highestConfidence) {
+            highestConfidence = confidence;
+          }
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      // Send interim results for live updating
+      if (interimTranscript) {
+        onInterimResult(interimTranscript);
+      }
+      
+      // Send final results when available
+      if (finalTranscript) {
+        onFinalResult({
+          text: finalTranscript,
+          confidence: highestConfidence
+        });
+      }
+    };
+    
+    recognition.onerror = (event) => {
+      onError(new Error(`Speech recognition error: ${event.error}`));
+    };
+    
+    recognition.start();
+    
+    return {
+      stop: () => {
+        recognition.stop();
+      }
+    };
+  } catch (error) {
+    onError(error instanceof Error ? error : new Error('Unknown error in speech recognition'));
+    return { stop: () => {} };
+  }
+};
+
+// For compatibility with existing code
+export const transcribeAudio = async (audioUrl: string): Promise<TranscriptionResult> => {
+  // This is just a stub for backwards compatibility
+  console.log('Legacy transcription called for:', audioUrl);
   return {
-    text: transcription,
-    confidence: 0.95
+    text: "This memo was recorded with the legacy system.",
+    confidence: 0.7
   };
 };
 

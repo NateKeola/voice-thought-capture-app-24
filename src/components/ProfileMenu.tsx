@@ -20,7 +20,10 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ onClose }) => {
   };
 
   const handleSignOut = () => {
-    // In a real app, would handle sign out logic here
+    // Clear authentication status
+    localStorage.removeItem('isAuthenticated');
+    
+    // Navigate to root which will redirect to sign in
     navigate('/');
     onClose();
   };

@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { useAudioRecorder } from "@/services/AudioRecorder";
-import { transcribeAudio, detectMemoType } from "@/services/SpeechToText";
+import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
 import { saveMemo } from "@/services/MemoStorage";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -15,82 +15,55 @@ interface RecordButtonProps {
 const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTranscription }) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
-  const [transcriptionInterval, setTranscriptionInterval] = useState<number | null>(null);
+  const [recognizedText, setRecognizedText] = useState('');
+  const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
   
   const {
     isRecording,
     recordingDuration,
     formattedDuration,
-    startRecording,
-    stopRecording
+    startRecording: startAudioRecording,
+    stopRecording: stopAudioRecording
   } = useAudioRecorder();
 
-  // Simulate live transcription during recording
+  // Clean up speech recognition on unmount
   useEffect(() => {
-    if (isRecording && onLiveTranscription) {
-      // Clear any existing interval
-      if (transcriptionInterval) {
-        window.clearInterval(transcriptionInterval);
+    return () => {
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.stop();
       }
-      
-      // Set up a new interval to update the live transcription every few seconds
-      const interval = window.setInterval(() => {
-        const mockPhrases = [
-          "I'm thinking about...",
-          "I need to remember to...",
-          "It's important that I...",
-          "Don't forget to..."
-        ];
-        
-        // Get random phrase as base
-        const basePhrase = mockPhrases[Math.floor(Math.random() * mockPhrases.length)];
-        
-        // Build up transcription based on duration
-        let words = [];
-        const wordCount = Math.min(20, Math.floor(recordingDuration / 2) + 1);
-        
-        for (let i = 0; i < wordCount; i++) {
-          words.push(`word${i}`);
-        }
-        
-        // Combine base phrase with additional words
-        const liveText = `${basePhrase} ${words.join(' ')}`;
-        onLiveTranscription(liveText);
-      }, 1500);
-      
-      setTranscriptionInterval(interval);
-      
-      // Cleanup on unmount
-      return () => {
-        if (interval) window.clearInterval(interval);
-      };
-    } else if (!isRecording && transcriptionInterval) {
-      // Clear interval when not recording
-      window.clearInterval(transcriptionInterval);
-      setTranscriptionInterval(null);
-    }
-  }, [isRecording, recordingDuration, onLiveTranscription]);
+    };
+  }, []);
 
   const handleToggleRecording = async () => {
     if (isRecording) {
       try {
+        // Stop recording
         setIsProcessing(true);
-        const audioUrl = await stopRecording();
+        
+        // Stop speech recognition
+        if (speechRecognitionRef.current) {
+          speechRecognitionRef.current.stop();
+          speechRecognitionRef.current = null;
+        }
+        
+        // Stop audio recording
+        const audioUrl = await stopAudioRecording();
         
         toast({
           title: "Processing your memo...",
           description: "Converting speech to text"
         });
         
-        // Process the recording
-        const result = await transcribeAudio(audioUrl);
+        // We already have the transcript from live recognition
+        const memoText = recognizedText || "Empty memo";
         
         // Detect the memo type
-        const memoType = detectMemoType(result.text);
+        const memoType = detectMemoType(memoText);
         
         // Save the memo
         const memo = saveMemo({
-          text: result.text,
+          text: memoText,
           type: memoType,
           audioUrl: audioUrl
         });
@@ -109,6 +82,9 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
         if (onLiveTranscription) {
           onLiveTranscription('');
         }
+        
+        // Reset recognized text
+        setRecognizedText('');
       } catch (error) {
         console.error('Error processing recording:', error);
         toast({
@@ -120,10 +96,44 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
         setIsProcessing(false);
       }
     } else {
-      startRecording();
-      // Initial empty transcription
-      if (onLiveTranscription) {
-        onLiveTranscription('');
+      // Start recording
+      startAudioRecording();
+      
+      // Start speech recognition
+      try {
+        speechRecognitionRef.current = startLiveTranscription(
+          // Interim results handler
+          (interimText) => {
+            if (onLiveTranscription) {
+              onLiveTranscription(interimText);
+            }
+          },
+          // Final result handler
+          (result: TranscriptionResult) => {
+            const newText = result.text.trim();
+            setRecognizedText(prev => `${prev} ${newText}`.trim());
+            
+            if (onLiveTranscription) {
+              onLiveTranscription(`${recognizedText} ${newText}`.trim());
+            }
+          },
+          // Error handler
+          (error) => {
+            console.error('Speech recognition error:', error);
+            toast({
+              title: "Voice recognition error",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
+        );
+      } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        toast({
+          title: "Voice recognition not available",
+          description: "Your browser may not support this feature.",
+          variant: "destructive"
+        });
       }
     }
   };
