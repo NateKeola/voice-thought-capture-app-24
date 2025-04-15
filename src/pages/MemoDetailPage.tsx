@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMemoById, updateMemo, deleteMemo } from '@/services/MemoStorage';
 import { Memo, MemoType } from '@/types';
