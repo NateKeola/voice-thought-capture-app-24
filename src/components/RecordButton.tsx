@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -147,25 +146,26 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     <div className="relative">
       {isRecording && (
         <>
+          <div className="recording-animation" />
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-sm">
             {formattedDuration}
           </div>
-          <div className="absolute -inset-4 rounded-full bg-red-500 opacity-20 animate-pulse"></div>
         </>
       )}
       
       <Button
         onClick={handleToggleRecording}
         disabled={isProcessing}
-        className={`h-20 w-20 rounded-full shadow-lg ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'}`}
+        size="lg"
+        className={`h-16 w-16 rounded-full shadow-lg ${isRecording ? 'bg-red-500 hover:bg-red-600 recording-button' : 'bg-orange-500 hover:bg-orange-600'}`}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
         {isProcessing ? (
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Loader2 className="h-6 w-6 animate-spin" />
         ) : isRecording ? (
-          <Square className="h-8 w-8" />
+          <Square className="h-6 w-6" />
         ) : (
-          <Mic className="h-8 w-8" />
+          <Mic className="h-6 w-6" />
         )}
       </Button>
     </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -30,12 +31,14 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
     }
 
     try {
+      // Detect the memo type
       const memoType = detectMemoType(text);
       
+      // Save the memo
       const memo = saveMemo({
         text: text,
         type: memoType,
-        audioUrl: null
+        audioUrl: null // No audio for text-only memos
       });
       
       toast({
@@ -43,8 +46,10 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
         description: `Your ${memoType} has been saved.`
       });
       
+      // Clear the input
       setText('');
       
+      // Notify parent component
       if (onMemoCreated) {
         onMemoCreated(memo.id);
       }
@@ -59,17 +64,18 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+    <div className="bg-white rounded-lg shadow p-3 mb-20">
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder="Type your memo here..."
-        className="w-full focus-visible:ring-orange-500 mb-3 min-h-24"
+        className="w-full border-blue-100 focus-visible:ring-orange-500 mb-2"
+        rows={3}
       />
       <div className="flex justify-end">
         <Button 
           onClick={handleSubmit} 
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-orange-500 hover:bg-orange-600"
           size="sm"
         >
           <Send className="mr-2 h-4 w-4" />

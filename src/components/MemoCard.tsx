@@ -16,49 +16,34 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const getTypeIcon = () => {
     switch (type) {
       case 'note':
-        return <FileText className="h-5 w-5 text-blue-500" />;
+        return <FileText className="h-5 w-5 text-memo-note" />;
       case 'task':
-        return <CheckCircle className="h-5 w-5 text-purple-600" />;
+        return <CheckCircle className="h-5 w-5 text-memo-task" />;
       case 'idea':
-        return <CircleAlert className="h-5 w-5 text-orange-500" />;
+        return <CircleAlert className="h-5 w-5 text-memo-idea" />;
       default:
-        return <FileText className="h-5 w-5 text-blue-500" />;
-    }
-  };
-
-  const getTypeBackground = () => {
-    switch (type) {
-      case 'note':
-        return 'bg-blue-50';
-      case 'task':
-        return 'bg-purple-50';
-      case 'idea':
-        return 'bg-orange-50';
-      default:
-        return 'bg-blue-50';
+        return <FileText className="h-5 w-5 text-memo-note" />;
     }
   };
 
   return (
     <Card 
-      className="mb-4 cursor-pointer hover:shadow-md transition-shadow border border-gray-100"
+      className={`mb-4 cursor-pointer hover:shadow-md transition-shadow memo-card-${type}`}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex items-start gap-4">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center mt-1 ${getTypeBackground()}`}>
-            {getTypeIcon()}
-          </div>
+      <CardContent className="pt-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-1">{getTypeIcon()}</div>
           <div className="flex-1">
-            <p className="text-base text-gray-800 font-medium">{text}</p>
+            <p className="text-base text-foreground">{text}</p>
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-0 pb-3 px-4 flex justify-between text-xs text-gray-500 border-t border-gray-100 mt-2">
+      <CardFooter className="pt-0 pb-3 px-6 flex justify-between text-xs text-muted-foreground">
         <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
         <div className="flex items-center gap-1">
-          <FileAudio className="h-3 w-3 text-orange-500" />
-          <span className="text-orange-500 font-medium">Audio</span>
+          <FileAudio className="h-3 w-3" />
+          <span>Audio</span>
         </div>
       </CardFooter>
     </Card>
