@@ -5,13 +5,18 @@ export interface Memo {
   id: string;
   text: string;
   type: MemoType;
-  audioUrl: string;
+  audioUrl: string | null;
   createdAt: string;
-  completed?: boolean;
 }
 
-export interface RecordingState {
-  isRecording: boolean;
-  duration: number;
-  audioUrl: string | null;
-}
+export type RootStackParamList = {
+  Onboarding: undefined;
+  Main: undefined;
+  MemoDetail: { id: string };
+};
+
+export type TabParamList = {
+  Home: undefined;
+  Memos: undefined;
+  Relationships: undefined;
+};

@@ -1,53 +1,118 @@
 
 import React from 'react';
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Memo } from "@/types";
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Memo } from '../types';
 import { formatDistanceToNow } from 'date-fns';
-import { FileAudio, CheckCircle, CircleAlert, FileText } from "lucide-react";
 
-interface MemoCardProps {
+type MemoCardProps = {
   memo: Memo;
-  onClick?: () => void;
-}
+  onPress: () => void;
+};
 
-const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
-  const { text, type, createdAt } = memo;
+const MemoCard = ({ memo, onPress }: MemoCardProps) => {
+  const { text, type, createdAt, audioUrl } = memo;
   
   const getTypeIcon = () => {
     switch (type) {
       case 'note':
-        return <FileText className="h-5 w-5 text-memo-note" />;
+        return <Ionicons name="document-text" size={20} color="#007aff" />;
       case 'task':
-        return <CheckCircle className="h-5 w-5 text-memo-task" />;
+        return <Ionicons name="checkmark-circle" size={20} color="#34c759" />;
       case 'idea':
-        return <CircleAlert className="h-5 w-5 text-memo-idea" />;
+        return <Ionicons name="bulb" size={20} color="#ff9500" />;
       default:
-        return <FileText className="h-5 w-5 text-memo-note" />;
+        return <Ionicons name="document-text" size={20} color="#007aff" />;
+    }
+  };
+
+  const getTypeColor = () => {
+    switch (type) {
+      case 'note':
+        return '#d1e6ff';
+      case 'task':
+        return '#d1ffdb';
+      case 'idea':
+        return '#ffe8cc';
+      default:
+        return '#d1e6ff';
     }
   };
 
   return (
-    <Card 
-      className={`mb-4 cursor-pointer hover:shadow-md transition-shadow memo-card-${type}`}
-      onClick={onClick}
-    >
-      <CardContent className="pt-4">
-        <div className="flex items-start gap-3">
-          <div className="mt-1">{getTypeIcon()}</div>
-          <div className="flex-1">
-            <p className="text-base text-foreground">{text}</p>
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter className="pt-0 pb-3 px-6 flex justify-between text-xs text-muted-foreground">
-        <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
-        <div className="flex items-center gap-1">
-          <FileAudio className="h-3 w-3" />
-          <span>Audio</span>
-        </div>
-      </CardFooter>
-    </Card>
+    <TouchableOpacity style={styles.card} onPress={onPress}>
+      <View style={styles.header}>
+        <View style={[styles.typeContainer, { backgroundColor: getTypeColor() }]}>
+          {getTypeIcon()}
+          <Text style={styles.typeText}>{type.charAt(0).toUpperCase() + type.slice(1)}</Text>
+        </View>
+        <Text style={styles.date}>
+          {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
+        </Text>
+      </View>
+      
+      <Text style={styles.content} numberOfLines={3}>
+        {text}
+      </Text>
+      
+      {audioUrl && (
+        <View style={styles.audioIndicator}>
+          <Ionicons name="musical-note" size={14} color="#666" />
+          <Text style={styles.audioText}>Audio available</Text>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  typeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  typeText: {
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  date: {
+    fontSize: 12,
+    color: '#666',
+  },
+  content: {
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  audioIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  audioText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+  },
+});
 
 export default MemoCard;

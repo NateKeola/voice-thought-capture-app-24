@@ -1,221 +1,80 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, MicVocal, Save, Trash2, StopCircle, PlayCircle } from "lucide-react";
-import { useAudioRecorder } from "@/services/AudioRecorder";
-import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
-import { saveMemo } from "@/services/MemoStorage";
-import { useToast } from "@/components/ui/use-toast";
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useAudioRecorder } from '../services/AudioRecorder';
+import { saveMemo } from '../services/MemoStorage';
+import { detectMemoType } from '../services/SpeechToText';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../types';
 
-interface RecordButtonProps {
-  onMemoCreated?: (memoId: string) => void;
-  onLiveTranscription?: (text: string) => void;
-}
+type RecordButtonProps = {
+  onTextInput: (text: string) => void;
+  text: string;
+};
 
-const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTranscription }) => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
+
+const RecordButton = ({ onTextInput, text }: RecordButtonProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [recognizedText, setRecognizedText] = useState('');
   const [recordingComplete, setRecordingComplete] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
+  const navigation = useNavigation<NavigationProp>();
   
   const {
     isRecording,
-    recordingDuration,
+    isPaused,
     formattedDuration,
-    startRecording: startAudioRecording,
-    stopRecording: stopAudioRecording,
+    audioUri,
+    startRecording,
+    pauseRecording,
+    resumeRecording,
+    stopRecording,
     cancelRecording
   } = useAudioRecorder();
 
-  // Clean up speech recognition on unmount
-  useEffect(() => {
-    return () => {
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-      }
-    };
-  }, []);
-
   const handleToggleRecording = async () => {
     if (isRecording) {
-      try {
-        // Stop recording
-        setIsProcessing(true);
-        
-        // Stop speech recognition
-        if (speechRecognitionRef.current) {
-          speechRecognitionRef.current.stop();
-          speechRecognitionRef.current = null;
-        }
-        
-        // Stop audio recording
-        const url = await stopAudioRecording();
-        setAudioUrl(url);
-        
-        toast({
-          title: "Recording complete",
-          description: "You can now save your memo"
-        });
-        
-        // Set recording complete state
-        setRecordingComplete(true);
-        setIsProcessing(false);
-        
-      } catch (error) {
-        console.error('Error processing recording:', error);
-        toast({
-          title: "Error saving memo",
-          description: "There was a problem processing your recording.",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-      }
+      // Stop recording
+      setIsProcessing(true);
+      const uri = await stopRecording();
+      setRecordingComplete(true);
+      setIsProcessing(false);
     } else {
-      // Reset states for new recording
-      setRecordingComplete(false);
-      setRecognizedText('');
-      setIsPaused(false);
-      if (onLiveTranscription) {
-        onLiveTranscription('');
-      }
-      
       // Start recording
-      startAudioRecording();
-      
-      // Start speech recognition
-      try {
-        speechRecognitionRef.current = startLiveTranscription(
-          // Interim results handler
-          (interimText) => {
-            if (onLiveTranscription) {
-              onLiveTranscription(interimText);
-            }
-          },
-          // Final result handler
-          (result: TranscriptionResult) => {
-            const newText = result.text.trim();
-            setRecognizedText(prev => `${prev} ${newText}`.trim());
-            
-            if (onLiveTranscription) {
-              onLiveTranscription(`${recognizedText} ${newText}`.trim());
-            }
-          },
-          // Error handler
-          (error) => {
-            console.error('Speech recognition error:', error);
-            toast({
-              title: "Voice recognition error",
-              description: error.message,
-              variant: "destructive"
-            });
-          }
-        );
-      } catch (error) {
-        console.error('Failed to start speech recognition:', error);
-        toast({
-          title: "Voice recognition not available",
-          description: "Your browser may not support this feature.",
-          variant: "destructive"
-        });
-      }
+      setRecordingComplete(false);
+      startRecording();
     }
   };
 
   const handlePauseResume = () => {
-    setIsPaused(!isPaused);
-    
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.stop();
-      speechRecognitionRef.current = null;
-      
-      // If we're resuming, start speech recognition again
-      if (isPaused) {
-        try {
-          speechRecognitionRef.current = startLiveTranscription(
-            // Interim results handler
-            (interimText) => {
-              if (onLiveTranscription) {
-                onLiveTranscription(interimText);
-              }
-            },
-            // Final result handler
-            (result: TranscriptionResult) => {
-              const newText = result.text.trim();
-              setRecognizedText(prev => `${prev} ${newText}`.trim());
-              
-              if (onLiveTranscription) {
-                onLiveTranscription(`${recognizedText} ${newText}`.trim());
-              }
-            },
-            // Error handler
-            (error) => {
-              console.error('Speech recognition error:', error);
-              toast({
-                title: "Voice recognition error",
-                description: error.message,
-                variant: "destructive"
-              });
-            }
-          );
-        } catch (error) {
-          console.error('Failed to restart speech recognition:', error);
-        }
-      }
+    if (isPaused) {
+      resumeRecording();
+    } else {
+      pauseRecording();
     }
   };
 
-  const handleSaveMemo = () => {
+  const handleSaveMemo = async () => {
     try {
       setIsProcessing(true);
-      
-      // We already have the transcript from live recognition
-      const memoText = recognizedText || "Empty memo";
-      
-      // Detect the memo type
+      const memoText = text || "Empty memo";
       const memoType = detectMemoType(memoText);
       
-      // Save the memo
-      const memo = saveMemo({
+      const memo = await saveMemo({
         text: memoText,
         type: memoType,
-        audioUrl: audioUrl
+        audioUrl: audioUri
       });
-      
-      toast({
-        title: "Memo saved!",
-        description: `Your ${memoType} has been saved.`
-      });
-      
-      // Navigate to the memo detail page
-      navigate(`/memo/${memo.id}`);
-      
-      // Notify parent component (if needed)
-      if (onMemoCreated) {
-        onMemoCreated(memo.id);
-      }
-      
-      // Clear live transcription
-      if (onLiveTranscription) {
-        onLiveTranscription('');
-      }
       
       // Reset states
-      setRecognizedText('');
       setRecordingComplete(false);
-      setAudioUrl(null);
+      onTextInput('');
       
+      // Navigate to the memo detail
+      navigation.navigate('MemoDetail', { id: memo.id });
     } catch (error) {
       console.error('Error saving memo:', error);
-      toast({
-        title: "Error saving memo",
-        description: "There was a problem saving your recording.",
-        variant: "destructive"
-      });
     } finally {
       setIsProcessing(false);
     }
@@ -224,135 +83,217 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   const handleCancel = () => {
     // Reset states
     setRecordingComplete(false);
-    setRecognizedText('');
-    setAudioUrl(null);
-    setIsPaused(false);
-    
-    // Make sure recording is cancelled
     cancelRecording();
-    
-    // Clear live transcription
-    if (onLiveTranscription) {
-      onLiveTranscription('');
-    }
-    
-    toast({
-      title: "Recording discarded",
-      description: "Your recording has been discarded."
-    });
+    onTextInput('');
   };
 
   const renderRecordingControls = () => {
     if (recordingComplete) {
       return (
-        <div className="flex flex-col items-center gap-4">
-          <div className="text-center text-gray-700 mb-2">
-            <p>Recording Complete</p>
-            <p className="text-sm text-gray-500">{recognizedText.substring(0, 50)}{recognizedText.length > 50 ? '...' : ''}</p>
-          </div>
+        <View style={styles.controlsContainer}>
+          <Text style={styles.recordingComplete}>Recording Complete</Text>
+          <Text style={styles.previewText} numberOfLines={2}>
+            {text.substring(0, 50)}{text.length > 50 ? '...' : ''}
+          </Text>
           
-          <div className="flex gap-3">
-            <Button
-              onClick={handleCancel}
-              variant="outline"
-              className="rounded-full h-12 px-4 border-gray-300"
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.button, styles.cancelButton]}
+              onPress={handleCancel}
               disabled={isProcessing}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Discard
-            </Button>
+              <Ionicons name="trash-outline" size={20} color="white" />
+              <Text style={styles.buttonText}>Discard</Text>
+            </TouchableOpacity>
             
-            <Button
-              onClick={handleSaveMemo}
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton]}
+              onPress={handleSaveMemo}
               disabled={isProcessing}
-              className="rounded-full h-12 px-6 bg-orange-500 hover:bg-orange-600"
             >
               {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <ActivityIndicator color="white" size="small" />
               ) : (
-                <Save className="h-4 w-4 mr-2" />
+                <>
+                  <Ionicons name="save-outline" size={20} color="white" />
+                  <Text style={styles.buttonText}>Save Memo</Text>
+                </>
               )}
-              Save Memo
-            </Button>
-          </div>
-        </div>
+            </TouchableOpacity>
+          </View>
+        </View>
       );
     }
     
     if (isRecording) {
       return (
-        <div className="flex flex-col items-center gap-4">
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-sm">
-            {formattedDuration}
-          </div>
+        <View style={styles.controlsContainer}>
+          <Text style={styles.duration}>{formattedDuration}</Text>
           
-          <div className="flex gap-3">
-            <Button
-              onClick={handlePauseResume}
-              variant="outline"
-              className="h-16 w-16 rounded-full border-gray-300"
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={[styles.circleButton, styles.pauseButton]}
+              onPress={handlePauseResume}
               disabled={isProcessing}
             >
-              {isPaused ? (
-                <PlayCircle className="h-8 w-8 text-green-500" />
-              ) : (
-                <StopCircle className="h-8 w-8 text-amber-500" />
-              )}
-            </Button>
+              <Ionicons 
+                name={isPaused ? "play" : "pause"} 
+                size={28} 
+                color="#ff9500" 
+              />
+            </TouchableOpacity>
             
-            <Button
-              onClick={handleToggleRecording}
+            <TouchableOpacity
+              style={[styles.circleButton, styles.stopButton]}
+              onPress={handleToggleRecording}
               disabled={isProcessing}
-              className="h-20 w-20 rounded-full bg-red-500 hover:bg-red-600"
             >
               {isProcessing ? (
-                <Loader2 className="h-10 w-10 animate-spin" />
+                <ActivityIndicator color="white" size="large" />
               ) : (
-                <Square className="h-10 w-10" />
+                <Ionicons name="square" size={28} color="white" />
               )}
-            </Button>
-          </div>
+            </TouchableOpacity>
+          </View>
           
-          {recognizedText && (
-            <Button
-              onClick={handleSaveMemo}
+          {text.trim().length > 0 && (
+            <TouchableOpacity
+              style={[styles.button, styles.saveButton, styles.saveButtonSmall]}
+              onPress={handleSaveMemo}
               disabled={isProcessing}
-              className="mt-4 rounded-full px-6 bg-orange-500 hover:bg-orange-600"
             >
-              <Save className="h-4 w-4 mr-2" />
-              Save Memo
-            </Button>
+              <Ionicons name="save-outline" size={18} color="white" />
+              <Text style={styles.buttonText}>Save Memo</Text>
+            </TouchableOpacity>
           )}
-        </div>
+        </View>
       );
     }
     
     return (
-      <Button
-        onClick={handleToggleRecording}
+      <TouchableOpacity
+        style={[styles.mainRecordButton]}
+        onPress={handleToggleRecording}
         disabled={isProcessing}
-        size="lg"
-        className="h-28 w-28 rounded-full shadow-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:bg-orange-600"
-        aria-label="Start recording"
       >
         {isProcessing ? (
-          <Loader2 className="h-12 w-12 animate-spin" />
+          <ActivityIndicator color="white" size="large" />
         ) : (
-          <MicVocal className="h-12 w-12" />
+          <Ionicons name="mic" size={40} color="white" />
         )}
-      </Button>
+      </TouchableOpacity>
     );
   };
 
   return (
-    <div className="relative flex flex-col items-center">
+    <View style={styles.container}>
       {renderRecordingControls()}
       
       {isRecording && !isPaused && (
-        <div className="recording-animation absolute w-full h-full rounded-full"></div>
+        <View style={styles.pulsingCircle} />
       )}
-    </div>
+    </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginVertical: 20,
+  },
+  controlsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mainRecordButton: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#ff9500',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  circleButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: 10,
+  },
+  pauseButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ff9500',
+  },
+  stopButton: {
+    backgroundColor: '#ff3b30',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginHorizontal: 5,
+  },
+  saveButton: {
+    backgroundColor: '#34c759',
+  },
+  saveButtonSmall: {
+    marginTop: 16,
+  },
+  cancelButton: {
+    backgroundColor: '#8e8e93',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  duration: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 16,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordingComplete: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  previewText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
+    textAlign: 'center',
+    maxWidth: 300,
+  },
+  pulsingCircle: {
+    position: 'absolute',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 149, 0, 0.2)',
+    opacity: 0.7,
+  },
+});
 
 export default RecordButton;

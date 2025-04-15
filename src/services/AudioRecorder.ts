@@ -1,103 +1,181 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Audio } from 'expo-av';
+import { Platform } from 'react-native';
 
-// This is a mock service for audio recording
-// In a real app with Expo, you would use expo-av for audio recording
 export const useAudioRecorder = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioUri, setAudioUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   
-  const timerRef = useRef<number | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Start recording function
-  const startRecording = () => {
+  useEffect(() => {
+    // Request permissions when the component mounts
+    const getPermissions = async () => {
+      try {
+        const { status } = await Audio.requestPermissionsAsync();
+        if (status !== 'granted') {
+          setError('Recording permission not granted');
+        }
+      } catch (error) {
+        console.error('Error requesting permissions:', error);
+        setError('Error requesting recording permissions');
+      }
+    };
+
+    getPermissions();
+    
+    // Clean up timer on unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
+  
+  const startRecording = async () => {
     try {
-      // In a real implementation, we would use expo-av's Audio.Recording
-      // For now, we'll simulate recording with a timer
-      setIsRecording(true);
+      // Clear previous data
       setRecordingDuration(0);
+      setAudioUri(null);
       setError(null);
       setIsPaused(false);
       
-      // Start a timer to track recording duration
-      timerRef.current = window.setInterval(() => {
+      // Configure audio session
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: true,
+        shouldDuckAndroid: true,
+      });
+      
+      // Start recording
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      recordingRef.current = recording;
+      setIsRecording(true);
+      
+      // Start timer
+      timerRef.current = setInterval(() => {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
       
       console.log('Started recording');
     } catch (err) {
-      console.error('Failed to start recording:', err);
-      setError('Failed to start recording.');
-      setIsRecording(false);
+      console.error('Error starting recording:', err);
+      setError('Failed to start recording');
     }
   };
   
-  // Pause recording function
-  const pauseRecording = () => {
-    setIsPaused(true);
-    
-    // Pause the timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    console.log('Paused recording at', recordingDuration);
-  };
-  
-  // Resume recording function
-  const resumeRecording = () => {
-    setIsPaused(false);
-    
-    // Resume the timer
-    timerRef.current = window.setInterval(() => {
-      setRecordingDuration(prev => prev + 1);
-    }, 1000);
-    
-    console.log('Resumed recording at', recordingDuration);
-  };
-  
-  // Stop recording function
-  const stopRecording = async (): Promise<string> => {
+  const pauseRecording = async () => {
     try {
-      // Clear the duration timer
+      if (recordingRef.current && isRecording && !isPaused) {
+        if (Platform.OS === 'ios') {
+          await recordingRef.current.pauseAsync();
+        }
+        setIsPaused(true);
+        
+        // Pause timer
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        
+        console.log('Paused recording');
+      }
+    } catch (err) {
+      console.error('Error pausing recording:', err);
+      setError('Failed to pause recording');
+    }
+  };
+  
+  const resumeRecording = async () => {
+    try {
+      if (recordingRef.current && isRecording && isPaused) {
+        if (Platform.OS === 'ios') {
+          await recordingRef.current.resumeAsync();
+        }
+        setIsPaused(false);
+        
+        // Resume timer
+        timerRef.current = setInterval(() => {
+          setRecordingDuration(prev => prev + 1);
+        }, 1000);
+        
+        console.log('Resumed recording');
+      }
+    } catch (err) {
+      console.error('Error resuming recording:', err);
+      setError('Failed to resume recording');
+    }
+  };
+  
+  const stopRecording = async () => {
+    try {
+      if (!recordingRef.current) {
+        return null;
+      }
+      
+      // Stop timer
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
       
-      // In a real implementation, we would stop the Audio.Recording
-      // and get the file URI
+      // Stop recording
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
+      
+      // Reset recording state
       setIsRecording(false);
       setIsPaused(false);
       
-      // For demo purposes, create a fake file URL
-      const fakeAudioUrl = `memo_${Date.now()}.m4a`;
-      setAudioUrl(fakeAudioUrl);
+      // If we have a URI, save it
+      if (uri) {
+        setAudioUri(uri);
+        console.log('Recording saved to', uri);
+        return uri;
+      }
       
-      console.log('Stopped recording, duration:', recordingDuration);
-      return fakeAudioUrl;
+      return null;
     } catch (err) {
-      console.error('Failed to stop recording:', err);
-      setError('Failed to stop recording.');
+      console.error('Error stopping recording:', err);
+      setError('Failed to stop recording');
       setIsRecording(false);
-      throw new Error('Failed to stop recording');
+      setIsPaused(false);
+      return null;
     }
   };
   
-  // Cancel recording function
-  const cancelRecording = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+  const cancelRecording = async () => {
+    try {
+      // Stop timer
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      
+      // Stop recording if it's ongoing
+      if (recordingRef.current) {
+        await recordingRef.current.stopAndUnloadAsync();
+        recordingRef.current = null;
+      }
+      
+      // Reset state
+      setIsRecording(false);
+      setIsPaused(false);
+      setRecordingDuration(0);
+      setAudioUri(null);
+      
+      console.log('Recording cancelled');
+    } catch (err) {
+      console.error('Error cancelling recording:', err);
     }
-    
-    setIsRecording(false);
-    setRecordingDuration(0);
-    setIsPaused(false);
   };
   
   // Format seconds as MM:SS
@@ -112,7 +190,7 @@ export const useAudioRecorder = () => {
     isPaused,
     recordingDuration,
     formattedDuration: formatDuration(recordingDuration),
-    audioUrl,
+    audioUri,
     error,
     startRecording,
     pauseRecording,
