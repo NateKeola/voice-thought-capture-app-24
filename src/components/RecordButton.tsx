@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { useAudioRecorder } from "@/services/AudioRecorder";
@@ -9,11 +9,13 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface RecordButtonProps {
   onMemoCreated?: (memoId: string) => void;
+  onLiveTranscription?: (text: string) => void;
 }
 
-const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated }) => {
+const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTranscription }) => {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [transcriptionInterval, setTranscriptionInterval] = useState<number | null>(null);
   
   const {
     isRecording,
@@ -22,6 +24,52 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated }) => {
     startRecording,
     stopRecording
   } = useAudioRecorder();
+
+  // Simulate live transcription during recording
+  useEffect(() => {
+    if (isRecording && onLiveTranscription) {
+      // Clear any existing interval
+      if (transcriptionInterval) {
+        window.clearInterval(transcriptionInterval);
+      }
+      
+      // Set up a new interval to update the live transcription every few seconds
+      const interval = window.setInterval(() => {
+        const mockPhrases = [
+          "I'm thinking about...",
+          "I need to remember to...",
+          "It's important that I...",
+          "Don't forget to..."
+        ];
+        
+        // Get random phrase as base
+        const basePhrase = mockPhrases[Math.floor(Math.random() * mockPhrases.length)];
+        
+        // Build up transcription based on duration
+        let words = [];
+        const wordCount = Math.min(20, Math.floor(recordingDuration / 2) + 1);
+        
+        for (let i = 0; i < wordCount; i++) {
+          words.push(`word${i}`);
+        }
+        
+        // Combine base phrase with additional words
+        const liveText = `${basePhrase} ${words.join(' ')}`;
+        onLiveTranscription(liveText);
+      }, 1500);
+      
+      setTranscriptionInterval(interval);
+      
+      // Cleanup on unmount
+      return () => {
+        if (interval) window.clearInterval(interval);
+      };
+    } else if (!isRecording && transcriptionInterval) {
+      // Clear interval when not recording
+      window.clearInterval(transcriptionInterval);
+      setTranscriptionInterval(null);
+    }
+  }, [isRecording, recordingDuration, onLiveTranscription]);
 
   const handleToggleRecording = async () => {
     if (isRecording) {
@@ -56,6 +104,11 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated }) => {
         if (onMemoCreated) {
           onMemoCreated(memo.id);
         }
+        
+        // Clear live transcription
+        if (onLiveTranscription) {
+          onLiveTranscription('');
+        }
       } catch (error) {
         console.error('Error processing recording:', error);
         toast({
@@ -68,6 +121,10 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated }) => {
       }
     } else {
       startRecording();
+      // Initial empty transcription
+      if (onLiveTranscription) {
+        onLiveTranscription('');
+      }
     }
   };
 
@@ -86,7 +143,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated }) => {
         onClick={handleToggleRecording}
         disabled={isProcessing}
         size="lg"
-        className={`h-16 w-16 rounded-full shadow-lg ${isRecording ? 'bg-red-500 hover:bg-red-600 recording-button' : 'bg-primary hover:bg-primary/90'}`}
+        className={`h-16 w-16 rounded-full shadow-lg ${isRecording ? 'bg-red-500 hover:bg-red-600 recording-button' : 'bg-orange-500 hover:bg-orange-600'}`}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
         {isProcessing ? (

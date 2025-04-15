@@ -64,9 +64,9 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				memo: {
-					note: '#6B7FD7',
+					note: '#F97316', // Orange
 					task: '#8B5CF6', 
-					idea: '#F97316'
+					idea: '#0EA5E9' // Sky Blue
 				}
 			},
 			borderRadius: {
