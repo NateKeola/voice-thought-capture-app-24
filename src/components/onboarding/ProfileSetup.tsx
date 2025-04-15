@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User } from 'lucide-react';
+import { User, Camera } from 'lucide-react';
 
 interface ProfileSetupProps {
   onComplete: (name: string, photoUrl?: string) => void;
@@ -15,6 +15,7 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onSkip }
   const [name, setName] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -34,28 +35,30 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onSkip }
 
   return (
     <Card className="w-full max-w-md mx-4 shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center">Tell us about you</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <CardContent className="pt-8 px-6 pb-8">
+        <h1 className="text-2xl font-bold text-center font-montserrat mb-10">Tell us about you</h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-8">
           <div className="flex justify-center">
             <div className="relative">
-              <Avatar className="w-24 h-24">
+              <Avatar className="w-28 h-28">
                 <AvatarImage src={previewUrl} />
-                <AvatarFallback className="bg-[#FEC6A1]">
-                  <User className="w-12 h-12 text-white" />
+                <AvatarFallback className="bg-[#FFF2E5] border-2 border-[#FFDDB3]">
+                  <User className="w-12 h-12 text-[#FF9500]" />
                 </AvatarFallback>
               </Avatar>
               <div className="absolute bottom-0 right-0">
                 <label htmlFor="photo-upload" className="cursor-pointer">
-                  <div className="bg-primary text-primary-foreground w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium">+</div>
+                  <div className="bg-[#FF9500] text-white w-10 h-10 rounded-full flex items-center justify-center shadow-md">
+                    <Camera className="h-5 w-5" />
+                  </div>
                   <input 
                     id="photo-upload" 
                     type="file" 
                     accept="image/*" 
                     className="hidden" 
                     onChange={handleFileChange}
+                    ref={fileInputRef}
                   />
                 </label>
               </div>
@@ -63,22 +66,19 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onSkip }
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="name" className="block text-sm font-medium text-foreground">
-              Your Name
-            </label>
             <Input
-              id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
+              placeholder="Your name"
               required
+              className="h-14 rounded-2xl bg-muted border border-input text-lg px-5"
             />
           </div>
           
-          <div className="flex flex-col space-y-2">
+          <div className="flex flex-col space-y-4">
             <Button 
               type="submit" 
-              className="w-full bg-[#33C3F0] hover:bg-[#33C3F0]/90"
+              className="w-full h-14 rounded-2xl bg-[#FF9500] hover:bg-[#FF9500]/90 shadow-sm text-lg font-bold"
               disabled={!name.trim()}
             >
               Get Started
@@ -86,7 +86,7 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onSkip }
             <Button 
               type="button" 
               variant="ghost" 
-              className="text-sm"
+              className="text-sm text-muted-foreground underline"
               onClick={onSkip}
             >
               Skip for now

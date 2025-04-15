@@ -47,7 +47,7 @@ const Onboarding = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5]">
       {step === 'welcome' && (
         <Welcome 
           onContinueWithEmail={handleContinueWithEmail} 

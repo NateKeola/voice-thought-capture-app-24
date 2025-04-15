@@ -69,6 +69,9 @@ export default {
 					idea: '#0EA5E9' // Sky Blue
 				}
 			},
+			fontFamily: {
+				montserrat: ['Montserrat', 'sans-serif']
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
