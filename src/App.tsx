@@ -17,7 +17,7 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!isAuthenticated) {
     // Redirect to the root page, but save where the user was trying to go
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/onboarding" state={{ from: location }} replace />;
   }
   
   return <>{children}</>;
@@ -26,9 +26,6 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Simple check for if user is signed in
-  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -36,23 +33,38 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={
-              isAuthenticated ? <Navigate to="/home" replace /> : <Index />
-            } />
-            <Route path="/onboarding" element={
-              isAuthenticated ? <Navigate to="/home" replace /> : <Onboarding />
-            } />
+            {/* Default route that checks authentication and redirects accordingly */}
+            <Route path="/" element={<Index />} />
+            
+            {/* Onboarding route - only accessible if not authenticated */}
+            <Route 
+              path="/onboarding" 
+              element={
+                localStorage.getItem('isAuthenticated') === 'true' 
+                  ? <Navigate to="/home" replace /> 
+                  : <Onboarding />
+              } 
+            />
+            
             {/* Protected routes */}
-            <Route path="/home" element={
-              <AuthRoute>
-                <HomePage />
-              </AuthRoute>
-            } />
-            <Route path="/memo/:id" element={
-              <AuthRoute>
-                <MemoDetailPage />
-              </AuthRoute>
-            } />
+            <Route 
+              path="/home" 
+              element={
+                <AuthRoute>
+                  <HomePage />
+                </AuthRoute>
+              } 
+            />
+            
+            <Route 
+              path="/memo/:id" 
+              element={
+                <AuthRoute>
+                  <MemoDetailPage />
+                </AuthRoute>
+              } 
+            />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
