@@ -6,6 +6,7 @@ import { saveMemo } from '@/services/MemoStorage';
 import { detectMemoType } from '@/services/SpeechToText';
 import { useToast } from '@/components/ui/use-toast';
 import { Send } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface TextMemoInputProps {
   onMemoCreated?: (memoId: string) => void;
@@ -15,6 +16,7 @@ interface TextMemoInputProps {
 const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialText = '' }) => {
   const [text, setText] = useState(initialText);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setText(initialText);
@@ -45,6 +47,9 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
         title: "Memo saved!",
         description: `Your ${memoType} has been saved.`
       });
+
+      // Navigate to the memo detail page
+      navigate(`/memo/${memo.id}`);
       
       // Clear the input
       setText('');

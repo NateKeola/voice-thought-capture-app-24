@@ -8,6 +8,7 @@ export const useAudioRecorder = () => {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
   
   const timerRef = useRef<number | null>(null);
   
@@ -19,6 +20,7 @@ export const useAudioRecorder = () => {
       setIsRecording(true);
       setRecordingDuration(0);
       setError(null);
+      setIsPaused(false);
       
       // Start a timer to track recording duration
       timerRef.current = window.setInterval(() => {
@@ -33,6 +35,31 @@ export const useAudioRecorder = () => {
     }
   };
   
+  // Pause recording function
+  const pauseRecording = () => {
+    setIsPaused(true);
+    
+    // Pause the timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    
+    console.log('Paused recording at', recordingDuration);
+  };
+  
+  // Resume recording function
+  const resumeRecording = () => {
+    setIsPaused(false);
+    
+    // Resume the timer
+    timerRef.current = window.setInterval(() => {
+      setRecordingDuration(prev => prev + 1);
+    }, 1000);
+    
+    console.log('Resumed recording at', recordingDuration);
+  };
+  
   // Stop recording function
   const stopRecording = async (): Promise<string> => {
     try {
@@ -45,6 +72,7 @@ export const useAudioRecorder = () => {
       // In a real implementation, we would stop the Audio.Recording
       // and get the file URI
       setIsRecording(false);
+      setIsPaused(false);
       
       // For demo purposes, create a fake file URL
       const fakeAudioUrl = `memo_${Date.now()}.m4a`;
@@ -69,6 +97,7 @@ export const useAudioRecorder = () => {
     
     setIsRecording(false);
     setRecordingDuration(0);
+    setIsPaused(false);
   };
   
   // Format seconds as MM:SS
@@ -80,11 +109,14 @@ export const useAudioRecorder = () => {
   
   return {
     isRecording,
+    isPaused,
     recordingDuration,
     formattedDuration: formatDuration(recordingDuration),
     audioUrl,
     error,
     startRecording,
+    pauseRecording,
+    resumeRecording,
     stopRecording,
     cancelRecording
   };

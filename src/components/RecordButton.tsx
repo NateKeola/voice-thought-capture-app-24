@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, MicVocal, Save, Trash2 } from "lucide-react";
+import { Mic, Square, Loader2, MicVocal, Save, Trash2, StopCircle, PlayCircle } from "lucide-react";
 import { useAudioRecorder } from "@/services/AudioRecorder";
 import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
 import { saveMemo } from "@/services/MemoStorage";
@@ -20,6 +20,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   const [recognizedText, setRecognizedText] = useState('');
   const [recordingComplete, setRecordingComplete] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
   const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
   
   const {
@@ -27,7 +28,8 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     recordingDuration,
     formattedDuration,
     startRecording: startAudioRecording,
-    stopRecording: stopAudioRecording
+    stopRecording: stopAudioRecording,
+    cancelRecording
   } = useAudioRecorder();
 
   // Clean up speech recognition on unmount
@@ -77,6 +79,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       // Reset states for new recording
       setRecordingComplete(false);
       setRecognizedText('');
+      setIsPaused(false);
       if (onLiveTranscription) {
         onLiveTranscription('');
       }
@@ -119,6 +122,49 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
           description: "Your browser may not support this feature.",
           variant: "destructive"
         });
+      }
+    }
+  };
+
+  const handlePauseResume = () => {
+    setIsPaused(!isPaused);
+    
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stop();
+      speechRecognitionRef.current = null;
+      
+      // If we're resuming, start speech recognition again
+      if (isPaused) {
+        try {
+          speechRecognitionRef.current = startLiveTranscription(
+            // Interim results handler
+            (interimText) => {
+              if (onLiveTranscription) {
+                onLiveTranscription(interimText);
+              }
+            },
+            // Final result handler
+            (result: TranscriptionResult) => {
+              const newText = result.text.trim();
+              setRecognizedText(prev => `${prev} ${newText}`.trim());
+              
+              if (onLiveTranscription) {
+                onLiveTranscription(`${recognizedText} ${newText}`.trim());
+              }
+            },
+            // Error handler
+            (error) => {
+              console.error('Speech recognition error:', error);
+              toast({
+                title: "Voice recognition error",
+                description: error.message,
+                variant: "destructive"
+              });
+            }
+          );
+        } catch (error) {
+          console.error('Failed to restart speech recognition:', error);
+        }
       }
     }
   };
@@ -180,6 +226,10 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     setRecordingComplete(false);
     setRecognizedText('');
     setAudioUrl(null);
+    setIsPaused(false);
+    
+    // Make sure recording is cancelled
+    cancelRecording();
     
     // Clear live transcription
     if (onLiveTranscription) {
@@ -192,15 +242,9 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     });
   };
 
-  return (
-    <div className="relative flex flex-col items-center">
-      {isRecording && (
-        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-sm">
-          {formattedDuration}
-        </div>
-      )}
-      
-      {recordingComplete ? (
+  const renderRecordingControls = () => {
+    if (recordingComplete) {
+      return (
         <div className="flex flex-col items-center gap-4">
           <div className="text-center text-gray-700 mb-2">
             <p>Recording Complete</p>
@@ -232,29 +276,79 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
             </Button>
           </div>
         </div>
-      ) : (
-        <Button
-          onClick={handleToggleRecording}
-          disabled={isProcessing}
-          size="lg"
-          className={`h-28 w-28 rounded-full shadow-xl ${
-            isRecording 
-              ? 'bg-red-500 hover:bg-red-600 recording-button' 
-              : 'bg-gradient-to-r from-orange-500 to-orange-400 hover:bg-orange-600'
-          }`}
-          aria-label={isRecording ? "Stop recording" : "Start recording"}
-        >
-          {isProcessing ? (
-            <Loader2 className="h-12 w-12 animate-spin" />
-          ) : isRecording ? (
-            <Square className="h-12 w-12" />
-          ) : (
-            <MicVocal className="h-12 w-12" />
+      );
+    }
+    
+    if (isRecording) {
+      return (
+        <div className="flex flex-col items-center gap-4">
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-sm">
+            {formattedDuration}
+          </div>
+          
+          <div className="flex gap-3">
+            <Button
+              onClick={handlePauseResume}
+              variant="outline"
+              className="h-16 w-16 rounded-full border-gray-300"
+              disabled={isProcessing}
+            >
+              {isPaused ? (
+                <PlayCircle className="h-8 w-8 text-green-500" />
+              ) : (
+                <StopCircle className="h-8 w-8 text-amber-500" />
+              )}
+            </Button>
+            
+            <Button
+              onClick={handleToggleRecording}
+              disabled={isProcessing}
+              className="h-20 w-20 rounded-full bg-red-500 hover:bg-red-600"
+            >
+              {isProcessing ? (
+                <Loader2 className="h-10 w-10 animate-spin" />
+              ) : (
+                <Square className="h-10 w-10" />
+              )}
+            </Button>
+          </div>
+          
+          {recognizedText && (
+            <Button
+              onClick={handleSaveMemo}
+              disabled={isProcessing}
+              className="mt-4 rounded-full px-6 bg-orange-500 hover:bg-orange-600"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Memo
+            </Button>
           )}
-        </Button>
-      )}
+        </div>
+      );
+    }
+    
+    return (
+      <Button
+        onClick={handleToggleRecording}
+        disabled={isProcessing}
+        size="lg"
+        className="h-28 w-28 rounded-full shadow-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:bg-orange-600"
+        aria-label="Start recording"
+      >
+        {isProcessing ? (
+          <Loader2 className="h-12 w-12 animate-spin" />
+        ) : (
+          <MicVocal className="h-12 w-12" />
+        )}
+      </Button>
+    );
+  };
+
+  return (
+    <div className="relative flex flex-col items-center">
+      {renderRecordingControls()}
       
-      {isRecording && (
+      {isRecording && !isPaused && (
         <div className="recording-animation absolute w-full h-full rounded-full"></div>
       )}
     </div>

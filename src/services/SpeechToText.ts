@@ -78,7 +78,18 @@ export const startLiveTranscription = (
     };
     
     recognition.onerror = (event) => {
-      onError(new Error(`Speech recognition error: ${event.error}`));
+      if (event.error === 'no-speech') {
+        // This is a common error that doesn't need to be shown to the user
+        console.log('No speech detected.');
+      } else {
+        onError(new Error(`Speech recognition error: ${event.error}`));
+      }
+    };
+    
+    recognition.onend = () => {
+      // The Web Speech API has a tendency to stop automatically
+      // We could auto-restart here if we wanted continuous recognition
+      console.log('Speech recognition service disconnected');
     };
     
     recognition.start();
