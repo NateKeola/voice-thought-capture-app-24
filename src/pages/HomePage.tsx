@@ -55,20 +55,24 @@ const HomePage = () => {
       {showProfileMenu && <ProfileMenu onClose={() => setShowProfileMenu(false)} />}
 
       {activeTab === 'record' && (
-        <div className="flex-1 flex flex-col justify-center items-center">
-          {liveTranscription && (
-            <div className="bg-blue-50 p-3 rounded-lg mb-4 text-gray-700 max-h-32 overflow-y-auto">
-              <p>{liveTranscription}</p>
+        <div className="flex-1 flex flex-col items-center">
+          <div className="flex-grow flex flex-col justify-center items-center">
+            {liveTranscription && (
+              <div className="bg-blue-50 p-3 rounded-lg mb-6 text-gray-700 max-h-32 overflow-y-auto w-full max-w-sm">
+                <p>{liveTranscription}</p>
+              </div>
+            )}
+
+            <div className="mb-16">
+              <RecordButton 
+                onMemoCreated={handleMemoCreated} 
+                onLiveTranscription={handleLiveTranscription} 
+              />
             </div>
-          )}
 
-          <TextMemoInput onMemoCreated={handleMemoCreated} initialText={liveTranscription} />
-
-          <div className="mt-auto mb-20 flex justify-center">
-            <RecordButton 
-              onMemoCreated={handleMemoCreated} 
-              onLiveTranscription={handleLiveTranscription} 
-            />
+            <div className="w-full max-w-sm mt-8">
+              <TextMemoInput onMemoCreated={handleMemoCreated} initialText={liveTranscription} />
+            </div>
           </div>
         </div>
       )}

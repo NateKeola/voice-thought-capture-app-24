@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2 } from "lucide-react";
+import { Mic, Square, Loader2, MicVocal } from "lucide-react";
 import { useAudioRecorder } from "@/services/AudioRecorder";
 import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
 import { saveMemo } from "@/services/MemoStorage";
@@ -144,31 +144,36 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   };
 
   return (
-    <div className="relative">
+    <div className="relative flex flex-col items-center">
       {isRecording && (
-        <>
-          <div className="recording-animation" />
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-sm">
-            {formattedDuration}
-          </div>
-        </>
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-sm">
+          {formattedDuration}
+        </div>
       )}
       
       <Button
         onClick={handleToggleRecording}
         disabled={isProcessing}
         size="lg"
-        className={`h-24 w-24 rounded-full shadow-xl ${isRecording ? 'bg-red-500 hover:bg-red-600 recording-button' : 'bg-orange-500 hover:bg-orange-600'}`}
+        className={`h-28 w-28 rounded-full shadow-xl ${
+          isRecording 
+            ? 'bg-red-500 hover:bg-red-600 recording-button' 
+            : 'bg-gradient-to-r from-orange-500 to-orange-400 hover:bg-orange-600'
+        }`}
         aria-label={isRecording ? "Stop recording" : "Start recording"}
       >
         {isProcessing ? (
-          <Loader2 className="h-10 w-10 animate-spin" />
+          <Loader2 className="h-12 w-12 animate-spin" />
         ) : isRecording ? (
-          <Square className="h-10 w-10" />
+          <Square className="h-12 w-12" />
         ) : (
-          <Mic className="h-10 w-10" />
+          <MicVocal className="h-12 w-12" />
         )}
       </Button>
+      
+      {isRecording && (
+        <div className="recording-animation absolute w-full h-full rounded-full"></div>
+      )}
     </div>
   );
 };
