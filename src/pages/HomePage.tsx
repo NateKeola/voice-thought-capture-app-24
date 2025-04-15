@@ -2,14 +2,13 @@
 import React, { useState } from 'react';
 import { getAllMemos } from '@/services/MemoStorage';
 import RecordButton from '@/components/RecordButton';
-import MemoList from '@/components/MemoList';
-import TypeFilter from '@/components/TypeFilter';
 import { MemoType } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { UserCircle } from 'lucide-react';
 import ProfileMenu from '@/components/ProfileMenu';
 import TextMemoInput from '@/components/TextMemoInput';
+import BottomNavBar from '@/components/BottomNavBar';
 
 const HomePage = () => {
   const { toast } = useToast();
@@ -18,6 +17,7 @@ const HomePage = () => {
   const [activeFilter, setActiveFilter] = useState<MemoType | 'all'>('all');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [liveTranscription, setLiveTranscription] = useState('');
+  const [activeTab, setActiveTab] = useState('record');
 
   // Refresh memos when component mounts or a new memo is created
   const refreshMemos = () => {
@@ -38,7 +38,7 @@ const HomePage = () => {
   };
 
   return (
-    <div className="container max-w-md mx-auto py-6 px-4">
+    <div className="container max-w-md mx-auto py-6 px-4 h-screen flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <div className="w-10"></div> {/* Spacer for centering */}
         <h1 className="text-2xl font-bold text-center bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500 text-transparent bg-clip-text animate-pulse">
@@ -54,26 +54,26 @@ const HomePage = () => {
 
       {showProfileMenu && <ProfileMenu onClose={() => setShowProfileMenu(false)} />}
 
-      <TypeFilter activeType={activeFilter} onChange={setActiveFilter} />
+      {activeTab === 'record' && (
+        <div className="flex-1 flex flex-col justify-center items-center">
+          {liveTranscription && (
+            <div className="bg-blue-50 p-3 rounded-lg mb-4 text-gray-700 max-h-32 overflow-y-auto">
+              <p>{liveTranscription}</p>
+            </div>
+          )}
 
-      <div className="my-6">
-        <MemoList memos={memos} filter={activeFilter} />
-      </div>
+          <TextMemoInput onMemoCreated={handleMemoCreated} initialText={liveTranscription} />
 
-      {liveTranscription && (
-        <div className="bg-blue-50 p-3 rounded-lg mb-4 text-gray-700 max-h-32 overflow-y-auto">
-          <p>{liveTranscription}</p>
+          <div className="mt-auto mb-20 flex justify-center">
+            <RecordButton 
+              onMemoCreated={handleMemoCreated} 
+              onLiveTranscription={handleLiveTranscription} 
+            />
+          </div>
         </div>
       )}
 
-      <TextMemoInput onMemoCreated={handleMemoCreated} initialText={liveTranscription} />
-
-      <div className="fixed bottom-8 left-0 right-0 flex justify-center">
-        <RecordButton 
-          onMemoCreated={handleMemoCreated} 
-          onLiveTranscription={handleLiveTranscription} 
-        />
-      </div>
+      <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };

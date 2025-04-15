@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import HomePage from "./pages/HomePage";
+import MemosPage from "./pages/MemosPage";
+import RelationshipsPage from "./pages/RelationshipsPage";
 import MemoDetailPage from "./pages/MemoDetailPage";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
@@ -52,6 +54,24 @@ const App = () => {
               element={
                 <AuthRoute>
                   <HomePage />
+                </AuthRoute>
+              } 
+            />
+            
+            <Route 
+              path="/memos" 
+              element={
+                <AuthRoute>
+                  <MemosPage />
+                </AuthRoute>
+              } 
+            />
+            
+            <Route 
+              path="/relationships" 
+              element={
+                <AuthRoute>
+                  <RelationshipsPage />
                 </AuthRoute>
               } 
             />
