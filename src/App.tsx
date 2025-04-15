@@ -8,6 +8,7 @@ import HomePage from "./pages/HomePage";
 import MemoDetailPage from "./pages/MemoDetailPage";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -18,8 +19,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/" element={<Index />} />
           <Route path="/onboarding" element={<Onboarding />} />
-          <Route path="/" element={<HomePage />} />
+          <Route path="/home" element={<HomePage />} />
           <Route path="/memo/:id" element={<MemoDetailPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

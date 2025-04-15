@@ -20,8 +20,8 @@ const Onboarding = () => {
   };
 
   const handleSignInLink = () => {
-    // For now just redirect to home since we don't have a separate sign-in page
-    navigate('/');
+    // Direct redirect to home since we don't have a separate sign-in page
+    navigate('/home');
   };
 
   const handleCreateAccount = (email: string, password: string) => {
@@ -40,7 +40,7 @@ const Onboarding = () => {
 
   const handleFinishTour = () => {
     // Navigate to home screen when onboarding is complete
-    navigate('/');
+    navigate('/home');
   };
 
   return (
