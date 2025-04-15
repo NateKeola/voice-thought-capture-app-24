@@ -19,6 +19,7 @@ export const saveMemo = (memo: Omit<Memo, 'id' | 'createdAt'>): Memo => {
   };
   
   memos = [newMemo, ...memos];
+  console.log('Saved memo:', newMemo);
   return newMemo;
 };
 

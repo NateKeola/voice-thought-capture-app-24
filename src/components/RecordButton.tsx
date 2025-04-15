@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2 } from "lucide-react";
 import { useAudioRecorder } from "@/services/AudioRecorder";
@@ -14,6 +14,7 @@ interface RecordButtonProps {
 
 const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTranscription }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognizedText, setRecognizedText] = useState('');
   const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
@@ -73,7 +74,10 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
           description: `Your ${memoType} has been saved.`
         });
         
-        // Notify parent component
+        // Navigate to the memo detail page
+        navigate(`/memo/${memo.id}`);
+        
+        // Notify parent component (if needed)
         if (onMemoCreated) {
           onMemoCreated(memo.id);
         }
