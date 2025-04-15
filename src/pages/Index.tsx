@@ -6,8 +6,8 @@ const Index = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Redirect to the home page
-    navigate('/');
+    // Redirect to the onboarding page
+    navigate('/onboarding');
   }, [navigate]);
   
   return (

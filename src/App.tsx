@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import MemoDetailPage from "./pages/MemoDetailPage";
 import NotFound from "./pages/NotFound";
+import Onboarding from "./pages/Onboarding";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/memo/:id" element={<MemoDetailPage />} />
           <Route path="*" element={<NotFound />} />
