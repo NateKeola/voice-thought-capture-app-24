@@ -1,154 +1,89 @@
 
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { saveMemo } from '../services/MemoStorage';
-import { detectMemoType } from '../services/SpeechToText';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../types';
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { saveMemo } from '@/services/MemoStorage';
+import { detectMemoType } from '@/services/SpeechToText';
+import { useToast } from '@/components/ui/use-toast';
+import { Send } from 'lucide-react';
 
-type TextMemoInputProps = {
-  text?: string;
-  onChangeText?: (text: string) => void;
+interface TextMemoInputProps {
   onMemoCreated?: (memoId: string) => void;
   initialText?: string;
-};
+}
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
+const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialText = '' }) => {
+  const [text, setText] = useState(initialText);
+  const { toast } = useToast();
 
-const TextMemoInput = ({ text = '', onChangeText, onMemoCreated, initialText }: TextMemoInputProps) => {
-  const navigation = useNavigation<NavigationProp>();
-  const [isSaving, setIsSaving] = useState(false);
-  const [inputText, setInputText] = useState(text || initialText || '');
-  
   useEffect(() => {
-    if (initialText && initialText !== text) {
-      setInputText(initialText);
-    }
+    setText(initialText);
   }, [initialText]);
 
-  useEffect(() => {
-    if (text !== undefined && text !== inputText) {
-      setInputText(text);
-    }
-  }, [text]);
-
-  const handleTextChange = (newText: string) => {
-    setInputText(newText);
-    if (onChangeText) {
-      onChangeText(newText);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!inputText.trim()) {
-      // Show error toast or alert
+  const handleSubmit = () => {
+    if (!text.trim()) {
+      toast({
+        title: "Cannot save empty memo",
+        description: "Please enter some text for your memo",
+        variant: "destructive"
+      });
       return;
     }
 
     try {
-      setIsSaving(true);
-      
       // Detect the memo type
-      const memoType = detectMemoType(inputText);
+      const memoType = detectMemoType(text);
       
       // Save the memo
-      const memo = await saveMemo({
-        text: inputText,
+      const memo = saveMemo({
+        text: text,
         type: memoType,
         audioUrl: null // No audio for text-only memos
       });
       
-      // Clear the input
-      setInputText('');
-      if (onChangeText) {
-        onChangeText('');
-      }
+      toast({
+        title: "Memo saved!",
+        description: `Your ${memoType} has been saved.`
+      });
       
-      // Call the onMemoCreated callback if provided
+      // Clear the input
+      setText('');
+      
+      // Notify parent component
       if (onMemoCreated) {
         onMemoCreated(memo.id);
-      } else {
-        // Navigate to the memo detail
-        navigation.navigate('MemoDetail', { id: memo.id });
       }
     } catch (error) {
       console.error('Error saving memo:', error);
-      // Show error toast or alert
-    } finally {
-      setIsSaving(false);
+      toast({
+        title: "Error saving memo",
+        description: "There was a problem saving your memo.",
+        variant: "destructive"
+      });
     }
   };
 
   return (
-    <View style={styles.container}>
-      <TextInput
-        value={inputText}
-        onChangeText={handleTextChange}
+    <div className="bg-white rounded-lg shadow p-3 mb-20">
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
         placeholder="Type your memo here..."
-        style={styles.input}
-        multiline
-        numberOfLines={3}
+        className="w-full border-blue-100 focus-visible:ring-orange-500 mb-2"
+        rows={3}
       />
-      <TouchableOpacity
-        style={[
-          styles.button,
-          !inputText.trim() ? styles.buttonDisabled : null
-        ]}
-        onPress={handleSubmit}
-        disabled={!inputText.trim() || isSaving}
-      >
-        <Ionicons name="send" size={16} color="white" style={styles.icon} />
-        <Text style={styles.buttonText}>Save Memo</Text>
-      </TouchableOpacity>
-    </View>
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleSubmit} 
+          className="bg-orange-500 hover:bg-orange-600"
+          size="sm"
+        >
+          <Send className="mr-2 h-4 w-4" />
+          Save Memo
+        </Button>
+      </div>
+    </div>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    marginHorizontal: 20,
-    marginBottom: 20,
-  },
-  input: {
-    borderColor: '#e0e0e0',
-    borderWidth: 1,
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 16,
-    minHeight: 80,
-    marginBottom: 12,
-  },
-  button: {
-    backgroundColor: '#ff9500',
-    borderRadius: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    alignSelf: 'flex-end',
-    paddingHorizontal: 16,
-  },
-  buttonDisabled: {
-    backgroundColor: '#ccc',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  icon: {
-    marginRight: 6,
-  },
-});
 
 export default TextMemoInput;
