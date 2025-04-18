@@ -7,7 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 type MemoCardProps = {
   memo: Memo;
-  onPress: () => void;
+  onPress: () => void;  // Updated from onClick to onPress for React Native
 };
 
 const MemoCard = ({ memo, onPress }: MemoCardProps) => {

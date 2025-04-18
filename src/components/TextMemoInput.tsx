@@ -9,18 +9,40 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../types';
 
 type TextMemoInputProps = {
-  text: string;
-  onChangeText: (text: string) => void;
+  text?: string;
+  onChangeText?: (text: string) => void;
+  onMemoCreated?: (memoId: string) => void;
+  initialText?: string;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
-const TextMemoInput = ({ text, onChangeText }: TextMemoInputProps) => {
+const TextMemoInput = ({ text = '', onChangeText, onMemoCreated, initialText }: TextMemoInputProps) => {
   const navigation = useNavigation<NavigationProp>();
   const [isSaving, setIsSaving] = useState(false);
+  const [inputText, setInputText] = useState(text || initialText || '');
+  
+  useEffect(() => {
+    if (initialText && initialText !== text) {
+      setInputText(initialText);
+    }
+  }, [initialText]);
+
+  useEffect(() => {
+    if (text !== undefined && text !== inputText) {
+      setInputText(text);
+    }
+  }, [text]);
+
+  const handleTextChange = (newText: string) => {
+    setInputText(newText);
+    if (onChangeText) {
+      onChangeText(newText);
+    }
+  };
 
   const handleSubmit = async () => {
-    if (!text.trim()) {
+    if (!inputText.trim()) {
       // Show error toast or alert
       return;
     }
@@ -29,20 +51,28 @@ const TextMemoInput = ({ text, onChangeText }: TextMemoInputProps) => {
       setIsSaving(true);
       
       // Detect the memo type
-      const memoType = detectMemoType(text);
+      const memoType = detectMemoType(inputText);
       
       // Save the memo
       const memo = await saveMemo({
-        text: text,
+        text: inputText,
         type: memoType,
         audioUrl: null // No audio for text-only memos
       });
       
       // Clear the input
-      onChangeText('');
+      setInputText('');
+      if (onChangeText) {
+        onChangeText('');
+      }
       
-      // Navigate to the memo detail
-      navigation.navigate('MemoDetail', { id: memo.id });
+      // Call the onMemoCreated callback if provided
+      if (onMemoCreated) {
+        onMemoCreated(memo.id);
+      } else {
+        // Navigate to the memo detail
+        navigation.navigate('MemoDetail', { id: memo.id });
+      }
     } catch (error) {
       console.error('Error saving memo:', error);
       // Show error toast or alert
@@ -54,8 +84,8 @@ const TextMemoInput = ({ text, onChangeText }: TextMemoInputProps) => {
   return (
     <View style={styles.container}>
       <TextInput
-        value={text}
-        onChangeText={onChangeText}
+        value={inputText}
+        onChangeText={handleTextChange}
         placeholder="Type your memo here..."
         style={styles.input}
         multiline
@@ -64,10 +94,10 @@ const TextMemoInput = ({ text, onChangeText }: TextMemoInputProps) => {
       <TouchableOpacity
         style={[
           styles.button,
-          !text.trim() ? styles.buttonDisabled : null
+          !inputText.trim() ? styles.buttonDisabled : null
         ]}
         onPress={handleSubmit}
-        disabled={!text.trim() || isSaving}
+        disabled={!inputText.trim() || isSaving}
       >
         <Ionicons name="send" size={16} color="white" style={styles.icon} />
         <Text style={styles.buttonText}>Save Memo</Text>

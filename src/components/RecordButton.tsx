@@ -12,11 +12,13 @@ import { RootStackParamList } from '../types';
 type RecordButtonProps = {
   onTextInput: (text: string) => void;
   text: string;
+  onMemoCreated?: (memoId: string) => void;
+  onLiveTranscription?: (text: string) => void;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
 
-const RecordButton = ({ onTextInput, text }: RecordButtonProps) => {
+const RecordButton = ({ onTextInput, text, onMemoCreated, onLiveTranscription }: RecordButtonProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [recordingComplete, setRecordingComplete] = useState(false);
   const navigation = useNavigation<NavigationProp>();
@@ -40,6 +42,11 @@ const RecordButton = ({ onTextInput, text }: RecordButtonProps) => {
       const uri = await stopRecording();
       setRecordingComplete(true);
       setIsProcessing(false);
+      
+      // Call live transcription callback if provided
+      if (onLiveTranscription && text) {
+        onLiveTranscription(text);
+      }
     } else {
       // Start recording
       setRecordingComplete(false);
@@ -71,8 +78,13 @@ const RecordButton = ({ onTextInput, text }: RecordButtonProps) => {
       setRecordingComplete(false);
       onTextInput('');
       
-      // Navigate to the memo detail
-      navigation.navigate('MemoDetail', { id: memo.id });
+      // Call the onMemoCreated callback if provided
+      if (onMemoCreated) {
+        onMemoCreated(memo.id);
+      } else {
+        // Navigate to the memo detail if no callback
+        navigation.navigate('MemoDetail', { id: memo.id });
+      }
     } catch (error) {
       console.error('Error saving memo:', error);
     } finally {

@@ -98,7 +98,8 @@ export const useAudioRecorder = () => {
     try {
       if (recordingRef.current && isRecording && isPaused) {
         if (Platform.OS === 'ios') {
-          await recordingRef.current.resumeAsync();
+          // Using startAsync instead of resumeAsync which doesn't exist
+          await recordingRef.current.startAsync();
         }
         setIsPaused(false);
         
