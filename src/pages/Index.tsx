@@ -6,16 +6,7 @@ const Index = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    const hasUserName = !!localStorage.getItem('userName');
-
-    if (!isAuthenticated) {
-      navigate('/onboarding');
-    } else if (!hasUserName) {
-      navigate('/onboarding');
-    } else {
-      navigate('/home');
-    }
+    navigate('/onboarding');
   }, [navigate]);
   
   return (

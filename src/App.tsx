@@ -37,25 +37,18 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Index />} />
-              
-              <Route path="/onboarding" element={
-                localStorage.getItem('isAuthenticated') === 'true' 
-                  ? <Navigate to="/home" replace /> 
-                  : <Onboarding />
-              } />
-              
+              <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/signin" element={
                 localStorage.getItem('isAuthenticated') === 'true' 
                   ? <Navigate to="/home" replace /> 
                   : <SignIn />
               } />
-              
               <Route path="/home" element={<AuthRoute><HomePage /></AuthRoute>} />
               <Route path="/memos" element={<AuthRoute><MemosPage /></AuthRoute>} />
+              <Route path="/tasks" element={<AuthRoute><NotFound /></AuthRoute>} />
               <Route path="/relationships" element={<AuthRoute><RelationshipsPage /></AuthRoute>} />
               <Route path="/memo/:id" element={<AuthRoute><MemoDetailPage /></AuthRoute>} />
               <Route path="/profile" element={<AuthRoute><ProfilePage /></AuthRoute>} />
-              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

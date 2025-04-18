@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Welcome } from '@/components/onboarding/Welcome';
 import { EmailSignup } from '@/components/onboarding/EmailSignup';
@@ -14,6 +13,12 @@ const Onboarding = () => {
     photoUrl: '',
   });
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Remove any previous authentication state when landing on onboarding
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userName');
+  }, []);
 
   const handleContinueWithEmail = () => {
     setStep('email-signup');
