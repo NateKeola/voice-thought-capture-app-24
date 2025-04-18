@@ -23,8 +23,8 @@ const ProfileMenu: React.FC<ProfileMenuProps> = ({ onClose }) => {
     // Clear authentication status
     localStorage.removeItem('isAuthenticated');
     
-    // Navigate to onboarding
-    navigate('/onboarding');
+    // Navigate to sign in
+    navigate('/signin');
     onClose();
   };
 
