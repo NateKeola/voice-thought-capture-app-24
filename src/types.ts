@@ -1,4 +1,3 @@
-
 export type MemoType = 'note' | 'task' | 'idea';
 
 export interface Memo {
@@ -14,4 +13,14 @@ export interface RecordingState {
   isRecording: boolean;
   duration: number;
   audioUrl: string | null;
+}
+
+export interface Badge {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+  earned: boolean;
+  date?: string;
+  progress: number;
 }

@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
 import SignIn from "./pages/SignIn";
 import Index from "./pages/Index";
+import ProfilePage from "./pages/ProfilePage";
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -51,6 +52,7 @@ const App = () => {
             <Route path="/memos" element={<AuthRoute><MemosPage /></AuthRoute>} />
             <Route path="/relationships" element={<AuthRoute><RelationshipsPage /></AuthRoute>} />
             <Route path="/memo/:id" element={<AuthRoute><MemoDetailPage /></AuthRoute>} />
+            <Route path="/profile" element={<AuthRoute><ProfilePage /></AuthRoute>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
