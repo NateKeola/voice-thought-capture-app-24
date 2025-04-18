@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { getAllMemos } from '@/services/MemoStorage';
 import RecordButton from '@/components/RecordButton';
@@ -19,7 +18,6 @@ const HomePage = () => {
   const [liveTranscription, setLiveTranscription] = useState('');
   const [activeTab, setActiveTab] = useState('record');
 
-  // Refresh memos when component mounts or a new memo is created
   const refreshMemos = () => {
     setMemos(getAllMemos());
   };
@@ -37,15 +35,19 @@ const HomePage = () => {
     setLiveTranscription(text);
   };
 
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+
   return (
     <div className="container max-w-md mx-auto py-6 px-4 h-screen flex flex-col">
       <div className="flex justify-between items-center mb-6">
-        <div className="w-10"></div> {/* Spacer for centering */}
+        <div className="w-10"></div>
         <h1 className="text-2xl font-bold text-center bg-gradient-to-r from-orange-500 via-orange-400 to-orange-500 text-transparent bg-clip-text animate-pulse">
           MEMO
         </h1>
         <button 
-          onClick={toggleProfileMenu} 
+          onClick={handleProfileClick}
           className="w-10 h-10 rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100"
         >
           <UserCircle size={24} className="text-orange-500" />
