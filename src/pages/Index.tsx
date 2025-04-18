@@ -6,16 +6,8 @@ const Index = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Check if user is already authenticated
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    
-    if (isAuthenticated) {
-      // If authenticated, go directly to home
-      navigate('/home');
-    } else {
-      // If not authenticated, go to onboarding
-      navigate('/onboarding');
-    }
+    // Always redirect to onboarding initially
+    navigate('/onboarding');
   }, [navigate]);
   
   return (

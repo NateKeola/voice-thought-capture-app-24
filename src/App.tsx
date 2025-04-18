@@ -18,7 +18,7 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   
   if (!isAuthenticated) {
-    // Redirect to the root page, but save where the user was trying to go
+    // Redirect to onboarding if not authenticated
     return <Navigate to="/onboarding" state={{ from: location }} replace />;
   }
   
@@ -35,10 +35,10 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Default route that checks authentication and redirects accordingly */}
+            {/* Initial route */}
             <Route path="/" element={<Index />} />
             
-            {/* Onboarding route - only accessible if not authenticated */}
+            {/* Onboarding route - accessible when not authenticated */}
             <Route 
               path="/onboarding" 
               element={
