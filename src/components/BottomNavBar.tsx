@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Mic, MessageSquare, Users, User, ListTodo } from 'lucide-react';
+import { Mic, MessageSquare, Users, ListTodo } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface BottomNavBarProps {
@@ -16,8 +16,6 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
       navigate('/memos');
     } else if (tab === 'relationships') {
       navigate('/relationships');
-    } else if (tab === 'profile') {
-      navigate('/profile');
     } else if (tab === 'tasks') {
       navigate('/tasks');
     } else if (tab === 'record') {
@@ -68,16 +66,6 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
         >
           <Users size={24} />
           <span className="text-xs mt-1">Relationships</span>
-        </button>
-
-        <button
-          onClick={() => handleTabClick('profile')}
-          className={`flex flex-col items-center p-2 ${
-            activeTab === 'profile' ? 'text-orange-500' : 'text-gray-500'
-          }`}
-        >
-          <User size={24} />
-          <span className="text-xs mt-1">Profile</span>
         </button>
       </div>
     </div>
