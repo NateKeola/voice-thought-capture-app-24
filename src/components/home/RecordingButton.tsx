@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Mic, Pause, Play } from 'lucide-react';
+import { Mic, Pause, Play, Record } from 'lucide-react';
 
 interface RecordingButtonProps {
   onStartRecording: () => void;

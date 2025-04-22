@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, MicVocal, Save, Trash2, StopCircle } from "lucide-react";
+import { Loader2, Save, Trash2 } from "lucide-react";
 import { useAudioRecorder } from "@/services/AudioRecorder";
 import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
 import { saveMemo } from "@/services/MemoStorage";
@@ -287,26 +287,24 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
             {formattedDuration}
           </div>
           
-          <div className="flex gap-3">
-            <RecordingButton 
-              onStartRecording={() => {}} 
-              onPauseResumeRecording={handlePauseResume}
-              isRecording={isRecording}
-              isPaused={isPaused}
-            />
-            
-            <Button
-              onClick={handleToggleRecording}
-              disabled={isProcessing}
-              className="h-20 w-20 rounded-full bg-red-500 hover:bg-red-600"
-            >
-              {isProcessing ? (
-                <Loader2 className="h-10 w-10 animate-spin" />
-              ) : (
-                <Square className="h-10 w-10" />
-              )}
-            </Button>
-          </div>
+          <RecordingButton 
+            onStartRecording={() => {}}
+            onPauseResumeRecording={handlePauseResume}
+            isRecording={isRecording}
+            isPaused={isPaused}
+          />
+          
+          <Button
+            onClick={handleToggleRecording}
+            disabled={isProcessing}
+            className="rounded-full h-12 px-6 bg-red-500 hover:bg-red-600"
+          >
+            {isProcessing ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <>Stop</>
+            )}
+          </Button>
           
           {recognizedText && (
             <Button
