@@ -6,6 +6,7 @@ import MemoList from "@/components/MemoList";
 import BottomNavBar from "@/components/BottomNavBar";
 import TypeFilter from "@/components/TypeFilter";
 import { MemoType } from "@/types";
+import ProfileIconButton from "@/components/ProfileIconButton";
 
 const TasksPage: React.FC = () => {
   const navigate = useNavigate();
@@ -21,10 +22,10 @@ const TasksPage: React.FC = () => {
 
   return (
     <div className="container max-w-md mx-auto py-6 px-4 pb-20">
-      <div className="flex justify-center mb-6">
+      <div className="flex justify-between mb-6 items-center">
         <h1 className="text-2xl font-bold text-center text-purple-700">Your Tasks</h1>
+        <ProfileIconButton />
       </div>
-
       {/* Provide only task filtering */}
       <TypeFilter
         activeType={activeFilter}
@@ -37,11 +38,9 @@ const TasksPage: React.FC = () => {
           }
         }}
       />
-
       <div className="my-6">
         <MemoList memos={memos} filter={activeFilter} />
       </div>
-
       <BottomNavBar
         activeTab="tasks"
         onTabChange={(tab) => {
@@ -57,4 +56,3 @@ const TasksPage: React.FC = () => {
 };
 
 export default TasksPage;
-

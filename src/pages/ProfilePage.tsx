@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import AchievementBadge from '@/components/profile/AchievementBadge';
@@ -7,6 +6,7 @@ import { renderProfileIcon } from '@/utils/iconRenderer';
 import type { Badge } from '@/types';
 import BottomNavBar from '@/components/BottomNavBar';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import ProfileIconButton from '@/components/ProfileIconButton';
 
 const BADGES: Badge[] = [
   { 
@@ -84,16 +84,13 @@ const SETTINGS = [
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('badges');
   const { userName } = useUserProfile();
-  // Use initials from user name
   const initials = userName
     ? userName.split(' ').map(n => n.trim()[0] || '').join('').substring(0, 2).toUpperCase()
     : 'MJ';
 
-  // Get user email and joinDate from localStorage or just leave a placeholder for demo
   const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
   const joinDate = localStorage.getItem('joinDate') || 'April 2025';
 
-  // Example stats placeholders
   const stats = {
     totalMemos: 147,
     completedTasks: 83,
@@ -102,8 +99,12 @@ const ProfilePage = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      <ProfileHeader title="Profile" />
-      
+      <div className="relative">
+        <ProfileHeader title="Profile" />
+        <div className="absolute top-14 right-6 z-10">
+          <ProfileIconButton />
+        </div>
+      </div>
       <div className="px-6 -mt-6">
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center">
@@ -116,7 +117,6 @@ const ProfilePage = () => {
               <p className="text-gray-400 text-xs mt-1">Member since {joinDate}</p>
             </div>
           </div>
-          
           <div className="flex justify-around mt-6">
             <div className="text-center">
               <p className="text-gray-800 font-bold text-xl">{stats.totalMemos}</p>
@@ -133,7 +133,6 @@ const ProfilePage = () => {
           </div>
         </div>
       </div>
-      
       <div className="flex justify-around px-6 mt-6 border-b border-gray-200">
         <button 
           className={`py-3 px-4 ${activeTab === 'badges' ? 'text-orange-500 border-b-2 border-orange-500 font-medium' : 'text-gray-500'}`}
@@ -148,7 +147,6 @@ const ProfilePage = () => {
           Settings
         </button>
       </div>
-      
       <div className="flex-1 px-6 py-6 overflow-auto">
         {activeTab === 'badges' ? (
           <div>
@@ -157,7 +155,6 @@ const ProfilePage = () => {
               {BADGES.filter(badge => badge.earned).map(badge => (
                 <AchievementBadge key={badge.id} badge={badge} />
               ))}
-              
               <h3 className="text-lg font-semibold text-gray-800 mt-6 mb-4">In Progress</h3>
               {BADGES.filter(badge => !badge.earned).map(badge => (
                 <AchievementBadge key={badge.id} badge={badge} />
@@ -182,11 +179,9 @@ const ProfilePage = () => {
           </div>
         )}
       </div>
-      
       <BottomNavBar activeTab="profile" onTabChange={() => {}} />
     </div>
   );
 };
 
 export default ProfilePage;
-
