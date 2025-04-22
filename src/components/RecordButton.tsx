@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, Trash2, Stop } from "lucide-react";
+import { Loader2, Save, Trash2 } from "lucide-react";
 import { useAudioRecorder } from "@/services/AudioRecorder";
 import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
 import { saveMemo } from "@/services/MemoStorage";
@@ -224,7 +223,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
             <p>Recording Complete</p>
             <p className="text-sm text-gray-500">{recognizedText.substring(0, 50)}{recognizedText.length > 50 ? '...' : ''}</p>
           </div>
-          
           <div className="flex gap-3 justify-center">
             <Button
               onClick={handleCancel}
@@ -235,7 +233,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
               <Trash2 className="h-4 w-4 mr-2" />
               Discard
             </Button>
-            
             <Button
               onClick={handleSaveMemo}
               disabled={isProcessing}
@@ -252,17 +249,16 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
         </div>
       );
     }
-    
+
     if (isRecording) {
       return (
         <div className="flex flex-col items-center gap-4">
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-sm">
             {formattedDuration}
           </div>
-          
           <div className="relative">
             {!isPaused && (
-              <div className="recording-animation absolute -inset-8 rounded-full z-0"></div>
+              <div className="recording-animation pointer-events-none absolute -inset-8 rounded-full z-0"></div>
             )}
             <div className="relative z-10">
               <RecordingButton 
@@ -273,7 +269,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
               />
             </div>
           </div>
-          
           <Button
             onClick={handleToggleRecording}
             disabled={isProcessing}
@@ -282,10 +277,9 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
             {isProcessing ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
             ) : (
-              <><Stop className="h-4 w-4 mr-2" /> Stop</>
+              <>Stop</>
             )}
           </Button>
-          
           {recognizedText && (
             <div className="flex justify-center w-full mt-4">
               <Button
@@ -301,7 +295,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
         </div>
       );
     }
-    
+
     return (
       <RecordingButton 
         onStartRecording={handleToggleRecording} 
