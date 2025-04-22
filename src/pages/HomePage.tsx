@@ -1,15 +1,22 @@
+
 import React, { useState } from 'react';
-import { Send } from 'lucide-react';
-import Header from '@/components/home/Header';
+import { Header } from '@/components/home/Header';
 import SearchBar from '@/components/home/SearchBar';
 import RecordButton from '@/components/RecordButton';
 import BottomNavBar from '@/components/BottomNavBar';
 import TextMemoInput from '@/components/TextMemoInput';
+import MemoList from '@/components/MemoList';
+import { getAllMemos } from '@/services/MemoStorage';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('record');
   const [liveTranscription, setLiveTranscription] = useState('');
+  const [memos, setMemos] = useState(() => getAllMemos());
+
+  // If a new memo is created, refresh the memos list.
+  // You might want a useEffect here if you support live updates.
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -44,9 +51,14 @@ const HomePage = () => {
           <TextMemoInput />
         </div>
         
-        <div className="text-center mt-8">
-          <p className="text-gray-400 text-sm">or browse your memos by category below</p>
-          <Send className="h-5 w-5 mx-auto mt-2 text-gray-400 animate-bounce rotate-90" />
+        {/* Recent memos scrollable feature */}
+        <div className="w-full max-w-md mt-10 flex-1 flex flex-col">
+          <h3 className="text-gray-700 font-semibold mb-2 text-base">Recent Memos</h3>
+          <ScrollArea className="h-64 rounded-lg border bg-white shadow-sm">
+            <div className="p-3">
+              <MemoList memos={memos} filter="all" />
+            </div>
+          </ScrollArea>
         </div>
       </div>
       
