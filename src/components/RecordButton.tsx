@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, MicVocal, Save, Trash2, StopCircle, PlayCircle } from "lucide-react";
+import { Mic, Square, Loader2, MicVocal, Save, Trash2, StopCircle } from "lucide-react";
 import { useAudioRecorder } from "@/services/AudioRecorder";
 import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
 import { saveMemo } from "@/services/MemoStorage";
 import { useToast } from "@/components/ui/use-toast";
+import RecordingButton from "@/components/home/RecordingButton";
 
 interface RecordButtonProps {
   onMemoCreated?: (memoId: string) => void;
@@ -20,15 +21,17 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   const [recognizedText, setRecognizedText] = useState('');
   const [recordingComplete, setRecordingComplete] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
   const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
   
   const {
     isRecording,
+    isPaused,
     recordingDuration,
     formattedDuration,
     startRecording: startAudioRecording,
     stopRecording: stopAudioRecording,
+    pauseRecording,
+    resumeRecording,
     cancelRecording
   } = useAudioRecorder();
 
@@ -79,10 +82,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       // Reset states for new recording
       setRecordingComplete(false);
       setRecognizedText('');
-      setIsPaused(false);
-      if (onLiveTranscription) {
-        onLiveTranscription('');
-      }
       
       // Start recording
       startAudioRecording();
@@ -127,44 +126,47 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   };
 
   const handlePauseResume = () => {
-    setIsPaused(!isPaused);
-    
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.stop();
-      speechRecognitionRef.current = null;
+    if (isPaused) {
+      resumeRecording();
       
       // If we're resuming, start speech recognition again
-      if (isPaused) {
-        try {
-          speechRecognitionRef.current = startLiveTranscription(
-            // Interim results handler
-            (interimText) => {
-              if (onLiveTranscription) {
-                onLiveTranscription(interimText);
-              }
-            },
-            // Final result handler
-            (result: TranscriptionResult) => {
-              const newText = result.text.trim();
-              setRecognizedText(prev => `${prev} ${newText}`.trim());
-              
-              if (onLiveTranscription) {
-                onLiveTranscription(`${recognizedText} ${newText}`.trim());
-              }
-            },
-            // Error handler
-            (error) => {
-              console.error('Speech recognition error:', error);
-              toast({
-                title: "Voice recognition error",
-                description: error.message,
-                variant: "destructive"
-              });
+      try {
+        speechRecognitionRef.current = startLiveTranscription(
+          // Interim results handler
+          (interimText) => {
+            if (onLiveTranscription) {
+              onLiveTranscription(interimText);
             }
-          );
-        } catch (error) {
-          console.error('Failed to restart speech recognition:', error);
-        }
+          },
+          // Final result handler
+          (result: TranscriptionResult) => {
+            const newText = result.text.trim();
+            setRecognizedText(prev => `${prev} ${newText}`.trim());
+            
+            if (onLiveTranscription) {
+              onLiveTranscription(`${recognizedText} ${newText}`.trim());
+            }
+          },
+          // Error handler
+          (error) => {
+            console.error('Speech recognition error:', error);
+            toast({
+              title: "Voice recognition error",
+              description: error.message,
+              variant: "destructive"
+            });
+          }
+        );
+      } catch (error) {
+        console.error('Failed to restart speech recognition:', error);
+      }
+    } else {
+      pauseRecording();
+      
+      // Stop speech recognition while paused
+      if (speechRecognitionRef.current) {
+        speechRecognitionRef.current.stop();
+        speechRecognitionRef.current = null;
       }
     }
   };
@@ -226,7 +228,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     setRecordingComplete(false);
     setRecognizedText('');
     setAudioUrl(null);
-    setIsPaused(false);
     
     // Make sure recording is cancelled
     cancelRecording();
@@ -287,18 +288,12 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
           </div>
           
           <div className="flex gap-3">
-            <Button
-              onClick={handlePauseResume}
-              variant="outline"
-              className="h-16 w-16 rounded-full border-gray-300"
-              disabled={isProcessing}
-            >
-              {isPaused ? (
-                <PlayCircle className="h-8 w-8 text-green-500" />
-              ) : (
-                <StopCircle className="h-8 w-8 text-amber-500" />
-              )}
-            </Button>
+            <RecordingButton 
+              onStartRecording={() => {}} 
+              onPauseResumeRecording={handlePauseResume}
+              isRecording={isRecording}
+              isPaused={isPaused}
+            />
             
             <Button
               onClick={handleToggleRecording}
@@ -328,19 +323,11 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     }
     
     return (
-      <Button
-        onClick={handleToggleRecording}
-        disabled={isProcessing}
-        size="lg"
-        className="h-28 w-28 rounded-full shadow-xl bg-gradient-to-r from-orange-500 to-orange-400 hover:bg-orange-600"
-        aria-label="Start recording"
-      >
-        {isProcessing ? (
-          <Loader2 className="h-12 w-12 animate-spin" />
-        ) : (
-          <MicVocal className="h-12 w-12" />
-        )}
-      </Button>
+      <RecordingButton 
+        onStartRecording={handleToggleRecording} 
+        isRecording={false}
+        isPaused={false}
+      />
     );
   };
 
