@@ -1,12 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-
-// Integrate shadcn Button for design consistency
 import { Button } from '@/components/ui/button';
+import BottomNavBar from '@/components/BottomNavBar';
 
-// Helper colors (in case needed for tags)
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
   client: 'bg-purple-100 text-purple-600',
@@ -23,7 +20,6 @@ const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // State for relationships
   const [relationships, setRelationships] = useState([]);
   const [filteredRelationships, setFilteredRelationships] = useState([]);
   const [selectedRelationship, setSelectedRelationship] = useState(null);
@@ -33,8 +29,8 @@ const RelationshipsPage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingText, setRecordingText] = useState('');
+  const [globalTab, setGlobalTab] = useState('relationships');
 
-  // Sample data
   useEffect(() => {
     const sampleRelationships = [
       {
@@ -98,7 +94,6 @@ const RelationshipsPage = () => {
     setFilteredRelationships(sampleRelationships);
   }, []);
 
-  // Filter relationships
   useEffect(() => {
     let filtered = relationships;
     if (searchQuery) {
@@ -113,7 +108,6 @@ const RelationshipsPage = () => {
     setFilteredRelationships(filtered);
   }, [searchQuery, activeTab, relationships]);
 
-  // Add Memo
   const handleAddMemo = () => {
     if (!newMemoText.trim() && !recordingText.trim()) return;
     const memoText = newMemoText || recordingText;
@@ -147,7 +141,6 @@ const RelationshipsPage = () => {
     });
   };
 
-  // Simulated Voice Recording
   const toggleRecording = () => {
     if (isRecording) {
       setRecordingText("Met about the new project proposal. They had some concerns about timeline but were excited about the concept overall.");
@@ -158,11 +151,9 @@ const RelationshipsPage = () => {
     }
   };
 
-  // Colors for rels/memos
   const getTypeColor = (type) => REL_TYPE_COLORS[type.toLowerCase()] || REL_TYPE_COLORS.default;
   const getMemoTypeColor = (type) => MEMO_TYPE_COLORS[type] || MEMO_TYPE_COLORS.note;
 
-  // Memo type icons (SVGs)
   const getMemoTypeIcon = (type) => {
     switch (type) {
       case 'task':
@@ -174,7 +165,7 @@ const RelationshipsPage = () => {
       case 'should':
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z" />
+            <path d="M11 3a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
           </svg>
         );
       case 'note':
@@ -204,7 +195,6 @@ const RelationshipsPage = () => {
             </div>
           </div>
         </div>
-        {/* Search Bar */}
         <div className="mt-6">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -306,7 +296,7 @@ const RelationshipsPage = () => {
                     onClick={() => setShowAddMemoModal(true)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5a1 1 0 011 1zM15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" clipRule="evenodd" />
                     </svg>
                     Add Memo
                   </Button>
@@ -338,7 +328,7 @@ const RelationshipsPage = () => {
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-orange-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                   </svg>
                   <p className="mt-4 text-gray-500">Select a relationship to view and add memos</p>
                 </div>
@@ -364,7 +354,7 @@ const RelationshipsPage = () => {
                 aria-label="Close"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12-12-12zm0 0v-8" />
                 </svg>
               </button>
             </div>
@@ -422,42 +412,13 @@ const RelationshipsPage = () => {
           </div>
         </div>
       )}
-      {/* Bottom Navigation (re-integrate with router!) */}
-      <div className="bg-white px-6 py-4 border-t border-gray-200">
-        <div className="flex justify-around">
-          <button className="flex flex-col items-center" onClick={() => navigate('/home')}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7m-7-7v14" />
-            </svg>
-            <span className="text-xs text-gray-400 mt-1">Dashboard</span>
-          </button>
-          <button className="flex flex-col items-center" onClick={() => navigate('/memos')}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <span className="text-xs text-gray-400 mt-1">Memos</span>
-          </button>
-          <div className="relative -mt-8">
-            <button className="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center shadow-lg border-4 border-white" onClick={() => navigate('/home')}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            </button>
-          </div>
-          <button className="flex flex-col items-center" onClick={() => navigate('/relationships')}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            <span className="text-xs text-orange-500 font-medium mt-1">Relationships</span>
-          </button>
-          <button className="flex flex-col items-center" onClick={() => navigate('/profile')}>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="text-xs text-gray-400 mt-1">Profile</span>
-          </button>
-        </div>
-      </div>
+      {/* SHARED Bottom Navigation Bar */}
+      <BottomNavBar
+        activeTab={globalTab}
+        onTabChange={(tab) => {
+          setGlobalTab(tab);
+        }}
+      />
     </div>
   );
 };
