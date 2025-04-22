@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Header } from '@/components/home/Header';
+import Header from '@/components/home/Header';
 import SearchBar from '@/components/home/SearchBar';
 import RecordButton from '@/components/RecordButton';
 import BottomNavBar from '@/components/BottomNavBar';
@@ -14,9 +13,6 @@ const HomePage = () => {
   const [activeTab, setActiveTab] = useState('record');
   const [liveTranscription, setLiveTranscription] = useState('');
   const [memos, setMemos] = useState(() => getAllMemos());
-
-  // If a new memo is created, refresh the memos list.
-  // You might want a useEffect here if you support live updates.
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -32,11 +28,9 @@ const HomePage = () => {
           <p className="text-gray-500 text-sm max-w-xs">Tap the button below to record a voice memo</p>
         </div>
         
-        {/* Record button now handles live transcription */}
         <div className="relative mb-4">
           <RecordButton onLiveTranscription={setLiveTranscription} />
           
-          {/* Live transcription display */}
           {liveTranscription && (
             <div className="absolute w-full left-0 top-full mt-4 bg-white rounded-lg shadow-md px-6 py-3 border border-orange-100">
               <p className="text-sm text-gray-500">Transcribing...</p>
@@ -51,7 +45,6 @@ const HomePage = () => {
           <TextMemoInput />
         </div>
         
-        {/* Recent memos scrollable feature */}
         <div className="w-full max-w-md mt-10 flex-1 flex flex-col">
           <h3 className="text-gray-700 font-semibold mb-2 text-base">Recent Memos</h3>
           <ScrollArea className="h-64 rounded-lg border bg-white shadow-sm">
