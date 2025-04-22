@@ -3,7 +3,6 @@ import React from 'react';
 import MemoList from '@/components/MemoList';
 import TypeFilter from '@/components/TypeFilter';
 import { MemoType, Memo } from '@/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import ProfileIconButton from '@/components/ProfileIconButton';
 
 interface MemosSectionProps {
@@ -18,20 +17,23 @@ const MemosSection: React.FC<MemosSectionProps> = ({
   onFilterChange 
 }) => {
   return (
-    <div className="w-full max-w-md mt-10 flex-1 flex flex-col">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="text-gray-700 font-semibold text-base">Your Memos</h3>
-        <ProfileIconButton />
+    <section className="w-full flex flex-col items-center mt-8 mb-6">
+      {/* Gorgeous header */}
+      <div className="w-full max-w-md relative rounded-2xl overflow-hidden shadow-lg mb-4">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-400 to-orange-200 opacity-80"></div>
+        <div className="relative z-10 flex items-center justify-between px-6 py-5">
+          <h3 className="text-white text-xl font-bold drop-shadow">Your Memos</h3>
+          <ProfileIconButton />
+        </div>
       </div>
-      <TypeFilter activeType={activeFilter} onChange={onFilterChange} />
-      <div className="mt-3 flex-1 min-h-40">
-        <ScrollArea className="h-64 rounded-lg border bg-white shadow-sm">
-          <div className="p-3">
-            <MemoList memos={memos} filter={activeFilter} />
-          </div>
-        </ScrollArea>
+
+      <div className="w-full max-w-md bg-white/80 shadow-lg rounded-2xl p-4">
+        <TypeFilter activeType={activeFilter} onChange={onFilterChange} />
+        <div className="mt-4">
+          <MemoList memos={memos} filter={activeFilter} />
+        </div>
       </div>
-    </div>
+    </section>
   );
 };
 
