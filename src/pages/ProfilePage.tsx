@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import AchievementBadge from '@/components/profile/AchievementBadge';
@@ -5,18 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import { renderProfileIcon } from '@/utils/iconRenderer';
 import type { Badge } from '@/types';
 import BottomNavBar from '@/components/BottomNavBar';
-
-const USER_DATA = {
-  name: 'Morgan Johnson',
-  email: 'morgan.johnson@example.com',
-  joinDate: 'March 15, 2025',
-  avatar: 'MJ',
-  stats: {
-    totalMemos: 147,
-    completedTasks: 83,
-    pendingTasks: 12
-  }
-};
+import { useUserProfile } from '@/contexts/UserProfileContext';
 
 const BADGES: Badge[] = [
   { 
@@ -93,43 +83,57 @@ const SETTINGS = [
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('badges');
-  
+  const { userName } = useUserProfile();
+  // Use initials from user name
+  const initials = userName
+    ? userName.split(' ').map(n => n.trim()[0] || '').join('').substring(0, 2).toUpperCase()
+    : 'MJ';
+
+  // Get user email and joinDate from localStorage or just leave a placeholder for demo
+  const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
+  const joinDate = localStorage.getItem('joinDate') || 'April 2025';
+
+  // Example stats placeholders
+  const stats = {
+    totalMemos: 147,
+    completedTasks: 83,
+    pendingTasks: 12,
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <ProfileHeader title="Profile" />
       
-      {/* Profile Card */}
       <div className="px-6 -mt-6">
         <div className="bg-white rounded-xl shadow-sm p-6">
           <div className="flex items-center">
             <div className="bg-orange-100 w-20 h-20 rounded-full flex items-center justify-center mr-4">
-              <span className="text-orange-600 font-bold text-2xl">{USER_DATA.avatar}</span>
+              <span className="text-orange-600 font-bold text-2xl">{initials}</span>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-800">{USER_DATA.name}</h2>
-              <p className="text-gray-500 text-sm">{USER_DATA.email}</p>
-              <p className="text-gray-400 text-xs mt-1">Member since {USER_DATA.joinDate}</p>
+              <h2 className="text-xl font-bold text-gray-800">{userName || 'Your Name'}</h2>
+              <p className="text-gray-500 text-sm">{userEmail}</p>
+              <p className="text-gray-400 text-xs mt-1">Member since {joinDate}</p>
             </div>
           </div>
           
           <div className="flex justify-around mt-6">
             <div className="text-center">
-              <p className="text-gray-800 font-bold text-xl">{USER_DATA.stats.totalMemos}</p>
+              <p className="text-gray-800 font-bold text-xl">{stats.totalMemos}</p>
               <p className="text-gray-500 text-xs">Total Memos</p>
             </div>
             <div className="text-center">
-              <p className="text-gray-800 font-bold text-xl">{USER_DATA.stats.completedTasks}</p>
+              <p className="text-gray-800 font-bold text-xl">{stats.completedTasks}</p>
               <p className="text-gray-500 text-xs">Completed</p>
             </div>
             <div className="text-center">
-              <p className="text-gray-800 font-bold text-xl">{USER_DATA.stats.pendingTasks}</p>
+              <p className="text-gray-800 font-bold text-xl">{stats.pendingTasks}</p>
               <p className="text-gray-500 text-xs">Pending</p>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Tabs */}
       <div className="flex justify-around px-6 mt-6 border-b border-gray-200">
         <button 
           className={`py-3 px-4 ${activeTab === 'badges' ? 'text-orange-500 border-b-2 border-orange-500 font-medium' : 'text-gray-500'}`}
@@ -145,7 +149,6 @@ const ProfilePage = () => {
         </button>
       </div>
       
-      {/* Content */}
       <div className="flex-1 px-6 py-6 overflow-auto">
         {activeTab === 'badges' ? (
           <div>
@@ -186,3 +189,4 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
+
