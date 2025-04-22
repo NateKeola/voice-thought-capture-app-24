@@ -8,18 +8,20 @@ import { Mail, Apple, Facebook } from 'lucide-react';
 interface WelcomeProps {
   onContinueWithEmail: () => void;
   onSignInLink: () => void;
+  onSSOLogin: () => void; // New prop for SSO login to trigger profile setup next
 }
 
 export const Welcome: React.FC<WelcomeProps> = ({ 
   onContinueWithEmail,
-  onSignInLink
+  onSignInLink,
+  onSSOLogin
 }) => {
   const navigate = useNavigate();
   
   const handleSSOLogin = () => {
-    // Mark user as authenticated
-    localStorage.setItem('isAuthenticated', 'true');
-    navigate('/home');
+    // Normally would call SSO here, then proceed
+    // Instead of navigating directly to /home, we invoke the callback to go to profile setup
+    onSSOLogin();
   };
 
   return (
@@ -88,3 +90,4 @@ export const Welcome: React.FC<WelcomeProps> = ({
     </Card>
   );
 };
+

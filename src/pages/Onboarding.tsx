@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Welcome } from '@/components/onboarding/Welcome';
@@ -24,8 +25,13 @@ const Onboarding = () => {
     setStep('email-signup');
   };
 
+  const handleSSOSignIn = () => {
+    // After an SSO login, we proceed to profile setup to get the user's name
+    setStep('profile-setup');
+  };
+
   const handleSignInLink = () => {
-    // Mark user as authenticated
+    // Mark user as authenticated (for sign in flow redirects here)
     localStorage.setItem('isAuthenticated', 'true');
     navigate('/home');
   };
@@ -47,6 +53,10 @@ const Onboarding = () => {
   const handleFinishTour = () => {
     // Mark user as authenticated
     localStorage.setItem('isAuthenticated', 'true');
+    // Save userName from formData to localStorage for profile display
+    if (formData.name) {
+      localStorage.setItem('userName', formData.name);
+    }
     // Navigate to home screen when onboarding is complete
     navigate('/home');
   };
@@ -57,6 +67,7 @@ const Onboarding = () => {
         <Welcome 
           onContinueWithEmail={handleContinueWithEmail} 
           onSignInLink={handleSignInLink}
+          onSSOLogin={handleSSOSignIn}
         />
       )}
       
@@ -79,3 +90,4 @@ const Onboarding = () => {
 };
 
 export default Onboarding;
+
