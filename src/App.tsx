@@ -12,6 +12,7 @@ import Onboarding from "./pages/Onboarding";
 import SignIn from "./pages/SignIn";
 import Index from "./pages/Index";
 import ProfilePage from "./pages/ProfilePage";
+import TasksPage from "./pages/TasksPage";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
@@ -45,7 +46,7 @@ const App = () => {
               } />
               <Route path="/home" element={<AuthRoute><HomePage /></AuthRoute>} />
               <Route path="/memos" element={<AuthRoute><MemosPage /></AuthRoute>} />
-              <Route path="/tasks" element={<AuthRoute><NotFound /></AuthRoute>} />
+              <Route path="/tasks" element={<AuthRoute><TasksPage /></AuthRoute>} />
               <Route path="/relationships" element={<AuthRoute><RelationshipsPage /></AuthRoute>} />
               <Route path="/memo/:id" element={<AuthRoute><MemoDetailPage /></AuthRoute>} />
               <Route path="/profile" element={<AuthRoute><ProfilePage /></AuthRoute>} />

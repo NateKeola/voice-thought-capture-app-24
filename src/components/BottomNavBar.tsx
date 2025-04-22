@@ -20,13 +20,15 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
       navigate('/profile');
     } else if (tab === 'tasks') {
       navigate('/tasks');
+    } else if (tab === 'record') {
+      navigate('/home');
     } else {
       onTabChange(tab);
     }
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 z-30">
       <div className="container max-w-md mx-auto flex justify-around items-center">
         <button
           onClick={() => handleTabClick('memos')}
@@ -41,7 +43,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
         <button
           onClick={() => handleTabClick('tasks')}
           className={`flex flex-col items-center p-2 ${
-            activeTab === 'tasks' ? 'text-orange-500' : 'text-gray-500'
+            activeTab === 'tasks' ? 'text-purple-600' : 'text-gray-500'
           }`}
         >
           <ListTodo size={24} />
@@ -83,3 +85,4 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
 };
 
 export default BottomNavBar;
+
