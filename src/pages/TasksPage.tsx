@@ -5,6 +5,7 @@ import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
 import TasksViewToggle from "@/components/tasks/TasksViewToggle";
 import TaskList from "@/components/tasks/TaskList";
 import TasksFAB from "@/components/tasks/TasksFAB";
+import BottomNavBar from "@/components/BottomNavBar"; // <--- import the bottom navigation bar
 
 const initialTasks = [
   { id: 1, title: "Remember to pick up groceries", description: "Tonight after work, especially milk and eggs.", completed: false, category: "personal", priority: "high", due: "today", created: 7, hasAudio: true },
@@ -34,6 +35,7 @@ const TasksPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [tasks, setTasks] = useState(initialTasks);
+  const [activeTab, setActiveTab] = useState("tasks"); // for BottomNavBar
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
@@ -80,7 +82,7 @@ const TasksPage: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
       <TasksHeader taskCount={tasks.filter((t) => !t.completed).length} />
-      <div className="container mx-auto max-w-md px-4 pt-4">
+      <div className="container mx-auto max-w-md px-4 pt-4 pb-4"> {/* add space on bottom */}
         <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
         {/* Toggle Show Completed */}
         <div className="flex justify-between items-center my-4">
@@ -121,14 +123,14 @@ const TasksPage: React.FC = () => {
         {/* Categories */}
         {viewMode === "categories" && !selectedCategory && (
           <div className="grid grid-cols-2 gap-4 mb-6">
-            {categoryTaskCounts.map((cat) => (
+            {categories.map((cat) => (
               <TaskCategoryCard
                 key={cat.id}
                 id={cat.id}
                 name={cat.name}
                 color={cat.color}
-                count={cat.count}
-                total={cat.total}
+                count={tasks.filter((t) => t.category === cat.id && !t.completed).length}
+                total={tasks.filter((t) => t.category === cat.id).length}
                 onSelect={handleCategorySelect}
                 selected={false}
               />
@@ -145,6 +147,7 @@ const TasksPage: React.FC = () => {
         />
       </div>
       <TasksFAB />
+      <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} /> {/* always visible */}
     </div>
   );
 };
