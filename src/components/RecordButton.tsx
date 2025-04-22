@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     cancelRecording
   } = useAudioRecorder();
 
-  // Clean up speech recognition on unmount
   useEffect(() => {
     return () => {
       if (speechRecognitionRef.current) {
@@ -47,16 +45,13 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   const handleToggleRecording = async () => {
     if (isRecording) {
       try {
-        // Stop recording
         setIsProcessing(true);
         
-        // Stop speech recognition
         if (speechRecognitionRef.current) {
           speechRecognitionRef.current.stop();
           speechRecognitionRef.current = null;
         }
         
-        // Stop audio recording
         const url = await stopAudioRecording();
         setAudioUrl(url);
         
@@ -65,10 +60,8 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
           description: "You can now save your memo"
         });
         
-        // Set recording complete state
         setRecordingComplete(true);
         setIsProcessing(false);
-        
       } catch (error) {
         console.error('Error processing recording:', error);
         toast({
@@ -79,23 +72,18 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
         setIsProcessing(false);
       }
     } else {
-      // Reset states for new recording
       setRecordingComplete(false);
       setRecognizedText('');
       
-      // Start recording
       startAudioRecording();
       
-      // Start speech recognition
       try {
         speechRecognitionRef.current = startLiveTranscription(
-          // Interim results handler
           (interimText) => {
             if (onLiveTranscription) {
               onLiveTranscription(interimText);
             }
           },
-          // Final result handler
           (result: TranscriptionResult) => {
             const newText = result.text.trim();
             setRecognizedText(prev => `${prev} ${newText}`.trim());
@@ -104,7 +92,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
               onLiveTranscription(`${recognizedText} ${newText}`.trim());
             }
           },
-          // Error handler
           (error) => {
             console.error('Speech recognition error:', error);
             toast({
@@ -129,16 +116,13 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     if (isPaused) {
       resumeRecording();
       
-      // If we're resuming, start speech recognition again
       try {
         speechRecognitionRef.current = startLiveTranscription(
-          // Interim results handler
           (interimText) => {
             if (onLiveTranscription) {
               onLiveTranscription(interimText);
             }
           },
-          // Final result handler
           (result: TranscriptionResult) => {
             const newText = result.text.trim();
             setRecognizedText(prev => `${prev} ${newText}`.trim());
@@ -147,7 +131,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
               onLiveTranscription(`${recognizedText} ${newText}`.trim());
             }
           },
-          // Error handler
           (error) => {
             console.error('Speech recognition error:', error);
             toast({
@@ -163,7 +146,6 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     } else {
       pauseRecording();
       
-      // Stop speech recognition while paused
       if (speechRecognitionRef.current) {
         speechRecognitionRef.current.stop();
         speechRecognitionRef.current = null;
@@ -175,13 +157,10 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     try {
       setIsProcessing(true);
       
-      // We already have the transcript from live recognition
       const memoText = recognizedText || "Empty memo";
       
-      // Detect the memo type
       const memoType = detectMemoType(memoText);
       
-      // Save the memo
       const memo = saveMemo({
         text: memoText,
         type: memoType,
@@ -193,20 +172,16 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
         description: `Your ${memoType} has been saved.`
       });
       
-      // Navigate to the memo detail page
       navigate(`/memo/${memo.id}`);
       
-      // Notify parent component (if needed)
       if (onMemoCreated) {
         onMemoCreated(memo.id);
       }
       
-      // Clear live transcription
       if (onLiveTranscription) {
         onLiveTranscription('');
       }
       
-      // Reset states
       setRecognizedText('');
       setRecordingComplete(false);
       setAudioUrl(null);
@@ -224,15 +199,12 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   };
 
   const handleCancel = () => {
-    // Reset states
     setRecordingComplete(false);
     setRecognizedText('');
     setAudioUrl(null);
     
-    // Make sure recording is cancelled
     cancelRecording();
     
-    // Clear live transcription
     if (onLiveTranscription) {
       onLiveTranscription('');
     }
@@ -288,7 +260,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
           </div>
           
           <RecordingButton 
-            onStartRecording={() => {}}
+            onStartRecording={handleToggleRecording}
             onPauseResumeRecording={handlePauseResume}
             isRecording={isRecording}
             isPaused={isPaused}
