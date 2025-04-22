@@ -24,8 +24,14 @@ const HomePage = () => {
     ? memos
     : memos.filter((m) => m.type === activeFilter);
 
+  // Handler to refresh memos after creating new memos/text memos
+  const handleMemoCreated = () => {
+    setMemos(getAllMemos());
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      {/* Header + Profile Button */}
       <div className="relative">
         <Header />
         <div className="absolute top-14 right-6 z-10">
@@ -38,14 +44,16 @@ const HomePage = () => {
         onSearchChange={setSearchQuery}
       />
 
-      <div className="flex-1 flex flex-col items-center px-4 pt-8 pb-24">
+      <div className="flex-1 flex flex-col items-center px-4 pt-8 pb-20">
+        {/* Intro */}
         <div className="text-center mb-8">
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Capture your thoughts</h2>
           <p className="text-gray-500 text-sm max-w-xs">Tap the button below to record a voice memo</p>
         </div>
         
+        {/* Voice Recording */}
         <div className="relative mb-4">
-          <RecordButton onLiveTranscription={setLiveTranscription} />
+          <RecordButton onLiveTranscription={setLiveTranscription} onMemoCreated={handleMemoCreated} />
           {liveTranscription && (
             <div className="absolute w-full left-0 top-full mt-4 bg-white rounded-lg shadow-md px-6 py-3 border border-orange-100">
               <p className="text-sm text-gray-500">Transcribing...</p>
@@ -56,26 +64,34 @@ const HomePage = () => {
           )}
         </div>
         
+        {/* Text Memo Input */}
         <div className="w-full max-w-sm mt-8">
-          <TextMemoInput />
+          <TextMemoInput onMemoCreated={handleMemoCreated} />
         </div>
 
-        {/* Filter & Scrollable Recent Memos */}
+        {/* FULL "Memos" Experience, just like /memos tab, fully interactive */}
         <div className="w-full max-w-md mt-10 flex-1 flex flex-col">
-          <h3 className="text-gray-700 font-semibold mb-2 text-base">Recent Memos</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-gray-700 font-semibold text-base">Your Memos</h3>
+            <ProfileIconButton />
+          </div>
           <TypeFilter activeType={activeFilter} onChange={setActiveFilter} />
-          <ScrollArea className="h-64 rounded-lg border bg-white shadow-sm mt-3">
-            <div className="p-3">
-              <MemoList memos={filteredMemos} filter={activeFilter} />
-            </div>
-          </ScrollArea>
+          {/* Scrollable MemoList (matches MemosPage functionality!) */}
+          <div className="mt-3 flex-1 min-h-40">
+            <ScrollArea className="h-64 rounded-lg border bg-white shadow-sm">
+              <div className="p-3">
+                <MemoList memos={memos} filter={activeFilter} />
+              </div>
+            </ScrollArea>
+          </div>
         </div>
       </div>
 
-      {/* Remove "memos" tab from nav bar */}
+      {/* Bottom Navigation */}
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
 
 export default HomePage;
+
