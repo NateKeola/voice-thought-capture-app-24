@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -113,13 +112,9 @@
     @apply relative flex items-center justify-center;
   }
   
-  .recording-button:before {
-    content: '';
-    @apply absolute w-full h-full rounded-full animate-ripple bg-red-500/50;
-  }
-  
   .recording-animation {
-    @apply absolute w-16 h-16 rounded-full animate-pulse bg-red-500/30;
+    @apply absolute rounded-full animate-pulse bg-red-500/30;
+    z-index: 0;
   }
 }
 
