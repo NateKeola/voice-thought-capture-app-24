@@ -52,16 +52,23 @@ const MemosPage = () => {
             <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
           </div>
         ) : (
-          <MemoList memos={memos} filter={activeFilter} />
+          <MemoList 
+            memos={memos} 
+            filter={activeFilter} 
+            onMemosUpdate={setMemos}
+          />
         )}
       </div>
-      <BottomNavBar activeTab="memos" onTabChange={(tab) => {
-        if (tab === 'record') {
-          navigate('/home');
-        } else if (tab === 'relationships') {
-          navigate('/relationships');
-        }
-      }} />
+      <BottomNavBar 
+        activeTab="memos" 
+        onTabChange={(tab) => {
+          if (tab === 'record') {
+            navigate('/home');
+          } else if (tab === 'relationships') {
+            navigate('/relationships');
+          }
+        }} 
+      />
     </div>
   );
 };

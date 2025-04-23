@@ -10,6 +10,7 @@ interface MemosSectionProps {
   memos: Memo[];
   activeFilter: MemoType | 'all';
   onFilterChange: (filter: MemoType | 'all') => void;
+  onMemosUpdate: (memos: Memo[]) => void;
   isLoading?: boolean;
 }
 
@@ -17,6 +18,7 @@ const MemosSection: React.FC<MemosSectionProps> = ({
   memos, 
   activeFilter, 
   onFilterChange,
+  onMemosUpdate,
   isLoading = false
 }) => {
   return (
@@ -38,7 +40,11 @@ const MemosSection: React.FC<MemosSectionProps> = ({
               <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
             </div>
           ) : (
-            <MemoList memos={memos} filter={activeFilter} />
+            <MemoList 
+              memos={memos} 
+              filter={activeFilter} 
+              onMemosUpdate={onMemosUpdate}
+            />
           )}
         </div>
       </div>
