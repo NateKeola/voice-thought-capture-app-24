@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useMemos } from '@/contexts/MemoContext';
-import { Memo } from '@/types';
+import { Memo, MemoType } from '@/types';
 
 interface RelationshipMemo extends Memo {
   relationshipId?: string;
@@ -31,7 +31,7 @@ export const useRelationshipMemos = (relationshipId?: string) => {
   // Create a memo associated with this relationship
   const createRelationshipMemo = async (
     text: string, 
-    type: 'note' | 'task' | 'should' = 'note'
+    type: MemoType = 'note'
   ) => {
     if (!relationshipId) return null;
     
