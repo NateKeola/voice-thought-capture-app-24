@@ -16,10 +16,6 @@ const MemoList: React.FC<MemoListProps> = ({ memos, filter = 'all' }) => {
     ? memos 
     : memos.filter(memo => memo.type === filter);
 
-  const handleMemoClick = (memoId: string) => {
-    navigate(`/memo/${memoId}`);
-  };
-
   if (filteredMemos.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
@@ -37,7 +33,7 @@ const MemoList: React.FC<MemoListProps> = ({ memos, filter = 'all' }) => {
         <MemoCard 
           key={memo.id} 
           memo={memo} 
-          onClick={() => handleMemoClick(memo.id)}
+          onClick={() => navigate(`/memo/${memo.id}`)}
         />
       ))}
     </div>
