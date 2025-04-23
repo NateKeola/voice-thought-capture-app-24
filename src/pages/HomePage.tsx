@@ -85,6 +85,7 @@ const HomePage = () => {
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
           isLoading={isLoading}
+          onMemosUpdate={setMemos}
         />
       </div>
 
