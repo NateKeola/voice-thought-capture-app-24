@@ -153,7 +153,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     }
   };
 
-  const handleSaveMemo = () => {
+  const handleSaveMemo = async () => {
     try {
       setIsProcessing(true);
       
@@ -161,7 +161,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       
       const memoType = detectMemoType(memoText);
       
-      const memo = saveMemo({
+      const memo = await saveMemo({
         text: memoText,
         type: memoType,
         audioUrl: audioUrl

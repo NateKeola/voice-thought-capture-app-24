@@ -4,17 +4,20 @@ import MemoList from '@/components/MemoList';
 import TypeFilter from '@/components/TypeFilter';
 import { MemoType, Memo } from '@/types';
 import ProfileIconButton from '@/components/ProfileIconButton';
+import { Loader2 } from 'lucide-react';
 
 interface MemosSectionProps {
   memos: Memo[];
   activeFilter: MemoType | 'all';
   onFilterChange: (filter: MemoType | 'all') => void;
+  isLoading?: boolean;
 }
 
 const MemosSection: React.FC<MemosSectionProps> = ({ 
   memos, 
   activeFilter, 
-  onFilterChange 
+  onFilterChange,
+  isLoading = false
 }) => {
   return (
     <section className="w-full flex flex-col items-center mt-8 mb-6">
@@ -30,7 +33,13 @@ const MemosSection: React.FC<MemosSectionProps> = ({
       <div className="w-full max-w-md bg-white/80 shadow-lg rounded-2xl p-4">
         <TypeFilter activeType={activeFilter} onChange={onFilterChange} />
         <div className="mt-4">
-          <MemoList memos={memos} filter={activeFilter} />
+          {isLoading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+            </div>
+          ) : (
+            <MemoList memos={memos} filter={activeFilter} />
+          )}
         </div>
       </div>
     </section>

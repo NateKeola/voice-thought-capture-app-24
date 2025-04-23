@@ -22,7 +22,7 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
     setText(initialText);
   }, [initialText]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!text.trim()) {
       toast({
         title: "Cannot save empty memo",
@@ -37,7 +37,7 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
       const memoType = detectMemoType(text);
       
       // Save the memo
-      const memo = saveMemo({
+      const memo = await saveMemo({
         text: text,
         type: memoType,
         audioUrl: null // No audio for text-only memos

@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/home/Header';
 import SearchBar from '@/components/home/SearchBar';
 import TextMemoInput from '@/components/TextMemoInput';
 import BottomNavBar from '@/components/BottomNavBar';
 import { getAllMemos } from '@/services/MemoStorage';
-import { MemoType } from '@/types';
+import { MemoType, Memo } from '@/types';
 import ProfileIconButton from '@/components/ProfileIconButton';
 import IntroSection from '@/components/home/IntroSection';
 import RecordingSection from '@/components/home/RecordingSection';
@@ -15,12 +15,35 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('record');
   const [liveTranscription, setLiveTranscription] = useState('');
-  const [memos, setMemos] = useState(() => getAllMemos());
+  const [memos, setMemos] = useState<Memo[]>([]);
   const [activeFilter, setActiveFilter] = useState<MemoType | 'all'>('all');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch memos when component mounts
+  useEffect(() => {
+    const fetchMemos = async () => {
+      try {
+        setIsLoading(true);
+        const fetchedMemos = await getAllMemos();
+        setMemos(fetchedMemos);
+      } catch (error) {
+        console.error('Error fetching memos:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchMemos();
+  }, []);
 
   // Handler to refresh memos after creating new memos/text memos
-  const handleMemoCreated = () => {
-    setMemos(getAllMemos());
+  const handleMemoCreated = async () => {
+    try {
+      const fetchedMemos = await getAllMemos();
+      setMemos(fetchedMemos);
+    } catch (error) {
+      console.error('Error refreshing memos:', error);
+    }
   };
 
   return (
@@ -61,6 +84,7 @@ const HomePage = () => {
           memos={memos}
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
+          isLoading={isLoading}
         />
       </div>
 

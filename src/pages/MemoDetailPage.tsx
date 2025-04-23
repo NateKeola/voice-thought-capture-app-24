@@ -10,57 +10,91 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowLeft, Trash2, FileAudio, Save, Play } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const MemoDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [memo, setMemo] = useState<Memo | null>(null);
   const [editedText, setEditedText] = useState('');
   const [editedType, setEditedType] = useState<MemoType>('note');
   const [isEditing, setIsEditing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (id) {
-      const fetchedMemo = getMemoById(id);
-      if (fetchedMemo) {
-        setMemo(fetchedMemo);
-        setEditedText(fetchedMemo.text);
-        setEditedType(fetchedMemo.type);
-      }
+      const fetchMemo = async () => {
+        try {
+          setIsLoading(true);
+          const fetchedMemo = await getMemoById(id);
+          if (fetchedMemo) {
+            setMemo(fetchedMemo);
+            setEditedText(fetchedMemo.text);
+            setEditedType(fetchedMemo.type);
+          }
+        } catch (error) {
+          console.error('Error fetching memo:', error);
+          toast({
+            title: "Error",
+            description: "Could not load the memo",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchMemo();
     }
-  }, [id]);
+  }, [id, toast]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!memo || !id) return;
     
-    const updatedMemo = updateMemo(id, {
-      text: editedText,
-      type: editedType
-    });
-    
-    if (updatedMemo) {
-      setMemo(updatedMemo);
-      setIsEditing(false);
+    try {
+      const updatedMemo = await updateMemo(id, {
+        text: editedText,
+        type: editedType
+      });
+      
+      if (updatedMemo) {
+        setMemo(updatedMemo);
+        setIsEditing(false);
+        toast({
+          title: "Memo updated",
+          description: "Your changes have been saved."
+        });
+      }
+    } catch (error) {
+      console.error('Error updating memo:', error);
       toast({
-        title: "Memo updated",
-        description: "Your changes have been saved."
+        title: "Error",
+        description: "Could not update the memo",
+        variant: "destructive"
       });
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!id) return;
     
-    const success = deleteMemo(id);
-    if (success) {
+    try {
+      await deleteMemo(id);
       toast({
         title: "Memo deleted",
         description: "Your memo has been deleted."
       });
       navigate('/home');
+    } catch (error) {
+      console.error('Error deleting memo:', error);
+      toast({
+        title: "Error",
+        description: "Could not delete the memo",
+        variant: "destructive"
+      });
     }
   };
 
@@ -101,6 +135,14 @@ const MemoDetailPage = () => {
       }
     };
   }, []);
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-md mx-auto py-8 px-4 flex justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+      </div>
+    );
+  }
 
   if (!memo) {
     return (

@@ -1,16 +1,42 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Memo } from '../types';
+import { Memo, MemoType } from '../types';
+
+// Maps between frontend Memo type and database schema
+const toDbMemo = (memo: Omit<Memo, 'id' | 'createdAt'> | Partial<Omit<Memo, 'id' | 'createdAt'>>, userId: string) => {
+  return {
+    content: memo.text,
+    category: memo.type,
+    audio_url: memo.audioUrl,
+    status: memo.completed ? 'completed' : 'active',
+    user_id: userId
+  };
+};
+
+const fromDbMemo = (dbMemo: any): Memo => {
+  return {
+    id: dbMemo.id,
+    text: dbMemo.content,
+    type: dbMemo.category as MemoType,
+    audioUrl: dbMemo.audio_url,
+    createdAt: dbMemo.created_at,
+    completed: dbMemo.status === 'completed'
+  };
+};
 
 // Save a new memo
 export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Memo> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be logged in to save memos');
+  }
+  
+  const dbMemo = toDbMemo(memo, user.id);
+  
   const { data, error } = await supabase
     .from('memos')
-    .insert([{
-      text: memo.text,
-      type: memo.type,
-      audio_url: memo.audioUrl,
-    }])
+    .insert([dbMemo])
     .select()
     .single();
 
@@ -19,14 +45,7 @@ export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Me
     throw error;
   }
 
-  return {
-    id: data.id,
-    text: data.text,
-    type: data.type,
-    audioUrl: data.audio_url,
-    createdAt: data.created_at,
-    completed: data.completed
-  };
+  return fromDbMemo(data);
 };
 
 // Get all memos
@@ -41,14 +60,7 @@ export const getAllMemos = async (): Promise<Memo[]> => {
     throw error;
   }
 
-  return data.map(memo => ({
-    id: memo.id,
-    text: memo.text,
-    type: memo.type,
-    audioUrl: memo.audio_url,
-    createdAt: memo.created_at,
-    completed: memo.completed
-  }));
+  return data.map(fromDbMemo);
 };
 
 // Get a memo by ID
@@ -67,26 +79,22 @@ export const getMemoById = async (id: string): Promise<Memo | null> => {
     throw error;
   }
 
-  return {
-    id: data.id,
-    text: data.text,
-    type: data.type,
-    audioUrl: data.audio_url,
-    createdAt: data.created_at,
-    completed: data.completed
-  };
+  return fromDbMemo(data);
 };
 
 // Update a memo
 export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 'createdAt'>>): Promise<Memo | null> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('User must be logged in to update memos');
+  }
+  
+  const dbUpdates = toDbMemo(updates, user.id);
+  
   const { data, error } = await supabase
     .from('memos')
-    .update({
-      text: updates.text,
-      type: updates.type,
-      audio_url: updates.audioUrl,
-      completed: updates.completed
-    })
+    .update(dbUpdates)
     .eq('id', id)
     .select()
     .single();
@@ -96,14 +104,7 @@ export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 
     throw error;
   }
 
-  return {
-    id: data.id,
-    text: data.text,
-    type: data.type,
-    audioUrl: data.audio_url,
-    createdAt: data.created_at,
-    completed: data.completed
-  };
+  return fromDbMemo(data);
 };
 
 // Delete a memo
@@ -120,6 +121,3 @@ export const deleteMemo = async (id: string): Promise<boolean> => {
 
   return true;
 };
-
-// Remove the initializeSampleData function as we don't need it anymore
-// since data will be persisted in Supabase
