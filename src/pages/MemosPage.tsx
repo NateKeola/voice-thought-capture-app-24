@@ -1,44 +1,24 @@
 
-import React, { useState, useEffect } from 'react';
-import { getAllMemos } from '@/services/MemoStorage';
+import React, { useState } from 'react';
 import MemoList from '@/components/MemoList';
 import TypeFilter from '@/components/TypeFilter';
-import { MemoType, Memo } from '@/types';
+import { MemoType } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import BottomNavBar from '@/components/BottomNavBar';
 import ProfileIconButton from '@/components/ProfileIconButton';
 import { Loader2 } from 'lucide-react';
+import { useMemos } from '@/contexts/MemoContext';
 
 const MemosPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [memos, setMemos] = useState<Memo[]>([]);
   const [activeFilter, setActiveFilter] = useState<MemoType | 'all'>('all');
-  const [isLoading, setIsLoading] = useState(true);
   
-  // Fetch memos when component mounts
-  useEffect(() => {
-    const fetchMemos = async () => {
-      try {
-        setIsLoading(true);
-        const fetchedMemos = await getAllMemos();
-        setMemos(fetchedMemos);
-      } catch (error) {
-        console.error('Error fetching memos:', error);
-        toast({
-          title: "Error loading memos",
-          description: "There was a problem loading your memos.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchMemos();
-  }, [toast]);
-
+  // Use our memo context instead of local state
+  const { memos, isLoading, filterMemos } = useMemos();
+  const filteredMemos = filterMemos(activeFilter);
+  
   return (
     <div className="container max-w-md mx-auto py-6 px-4 pb-20">
       <div className="flex justify-between mb-6 items-center">
@@ -53,9 +33,8 @@ const MemosPage = () => {
           </div>
         ) : (
           <MemoList 
-            memos={memos} 
-            filter={activeFilter} 
-            onMemosUpdate={setMemos}
+            memos={filteredMemos} 
+            filter={activeFilter}
           />
         )}
       </div>

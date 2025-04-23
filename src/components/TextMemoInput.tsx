@@ -2,11 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { saveMemo } from '@/services/MemoStorage';
 import { detectMemoType } from '@/services/SpeechToText';
 import { useToast } from '@/components/ui/use-toast';
 import { Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useMemos } from '@/contexts/MemoContext';
 
 interface TextMemoInputProps {
   onMemoCreated?: (memoId: string) => void;
@@ -17,6 +17,7 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
   const [text, setText] = useState(initialText);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { createMemo } = useMemos();
 
   useEffect(() => {
     setText(initialText);
@@ -36,27 +37,29 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
       // Detect the memo type
       const memoType = detectMemoType(text);
       
-      // Save the memo
-      const memo = await saveMemo({
+      // Save the memo using our context
+      const memo = await createMemo({
         text: text,
         type: memoType,
         audioUrl: null // No audio for text-only memos
       });
       
-      toast({
-        title: "Memo saved!",
-        description: `Your ${memoType} has been saved.`
-      });
+      if (memo) {
+        toast({
+          title: "Memo saved!",
+          description: `Your ${memoType} has been saved.`
+        });
 
-      // Navigate to the memo detail page
-      navigate(`/memo/${memo.id}`);
-      
-      // Clear the input
-      setText('');
-      
-      // Notify parent component
-      if (onMemoCreated) {
-        onMemoCreated(memo.id);
+        // Navigate to the memo detail page
+        navigate(`/memo/${memo.id}`);
+        
+        // Clear the input
+        setText('');
+        
+        // Notify parent component
+        if (onMemoCreated) {
+          onMemoCreated(memo.id);
+        }
       }
     } catch (error) {
       console.error('Error saving memo:', error);

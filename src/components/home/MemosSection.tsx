@@ -10,7 +10,6 @@ interface MemosSectionProps {
   memos: Memo[];
   activeFilter: MemoType | 'all';
   onFilterChange: (filter: MemoType | 'all') => void;
-  onMemosUpdate: (memos: Memo[]) => void;
   isLoading?: boolean;
 }
 
@@ -18,7 +17,6 @@ const MemosSection: React.FC<MemosSectionProps> = ({
   memos, 
   activeFilter, 
   onFilterChange,
-  onMemosUpdate,
   isLoading = false
 }) => {
   return (
@@ -42,8 +40,7 @@ const MemosSection: React.FC<MemosSectionProps> = ({
           ) : (
             <MemoList 
               memos={memos} 
-              filter={activeFilter} 
-              onMemosUpdate={onMemosUpdate}
+              filter={activeFilter}
             />
           )}
         </div>

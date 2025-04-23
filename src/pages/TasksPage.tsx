@@ -1,21 +1,15 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
 import TasksViewToggle from "@/components/tasks/TasksViewToggle";
 import TaskList from "@/components/tasks/TaskList";
 import TasksFAB from "@/components/tasks/TasksFAB";
-import BottomNavBar from "@/components/BottomNavBar"; // <--- import the bottom navigation bar
+import BottomNavBar from "@/components/BottomNavBar";
+import { useMemos } from "@/contexts/MemoContext";
+import { Memo } from "@/types";
 
-const initialTasks = [
-  { id: 1, title: "Remember to pick up groceries", description: "Tonight after work, especially milk and eggs.", completed: false, category: "personal", priority: "high", due: "today", created: 7, hasAudio: true },
-  { id: 2, title: "Schedule dentist appointment", description: "Need to book for next week.", completed: false, category: "health", priority: "medium", due: "this week", created: 9, hasAudio: true },
-  { id: 3, title: "Call mom for birthday", description: "Tomorrow morning, don't forget!", completed: false, category: "personal", priority: "high", due: "tomorrow", created: 1, hasAudio: false },
-  { id: 4, title: "Renew car insurance", description: "Due by the end of the month.", completed: true, category: "finance", priority: "medium", due: "next month", created: 3, hasAudio: true },
-  { id: 5, title: "Prepare presentation", description: "For the client meeting on Thursday.", completed: false, category: "work", priority: "high", due: "this week", created: 2, hasAudio: false },
-  { id: 6, title: "Order new desk chair", description: "The current one is falling apart.", completed: true, category: "home", priority: "low", due: "next month", created: 14, hasAudio: false }
-];
-
+// Define category data
 const categories = [
   { id: "personal", name: "Personal", color: "#8B5CF6" },
   { id: "work", name: "Work", color: "#3B82F6" },
@@ -30,23 +24,86 @@ const priorityColors = {
   low: "bg-blue-400"
 };
 
+// Map memo tasks to the task interface expected by the TaskList component
+const mapMemoToTask = (memo: Memo) => {
+  // Parse category and priority from memo text or use defaults
+  let category = "personal";
+  let priority = "medium";
+  let due = "today";
+  
+  // Try to extract metadata from the memo text
+  if (memo.text.includes("[category:")) {
+    const match = memo.text.match(/\[category:\s*(\w+)\]/i);
+    if (match && match[1]) category = match[1].toLowerCase();
+  }
+  
+  if (memo.text.includes("[priority:")) {
+    const match = memo.text.match(/\[priority:\s*(\w+)\]/i);
+    if (match && match[1]) priority = match[1].toLowerCase();
+  }
+  
+  if (memo.text.includes("[due:")) {
+    const match = memo.text.match(/\[due:\s*([\w\s]+)\]/i);
+    if (match && match[1]) due = match[1].toLowerCase();
+  }
+  
+  // Clean the text to remove metadata tags if present
+  let cleanText = memo.text
+    .replace(/\[category:\s*\w+\]/gi, '')
+    .replace(/\[priority:\s*\w+\]/gi, '')
+    .replace(/\[due:\s*[\w\s]+\]/gi, '')
+    .trim();
+  
+  // Split into title and description if possible
+  let title = cleanText;
+  let description = "";
+  
+  const firstPeriod = cleanText.indexOf('. ');
+  if (firstPeriod > 0 && firstPeriod < 50) {
+    title = cleanText.substring(0, firstPeriod + 1);
+    description = cleanText.substring(firstPeriod + 1).trim();
+  }
+
+  return {
+    id: Number(memo.id), // Convert to number to match expected interface
+    title: title,
+    description: description,
+    completed: memo.completed || false,
+    category: category,
+    priority: priority as "high" | "medium" | "low",
+    due: due,
+    created: 0, // Not tracking this currently
+    hasAudio: !!memo.audioUrl
+  };
+};
+
 const TasksPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<"categories" | "timeline">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [tasks, setTasks] = useState(initialTasks);
-  const [activeTab, setActiveTab] = useState("tasks"); // for BottomNavBar
+  const [activeTab, setActiveTab] = useState("tasks");
+  
+  // Get memos from our unified context
+  const { memos, isLoading, updateMemo } = useMemos();
+  
+  // Convert memos to tasks
+  const tasks = memos
+    .filter(memo => memo.type === 'task')
+    .map(mapMemoToTask);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
   };
 
-  const onToggleComplete = (id: number) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
+  const onToggleComplete = async (id: number) => {
+    // Find the corresponding memo
+    const memo = memos.find(m => Number(m.id) === id);
+    if (!memo) return;
+    
+    // Toggle its completed status
+    await updateMemo(memo.id, {
+      completed: !memo.completed
+    });
   };
 
   const getCategoryColor = (categoryId: string) => {
@@ -82,7 +139,7 @@ const TasksPage: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
       <TasksHeader taskCount={tasks.filter((t) => !t.completed).length} />
-      <div className="container mx-auto max-w-md px-4 pt-4 pb-4"> {/* add space on bottom */}
+      <div className="container mx-auto max-w-md px-4 pt-4 pb-4">
         <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
         {/* Toggle Show Completed */}
         <div className="flex justify-between items-center my-4">
@@ -147,7 +204,7 @@ const TasksPage: React.FC = () => {
         />
       </div>
       <TasksFAB />
-      <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} /> {/* always visible */}
+      <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };

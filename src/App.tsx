@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +15,7 @@ import Index from "./pages/Index";
 import ProfilePage from "./pages/ProfilePage";
 import TasksPage from "./pages/TasksPage";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
+import { MemoProvider } from "./contexts/MemoContext";
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
@@ -33,26 +35,28 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <UserProfileProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/signin" element={
-                localStorage.getItem('isAuthenticated') === 'true' 
-                  ? <Navigate to="/home" replace /> 
-                  : <SignIn />
-              } />
-              <Route path="/home" element={<AuthRoute><HomePage /></AuthRoute>} />
-              <Route path="/memos" element={<AuthRoute><MemosPage /></AuthRoute>} />
-              <Route path="/tasks" element={<AuthRoute><TasksPage /></AuthRoute>} />
-              <Route path="/relationships" element={<AuthRoute><RelationshipsPage /></AuthRoute>} />
-              <Route path="/memo/:id" element={<AuthRoute><MemoDetailPage /></AuthRoute>} />
-              <Route path="/profile" element={<AuthRoute><ProfilePage /></AuthRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <MemoProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/signin" element={
+                  localStorage.getItem('isAuthenticated') === 'true' 
+                    ? <Navigate to="/home" replace /> 
+                    : <SignIn />
+                } />
+                <Route path="/home" element={<AuthRoute><HomePage /></AuthRoute>} />
+                <Route path="/memos" element={<AuthRoute><MemosPage /></AuthRoute>} />
+                <Route path="/tasks" element={<AuthRoute><TasksPage /></AuthRoute>} />
+                <Route path="/relationships" element={<AuthRoute><RelationshipsPage /></AuthRoute>} />
+                <Route path="/memo/:id" element={<AuthRoute><MemoDetailPage /></AuthRoute>} />
+                <Route path="/profile" element={<AuthRoute><ProfilePage /></AuthRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </MemoProvider>
         </UserProfileProvider>
       </TooltipProvider>
     </QueryClientProvider>

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import BottomNavBar from '@/components/BottomNavBar';
 import { Plus } from 'lucide-react';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
+import { useMemos } from '@/contexts/MemoContext';
+import { MemoType } from '@/types';
 
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
@@ -18,10 +20,76 @@ const MEMO_TYPE_COLORS = {
   note: 'bg-blue-100 text-blue-600',
 };
 
+const sampleRelationships = [
+  {
+    id: '1',
+    name: 'Alex Chen',
+    type: 'Work',
+    lastInteraction: '2 days ago',
+    initial: 'A',
+  },
+  {
+    id: '2',
+    name: 'Jamie Smith',
+    type: 'Client',
+    lastInteraction: 'Yesterday',
+    initial: 'J',
+  },
+  {
+    id: '3',
+    name: 'Riley Jones',
+    type: 'Personal',
+    lastInteraction: '5 days ago',
+    initial: 'R',
+  },
+  {
+    id: '4',
+    name: 'Taylor Wilson',
+    type: 'Work',
+    lastInteraction: '1 week ago',
+    initial: 'T',
+  },
+  {
+    id: '5',
+    name: 'Morgan Lee',
+    type: 'Client',
+    lastInteraction: '3 days ago',
+    initial: 'M',
+  }
+];
+
+const extractRelationshipMemos = (memos, relationshipId) => {
+  return memos.filter(memo => {
+    return memo.text.includes(`[Contact: ${relationshipId}]`) ||
+           memo.text.toLowerCase().includes(relationshipId.toLowerCase());
+  }).map(memo => {
+    let type = memo.type;
+    if (type === 'idea') type = 'should';
+    const date = memo.createdAt ? new Date(memo.createdAt) : new Date();
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let dateStr = 'Just now';
+    if (diffDays === 1) dateStr = 'Yesterday';
+    else if (diffDays > 1) dateStr = `${diffDays} days ago`;
+    
+    let text = memo.text.replace(`[Contact: ${relationshipId}]`, '').trim();
+    
+    return {
+      id: memo.id,
+      text,
+      date: dateStr,
+      type
+    };
+  });
+};
+
 const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [showAddModal, setShowAddModal] = useState(false);
+  const { memos, createMemo } = useMemos();
 
   const [relationships, setRelationships] = useState([]);
   const [filteredRelationships, setFilteredRelationships] = useState([]);
@@ -39,67 +107,14 @@ const RelationshipsPage = () => {
   };
 
   useEffect(() => {
-    const sampleRelationships = [
-      {
-        id: 1,
-        name: 'Alex Chen',
-        type: 'Work',
-        lastInteraction: '2 days ago',
-        initial: 'A',
-        memos: [
-          { id: 1, text: 'Mentioned interest in the new market analysis project', date: '2 days ago', type: 'note' },
-          { id: 2, text: 'Follow up about the quarterly presentation next week', date: '1 week ago', type: 'task' },
-          { id: 3, text: 'Should invite to the company retreat in August', date: '2 weeks ago', type: 'should' }
-        ]
-      },
-      {
-        id: 2,
-        name: 'Jamie Smith',
-        type: 'Client',
-        lastInteraction: 'Yesterday',
-        initial: 'J',
-        memos: [
-          { id: 1, text: 'Wants proposal for website redesign by Friday', date: 'Yesterday', type: 'task' },
-          { id: 2, text: 'Mentioned their company is expanding to Europe next quarter', date: '3 days ago', type: 'note' }
-        ]
-      },
-      {
-        id: 3,
-        name: 'Riley Jones',
-        type: 'Personal',
-        lastInteraction: '5 days ago',
-        initial: 'R',
-        memos: [
-          { id: 1, text: 'Birthday coming up on May 15th', date: '5 days ago', type: 'task' },
-          { id: 2, text: 'Should check out the restaurant they recommended downtown', date: '2 weeks ago', type: 'should' }
-        ]
-      },
-      {
-        id: 4,
-        name: 'Taylor Wilson',
-        type: 'Work',
-        lastInteraction: '1 week ago',
-        initial: 'T',
-        memos: [
-          { id: 1, text: 'Shared insights on the new product feature', date: '1 week ago', type: 'note' },
-          { id: 2, text: 'Should connect on LinkedIn', date: '2 weeks ago', type: 'should' }
-        ]
-      },
-      {
-        id: 5,
-        name: 'Morgan Lee',
-        type: 'Client',
-        lastInteraction: '3 days ago',
-        initial: 'M',
-        memos: [
-          { id: 1, text: 'Schedule follow-up call about project timeline', date: '3 days ago', type: 'task' },
-          { id: 2, text: 'Mentioned concerns about budget constraints', date: '1 week ago', type: 'note' }
-        ]
-      }
-    ];
-    setRelationships(sampleRelationships);
-    setFilteredRelationships(sampleRelationships);
-  }, []);
+    const enrichedRelationships = sampleRelationships.map(rel => ({
+      ...rel,
+      memos: extractRelationshipMemos(memos, rel.id)
+    }));
+    
+    setRelationships(enrichedRelationships);
+    setFilteredRelationships(enrichedRelationships);
+  }, [memos]);
 
   useEffect(() => {
     let filtered = relationships;
@@ -115,37 +130,36 @@ const RelationshipsPage = () => {
     setFilteredRelationships(filtered);
   }, [searchQuery, activeTab, relationships]);
 
-  const handleAddMemo = () => {
+  const handleAddMemo = async () => {
     if (!newMemoText.trim() && !recordingText.trim()) return;
     const memoText = newMemoText || recordingText;
-    const updatedRelationships = relationships.map(rel => {
-      if (rel.id === selectedRelationship.id) {
-        return {
-          ...rel,
-          lastInteraction: 'Just now',
-          memos: [
-            {
-              id: rel.memos.length + 1,
-              text: memoText,
-              date: 'Just now',
-              type: 'note'
-            },
-            ...rel.memos
-          ]
-        };
-      }
-      return rel;
-    });
-
-    setRelationships(updatedRelationships);
-    setFilteredRelationships(updatedRelationships);
-    setNewMemoText('');
-    setRecordingText('');
-    setShowAddMemoModal(false);
-    toast({
-      title: "Memo added",
-      description: `Your memo for ${selectedRelationship.name} has been saved.`,
-    });
+    
+    if (!selectedRelationship) return;
+    
+    try {
+      const fullMemoText = `[Contact: ${selectedRelationship.id}] ${memoText}`;
+      
+      await createMemo({
+        text: fullMemoText,
+        type: 'note',
+        audioUrl: null
+      });
+      
+      setNewMemoText('');
+      setRecordingText('');
+      setShowAddMemoModal(false);
+      toast({
+        title: "Memo added",
+        description: `Your memo for ${selectedRelationship.name} has been saved.`,
+      });
+    } catch (error) {
+      console.error('Error adding relationship memo:', error);
+      toast({
+        title: "Error adding memo",
+        description: "There was a problem saving your memo.",
+        variant: "destructive"
+      });
+    }
   };
 
   const toggleRecording = () => {
@@ -187,7 +201,6 @@ const RelationshipsPage = () => {
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Header */}
       <div className="bg-orange-500 px-6 pt-12 pb-6 rounded-b-3xl shadow-md">
         <div className="flex justify-between items-center">
           <div>
@@ -219,7 +232,6 @@ const RelationshipsPage = () => {
           </div>
         </div>
       </div>
-      {/* Tabs */}
       <div className="px-6 pt-4">
         <div className="flex space-x-2 overflow-x-auto">
           {['all', 'work', 'client', 'personal'].map((tab) => (
@@ -233,10 +245,8 @@ const RelationshipsPage = () => {
           ))}
         </div>
       </div>
-      {/* Main content */}
       <div className="flex-1 px-6 py-4 overflow-hidden">
         <div className="flex h-full space-x-4">
-          {/* List */}
           <div className="w-1/3 bg-white rounded-2xl shadow-sm overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center">
               <h2 className="font-bold text-gray-800 text-lg">People</h2>
@@ -292,7 +302,6 @@ const RelationshipsPage = () => {
               )}
             </div>
           </div>
-          {/* Memo detail panel */}
           <div className="w-2/3 bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
             {selectedRelationship ? (
               <>
@@ -311,7 +320,7 @@ const RelationshipsPage = () => {
                     onClick={() => setShowAddMemoModal(true)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5a1 1 0 011 1zM15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                     </svg>
                     Add Memo
                   </Button>
@@ -336,6 +345,12 @@ const RelationshipsPage = () => {
                         </div>
                       </div>
                     ))}
+                    {selectedRelationship.memos.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No memos for this relationship yet</p>
+                        <p className="text-sm mt-1">Click "Add Memo" to create one</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </>
@@ -352,7 +367,6 @@ const RelationshipsPage = () => {
           </div>
         </div>
       </div>
-      {/* Add Memo Modal */}
       {showAddMemoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 mx-4">
@@ -369,7 +383,7 @@ const RelationshipsPage = () => {
                 aria-label="Close"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12-12-12zm0 0v-8" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
@@ -427,13 +441,10 @@ const RelationshipsPage = () => {
           </div>
         </div>
       )}
-      {/* Add Relationship Modal */}
       <AddRelationshipModal 
         isOpen={showAddModal}
         onClose={handleCloseModal}
       />
-
-      {/* SHARED Bottom Navigation Bar */}
       <BottomNavBar
         activeTab={globalTab}
         onTabChange={(tab) => {

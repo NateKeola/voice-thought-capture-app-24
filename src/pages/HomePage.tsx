@@ -1,50 +1,22 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Header from '@/components/home/Header';
 import SearchBar from '@/components/home/SearchBar';
 import TextMemoInput from '@/components/TextMemoInput';
 import BottomNavBar from '@/components/BottomNavBar';
-import { getAllMemos } from '@/services/MemoStorage';
-import { MemoType, Memo } from '@/types';
+import { MemoType } from '@/types';
 import ProfileIconButton from '@/components/ProfileIconButton';
 import IntroSection from '@/components/home/IntroSection';
 import RecordingSection from '@/components/home/RecordingSection';
 import MemosSection from '@/components/home/MemosSection';
+import { useMemos } from '@/contexts/MemoContext';
 
 const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('record');
   const [liveTranscription, setLiveTranscription] = useState('');
-  const [memos, setMemos] = useState<Memo[]>([]);
   const [activeFilter, setActiveFilter] = useState<MemoType | 'all'>('all');
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch memos when component mounts
-  useEffect(() => {
-    const fetchMemos = async () => {
-      try {
-        setIsLoading(true);
-        const fetchedMemos = await getAllMemos();
-        setMemos(fetchedMemos);
-      } catch (error) {
-        console.error('Error fetching memos:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchMemos();
-  }, []);
-
-  // Handler to refresh memos after creating new memos/text memos
-  const handleMemoCreated = async () => {
-    try {
-      const fetchedMemos = await getAllMemos();
-      setMemos(fetchedMemos);
-    } catch (error) {
-      console.error('Error refreshing memos:', error);
-    }
-  };
+  const { memos, isLoading, refreshMemos } = useMemos();
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -57,7 +29,7 @@ const HomePage = () => {
           <div className="bg-white rounded-full p-2 flex items-center justify-center">
             <RecordingSection 
               onLiveTranscription={setLiveTranscription}
-              onMemoCreated={handleMemoCreated}
+              onMemoCreated={refreshMemos}
               liveTranscription={liveTranscription}
             />
           </div>
@@ -76,7 +48,7 @@ const HomePage = () => {
         
         {/* Text Memo Input */}
         <div className="w-full max-w-sm mt-8">
-          <TextMemoInput onMemoCreated={handleMemoCreated} />
+          <TextMemoInput onMemoCreated={refreshMemos} />
         </div>
 
         {/* Memos Section */}
@@ -85,7 +57,6 @@ const HomePage = () => {
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
           isLoading={isLoading}
-          onMemosUpdate={setMemos}
         />
       </div>
 
