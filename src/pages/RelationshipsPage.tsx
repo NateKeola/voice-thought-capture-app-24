@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import BottomNavBar from '@/components/BottomNavBar';
 import { Plus } from 'lucide-react';
+import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
 
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
