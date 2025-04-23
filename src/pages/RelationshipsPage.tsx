@@ -21,6 +21,7 @@ const MEMO_TYPE_COLORS = {
 const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const [relationships, setRelationships] = useState([]);
   const [filteredRelationships, setFilteredRelationships] = useState([]);
@@ -32,6 +33,10 @@ const RelationshipsPage = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingText, setRecordingText] = useState('');
   const [globalTab, setGlobalTab] = useState('relationships');
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+  };
 
   useEffect(() => {
     const sampleRelationships = [
@@ -239,10 +244,7 @@ const RelationshipsPage = () => {
                 size="sm"
                 variant="ghost"
                 className="hover:bg-orange-100 hover:text-orange-500"
-                onClick={() => toast({
-                  title: "Coming soon",
-                  description: "Adding new relationships will be available in the next update."
-                })}
+                onClick={() => setShowAddModal(true)}
               >
                 <Plus className="h-5 w-5" />
               </Button>
@@ -425,6 +427,12 @@ const RelationshipsPage = () => {
           </div>
         </div>
       )}
+      {/* Add Relationship Modal */}
+      <AddRelationshipModal 
+        isOpen={showAddModal}
+        onClose={handleCloseModal}
+      />
+
       {/* SHARED Bottom Navigation Bar */}
       <BottomNavBar
         activeTab={globalTab}
