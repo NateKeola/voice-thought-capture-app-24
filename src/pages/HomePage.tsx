@@ -26,11 +26,20 @@ const HomePage = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* Header + Profile Button */}
-      <div className="relative">
-        <Header />
-        <div className="absolute top-14 right-6 z-10">
-          <ProfileIconButton />
+      <Header />
+
+      {/* Centerpiece Recording Section */}
+      <div className="flex flex-col items-center justify-center py-4 w-full">
+        <div className="bg-gradient-to-br from-purple-500 via-pink-400 to-orange-400 rounded-full p-1 shadow-lg mb-2">
+          <div className="bg-white rounded-full p-2 flex items-center justify-center">
+            <RecordingSection 
+              onLiveTranscription={setLiveTranscription}
+              onMemoCreated={handleMemoCreated}
+              liveTranscription={liveTranscription}
+            />
+          </div>
         </div>
+        <span className="mt-2 font-semibold text-purple-500 text-sm tracking-widest">VOICE MEMO</span>
       </div>
 
       <SearchBar 
@@ -38,16 +47,9 @@ const HomePage = () => {
         onSearchChange={setSearchQuery}
       />
 
-      <div className="flex-1 flex flex-col items-center px-4 pt-8 pb-20">
+      <div className="flex-1 flex flex-col items-center px-4 pt-4 pb-20">
         {/* Intro */}
         <IntroSection />
-        
-        {/* Voice Recording */}
-        <RecordingSection 
-          onLiveTranscription={setLiveTranscription}
-          onMemoCreated={handleMemoCreated}
-          liveTranscription={liveTranscription}
-        />
         
         {/* Text Memo Input */}
         <div className="w-full max-w-sm mt-8">

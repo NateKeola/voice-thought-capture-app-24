@@ -26,7 +26,6 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 z-30">
       <div className="container max-w-md mx-auto flex justify-around items-center">
-        {/* MEMOS tab removed */}
         <button
           onClick={() => handleTabClick('tasks')}
           className={`flex flex-col items-center p-2 ${
@@ -37,14 +36,28 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
           <span className="text-xs mt-1">Tasks</span>
         </button>
         
+        {/* Gorgeous gradient "Record" centerpiece button */}
         <button
           onClick={() => handleTabClick('record')}
-          className={`flex flex-col items-center p-2 ${
-            activeTab === 'record' ? 'text-orange-500' : 'text-gray-500'
-          }`}
+          className="relative -mt-8 flex flex-col items-center"
+          style={{ zIndex: 5 }}
         >
-          <Mic size={24} />
-          <span className="text-xs mt-1">Record</span>
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all
+            ${
+              activeTab === 'record'
+                ? 'bg-gradient-to-br from-purple-500 via-pink-400 to-orange-400 border-4 border-white'
+                : 'bg-gradient-to-tr from-orange-200 via-purple-100 to-pink-100 border-4 border-white'
+            }
+            `}
+          >
+            <Mic
+              size={32}
+              className="text-white drop-shadow"
+            />
+          </div>
+          <span className={`text-xs mt-1 font-bold tracking-widest ${
+            activeTab === 'record' ? 'text-purple-500' : 'text-gray-500'
+          }`}>Record</span>
         </button>
         
         <button
