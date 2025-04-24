@@ -12,14 +12,14 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
   const navigate = useNavigate();
 
   const handleTabClick = (tab: string) => {
+    onTabChange(tab);
+    
     if (tab === 'relationships') {
       navigate('/relationships');
     } else if (tab === 'tasks') {
       navigate('/tasks');
     } else if (tab === 'record') {
       navigate('/home');
-    } else {
-      onTabChange(tab);
     }
   };
 
