@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import BottomNavBar from '@/components/BottomNavBar';
 import { Plus } from 'lucide-react';
+import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
+import { useProfiles } from '@/hooks/useProfiles';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
 import { MemoType } from '@/types';
 
@@ -19,44 +21,6 @@ const MEMO_TYPE_COLORS = {
   should: 'bg-orange-100 text-orange-500',
   note: 'bg-blue-100 text-blue-600',
 };
-
-const sampleRelationships = [
-  {
-    id: '1',
-    name: 'Alex Chen',
-    type: 'Work',
-    lastInteraction: '2 days ago',
-    initial: 'A',
-  },
-  {
-    id: '2',
-    name: 'Jamie Smith',
-    type: 'Client',
-    lastInteraction: 'Yesterday',
-    initial: 'J',
-  },
-  {
-    id: '3',
-    name: 'Riley Jones',
-    type: 'Personal',
-    lastInteraction: '5 days ago',
-    initial: 'R',
-  },
-  {
-    id: '4',
-    name: 'Taylor Wilson',
-    type: 'Work',
-    lastInteraction: '1 week ago',
-    initial: 'T',
-  },
-  {
-    id: '5',
-    name: 'Morgan Lee',
-    type: 'Client',
-    lastInteraction: '3 days ago',
-    initial: 'M',
-  }
-];
 
 const extractRelationshipMemos = (memos, relationshipId) => {
   return memos.filter(memo => {
@@ -88,12 +52,10 @@ const extractRelationshipMemos = (memos, relationshipId) => {
 const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profiles, isLoading, createProfile } = useProfiles();
   const [showAddModal, setShowAddModal] = useState(false);
-  const { memos, createMemo } = useMemos();
-
-  const [relationships, setRelationships] = useState([]);
-  const [filteredRelationships, setFilteredRelationships] = useState([]);
-  const [selectedRelationship, setSelectedRelationship] = useState(null);
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddMemoModal, setShowAddMemoModal] = useState(false);
   const [newMemoText, setNewMemoText] = useState('');
@@ -101,43 +63,44 @@ const RelationshipsPage = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingText, setRecordingText] = useState('');
   const [globalTab, setGlobalTab] = useState('relationships');
+  const { memos, createMemo } = useMemos();
+
+  if (!user) {
+    navigate('/signin');
+    return null;
+  }
 
   const handleCloseModal = () => {
     setShowAddModal(false);
   };
 
-  useEffect(() => {
-    const enrichedRelationships = sampleRelationships.map(rel => ({
-      ...rel,
-      memos: extractRelationshipMemos(memos, rel.id)
-    }));
-    
-    setRelationships(enrichedRelationships);
-    setFilteredRelationships(enrichedRelationships);
-  }, [memos]);
+  const handleCreateProfile = async (profileData) => {
+    try {
+      await createProfile.mutateAsync(profileData);
+      setShowAddModal(false);
+    } catch (error) {
+      console.error('Error creating profile:', error);
+    }
+  };
 
-  useEffect(() => {
-    let filtered = relationships;
-    if (searchQuery) {
-      filtered = filtered.filter(rel =>
-        rel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        rel.type.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    if (activeTab !== 'all') {
-      filtered = filtered.filter(rel => rel.type.toLowerCase() === activeTab.toLowerCase());
-    }
-    setFilteredRelationships(filtered);
-  }, [searchQuery, activeTab, relationships]);
+  const filteredProfiles = profiles.filter(profile => {
+    const matchesSearch = searchQuery.toLowerCase().split(' ').every(term =>
+      `${profile.first_name} ${profile.last_name}`.toLowerCase().includes(term) ||
+      profile.type.toLowerCase().includes(term)
+    );
+    
+    return activeTab === 'all' ? matchesSearch : 
+           matchesSearch && profile.type.toLowerCase() === activeTab.toLowerCase();
+  });
 
   const handleAddMemo = async () => {
     if (!newMemoText.trim() && !recordingText.trim()) return;
     const memoText = newMemoText || recordingText;
     
-    if (!selectedRelationship) return;
+    if (!selectedProfile) return;
     
     try {
-      const fullMemoText = `[Contact: ${selectedRelationship.id}] ${memoText}`;
+      const fullMemoText = `[Contact: ${selectedProfile.id}] ${memoText}`;
       
       await createMemo({
         text: fullMemoText,
@@ -150,7 +113,7 @@ const RelationshipsPage = () => {
       setShowAddMemoModal(false);
       toast({
         title: "Memo added",
-        description: `Your memo for ${selectedRelationship.name} has been saved.`,
+        description: `Your memo for ${selectedProfile.first_name} ${selectedProfile.last_name} has been saved.`,
       });
     } catch (error) {
       console.error('Error adding relationship memo:', error);
@@ -245,6 +208,7 @@ const RelationshipsPage = () => {
           ))}
         </div>
       </div>
+      
       <div className="flex-1 px-6 py-4 overflow-hidden">
         <div className="flex h-full space-x-4">
           <div className="w-1/3 bg-white rounded-2xl shadow-sm overflow-y-auto">
@@ -260,59 +224,69 @@ const RelationshipsPage = () => {
               </Button>
             </div>
             <div className="divide-y divide-gray-100">
-              {filteredRelationships.map(relationship => (
-                <div
-                  key={relationship.id}
-                  className={`p-4 cursor-pointer hover:bg-orange-50 transition-colors ${selectedRelationship?.id === relationship.id ? 'bg-orange-50' : ''}`}
-                  onClick={() => setSelectedRelationship(relationship)}
-                >
-                  <div className="flex items-center">
-                    <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mr-4">
-                      <span className="text-orange-600 font-bold text-lg">{relationship.initial}</span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <p className="text-gray-800 font-medium">{relationship.name}</p>
-                        <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(relationship.type)}`}>
-                          {relationship.type}
-                        </span>
-                      </div>
-                      <div className="flex justify-between mt-1">
-                        <p className="text-gray-500 text-xs">Last interaction: {relationship.lastInteraction}</p>
-                        <p className="text-gray-500 text-xs">{relationship.memos.length} memos</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {filteredRelationships.length === 0 && (
+              {isLoading ? (
+                <div className="p-6 text-center text-gray-500">Loading...</div>
+              ) : filteredProfiles.length === 0 ? (
                 <div className="p-6 text-center">
                   <p className="text-gray-500">No relationships found</p>
                   <Button
                     size="sm"
                     className="mt-4 w-full bg-orange-500 text-white"
-                    onClick={() => toast({
-                      title: "Feature coming soon",
-                      description: "Adding new contacts is not available yet"
-                    })}
+                    onClick={() => setShowAddModal(true)}
                   >
                     Add New Contact
                   </Button>
                 </div>
+              ) : (
+                filteredProfiles.map(profile => (
+                  <div
+                    key={profile.id}
+                    className={`p-4 cursor-pointer hover:bg-orange-50 transition-colors ${
+                      selectedProfile?.id === profile.id ? 'bg-orange-50' : ''
+                    }`}
+                    onClick={() => setSelectedProfile(profile)}
+                  >
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mr-4">
+                        <span className="text-orange-600 font-bold text-lg">
+                          {`${profile.first_name[0]}${profile.last_name[0]}`}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center">
+                          <p className="text-gray-800 font-medium">
+                            {`${profile.first_name} ${profile.last_name}`}
+                          </p>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            REL_TYPE_COLORS[profile.type.toLowerCase()] || REL_TYPE_COLORS.default
+                          }`}>
+                            {profile.type}
+                          </span>
+                        </div>
+                        <div className="flex justify-between mt-1">
+                          <p className="text-gray-500 text-xs">
+                            Added: {new Date(profile.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
+
           <div className="w-2/3 bg-white rounded-2xl shadow-sm overflow-hidden flex flex-col">
-            {selectedRelationship ? (
+            {selectedProfile ? (
               <>
                 <div className="p-4 border-b border-gray-100 flex justify-between items-center">
                   <div className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mr-3">
-                      <span className="text-orange-600 font-bold">{selectedRelationship.initial}</span>
+                      <span className="text-orange-600 font-bold">{`${selectedProfile.first_name[0]}${selectedProfile.last_name[0]}`}</span>
                     </div>
                     <div>
-                      <h2 className="font-bold text-gray-800 text-lg">{selectedRelationship.name}</h2>
-                      <p className="text-gray-500 text-xs">Last interaction: {selectedRelationship.lastInteraction}</p>
+                      <h2 className="font-bold text-gray-800 text-lg">{selectedProfile.first_name} {selectedProfile.last_name}</h2>
+                      <p className="text-gray-500 text-xs">Added: {new Date(selectedProfile.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <Button
@@ -327,7 +301,7 @@ const RelationshipsPage = () => {
                 </div>
                 <div className="flex-1 p-4 overflow-y-auto">
                   <div className="space-y-4">
-                    {selectedRelationship.memos.map((memo, idx) => (
+                    {extractRelationshipMemos(memos, selectedProfile.id).map((memo, idx) => (
                       <div key={idx} className="p-3 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
                         <div className="flex">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${getMemoTypeColor(memo.type)}`}>
@@ -345,7 +319,7 @@ const RelationshipsPage = () => {
                         </div>
                       </div>
                     ))}
-                    {selectedRelationship.memos.length === 0 && (
+                    {extractRelationshipMemos(memos, selectedProfile.id).length === 0 && (
                       <div className="text-center py-8 text-gray-500">
                         <p>No memos for this relationship yet</p>
                         <p className="text-sm mt-1">Click "Add Memo" to create one</p>
@@ -367,11 +341,12 @@ const RelationshipsPage = () => {
           </div>
         </div>
       </div>
+
       {showAddMemoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 mx-4">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-gray-800 text-lg">Add Memo for {selectedRelationship.name}</h3>
+              <h3 className="font-bold text-gray-800 text-lg">Add Memo for {selectedProfile.first_name} {selectedProfile.last_name}</h3>
               <button
                 className="text-gray-500"
                 onClick={() => {
@@ -441,15 +416,16 @@ const RelationshipsPage = () => {
           </div>
         </div>
       )}
+
       <AddRelationshipModal 
         isOpen={showAddModal}
         onClose={handleCloseModal}
+        onSubmit={handleCreateProfile}
       />
+      
       <BottomNavBar
         activeTab={globalTab}
-        onTabChange={(tab) => {
-          setGlobalTab(tab);
-        }}
+        onTabChange={setGlobalTab}
       />
     </div>
   );

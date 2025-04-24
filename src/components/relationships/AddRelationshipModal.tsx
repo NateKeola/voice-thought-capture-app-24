@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import RelationshipTypeSelector from './RelationshipTypeSelector';
 interface AddRelationshipModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSubmit: (profileData: any) => void;
 }
 
 const relationshipTypes = [
@@ -19,7 +19,7 @@ const relationshipTypes = [
   { id: 'personal', label: 'Personal', color: '#10B981' }
 ];
 
-const AddRelationshipModal = ({ isOpen, onClose }: AddRelationshipModalProps) => {
+const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModalProps) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -41,6 +41,27 @@ const AddRelationshipModal = ({ isOpen, onClose }: AddRelationshipModalProps) =>
     const first = formData.firstName.charAt(0);
     const last = formData.lastName.charAt(0);
     return (first + last).toUpperCase();
+  };
+
+  const handleSubmit = () => {
+    onSubmit({
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      type: formData.type,
+      email: formData.email || null,
+      phone: formData.phone || null,
+      notes: formData.notes || null
+    });
+    onClose();
+    setStep(1);
+    setFormData({
+      firstName: '',
+      lastName: '',
+      type: 'Work',
+      email: '',
+      phone: '',
+      notes: ''
+    });
   };
 
   return (
@@ -169,19 +190,7 @@ const AddRelationshipModal = ({ isOpen, onClose }: AddRelationshipModalProps) =>
                 </Button>
                 <Button
                   className="bg-orange-500 hover:bg-orange-600"
-                  onClick={() => {
-                    console.log('Submitting form data:', formData);
-                    onClose();
-                    setStep(1);
-                    setFormData({
-                      firstName: '',
-                      lastName: '',
-                      type: 'Work',
-                      email: '',
-                      phone: '',
-                      notes: ''
-                    });
-                  }}
+                  onClick={handleSubmit}
                 >
                   Create Relationship
                 </Button>
@@ -197,4 +206,3 @@ const AddRelationshipModal = ({ isOpen, onClose }: AddRelationshipModalProps) =>
 };
 
 export default AddRelationshipModal;
-
