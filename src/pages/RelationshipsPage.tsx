@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import BottomNavBar from '@/components/BottomNavBar';
@@ -34,14 +33,14 @@ const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { profiles, isLoading } = useProfiles();
+  const { profiles, isLoading, createProfile } = useProfiles();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddMemoModal, setShowAddMemoModal] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [globalTab, setGlobalTab] = useState('relationships');
-  const { memos, createProfile } = useMemos();
+  const { memos } = useMemos();
 
   if (!user) {
     navigate('/signin');
