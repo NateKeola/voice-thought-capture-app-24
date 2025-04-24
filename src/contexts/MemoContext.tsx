@@ -23,6 +23,29 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsAuthenticated(!!data.session);
+      
+      // Set up auth state change listener
+      const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        setIsAuthenticated(!!session);
+        if (event === 'SIGNED_IN') {
+          refreshMemos();
+        }
+      });
+      
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
+    };
+    
+    checkAuth();
+  }, []);
 
   const refreshMemos = async () => {
     try {
@@ -46,7 +69,12 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const createMemo = async (memoData: Omit<Memo, 'id' | 'createdAt'>) => {
     try {
       const newMemo = await saveMemo(memoData);
-      // Real-time updates will handle adding this to the state
+      
+      // If user is not authenticated, manually update state
+      if (!isAuthenticated) {
+        setMemos(prevMemos => [newMemo, ...prevMemos]);
+      }
+      
       return newMemo;
     } catch (err) {
       console.error('Error creating memo:', err);
@@ -62,7 +90,14 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateMemoItem = async (id: string, updates: Partial<Omit<Memo, 'id' | 'createdAt'>>) => {
     try {
       const updatedMemo = await updateMemo(id, updates);
-      // Real-time updates will handle updating the state
+      
+      // If user is not authenticated, manually update state
+      if (!isAuthenticated && updatedMemo) {
+        setMemos(prevMemos => 
+          prevMemos.map(memo => memo.id === id ? updatedMemo : memo)
+        );
+      }
+      
       return updatedMemo;
     } catch (err) {
       console.error('Error updating memo:', err);
@@ -78,11 +113,13 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const deleteMemoItem = async (id: string) => {
     try {
       const success = await deleteMemo(id);
-      if (success) {
-        // Real-time updates will handle removing from the state
-        return true;
+      
+      // If user is not authenticated, manually update state
+      if (!isAuthenticated && success) {
+        setMemos(prevMemos => prevMemos.filter(memo => memo.id !== id));
       }
-      return false;
+      
+      return success;
     } catch (err) {
       console.error('Error deleting memo:', err);
       toast({
@@ -105,63 +142,65 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     refreshMemos();
 
-    // Subscribe to changes
-    const channel = supabase
-      .channel('memo-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'memos'
-        },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const newMemo = {
-              id: payload.new.id,
-              text: payload.new.content,
-              type: payload.new.category as MemoType,
-              audioUrl: payload.new.audio_url,
-              createdAt: payload.new.created_at,
-              completed: payload.new.status === 'completed'
-            };
-            setMemos(current => [newMemo, ...current]);
-            
-            toast({
-              title: "New memo created",
-              description: `A new ${newMemo.type} has been added.`
-            });
-          } else if (payload.eventType === 'UPDATE') {
-            setMemos(current => current.map(memo => 
-              memo.id === payload.new.id ? {
-                ...memo,
+    // Only set up Supabase real-time updates if user is authenticated
+    if (isAuthenticated) {
+      const channel = supabase
+        .channel('memo-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'memos'
+          },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              const newMemo = {
+                id: payload.new.id,
                 text: payload.new.content,
                 type: payload.new.category as MemoType,
                 audioUrl: payload.new.audio_url,
+                createdAt: payload.new.created_at,
                 completed: payload.new.status === 'completed'
-              } : memo
-            ));
-            
-            toast({
-              title: "Memo updated",
-              description: "A memo has been updated."
-            });
-          } else if (payload.eventType === 'DELETE') {
-            setMemos(current => current.filter(memo => memo.id !== payload.old.id));
-            
-            toast({
-              title: "Memo deleted",
-              description: "A memo has been removed."
-            });
+              };
+              setMemos(current => [newMemo, ...current]);
+              
+              toast({
+                title: "New memo created",
+                description: `A new ${newMemo.type} has been added.`
+              });
+            } else if (payload.eventType === 'UPDATE') {
+              setMemos(current => current.map(memo => 
+                memo.id === payload.new.id ? {
+                  ...memo,
+                  text: payload.new.content,
+                  type: payload.new.category as MemoType,
+                  audioUrl: payload.new.audio_url,
+                  completed: payload.new.status === 'completed'
+                } : memo
+              ));
+              
+              toast({
+                title: "Memo updated",
+                description: "A memo has been updated."
+              });
+            } else if (payload.eventType === 'DELETE') {
+              setMemos(current => current.filter(memo => memo.id !== payload.old.id));
+              
+              toast({
+                title: "Memo deleted",
+                description: "A memo has been removed."
+              });
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [toast]);
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [isAuthenticated, toast]);
 
   const value = {
     memos,
