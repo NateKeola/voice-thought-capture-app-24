@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -6,9 +6,8 @@ import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
-import { MemoType } from '@/types';
 
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
@@ -52,7 +51,8 @@ const extractRelationshipMemos = (memos, relationshipId) => {
 const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const location = useLocation();
+  const { user, loading } = useAuth();
   const { profiles, isLoading, createProfile } = useProfiles();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -65,8 +65,21 @@ const RelationshipsPage = () => {
   const [globalTab, setGlobalTab] = useState('relationships');
   const { memos, createMemo } = useMemos();
 
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/signin', { state: { from: location } });
+    }
+  }, [user, loading, navigate, location]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
   if (!user) {
-    navigate('/signin');
     return null;
   }
 
@@ -143,7 +156,7 @@ const RelationshipsPage = () => {
       case 'task':
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
           </svg>
         );
       case 'should':
@@ -294,7 +307,7 @@ const RelationshipsPage = () => {
                     onClick={() => setShowAddMemoModal(true)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                      <path fillRule="evenodd" d="M10 3a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
                     </svg>
                     Add Memo
                   </Button>

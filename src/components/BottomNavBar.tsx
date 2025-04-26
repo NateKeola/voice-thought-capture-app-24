@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Mic, Users, ListTodo } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface BottomNavBarProps {
   activeTab: string;
@@ -10,16 +10,29 @@ interface BottomNavBarProps {
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Set the active tab based on the current route
+  useEffect(() => {
+    const path = location.pathname;
+    if (path === '/relationships') {
+      onTabChange('relationships');
+    } else if (path === '/tasks') {
+      onTabChange('tasks');
+    } else if (path === '/home') {
+      onTabChange('record');
+    }
+  }, [location.pathname, onTabChange]);
 
   const handleTabClick = (tab: string) => {
+    onTabChange(tab);
+    
     if (tab === 'relationships') {
       navigate('/relationships');
     } else if (tab === 'tasks') {
       navigate('/tasks');
     } else if (tab === 'record') {
       navigate('/home');
-    } else {
-      onTabChange(tab);
     }
   };
 
