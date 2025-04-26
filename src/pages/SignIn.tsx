@@ -15,7 +15,7 @@ const SignIn = () => {
   const { toast } = useToast();
   
   // Get the path to redirect to after login
-  const from = location.state?.from?.pathname || '/home';
+  const from = location.state?.from || '/home';
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +28,7 @@ const SignIn = () => {
     });
     
     // Redirect to the page the user was trying to access
-    navigate(from);
+    navigate(from, { replace: true });
   };
 
   return (

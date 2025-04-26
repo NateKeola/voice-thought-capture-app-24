@@ -6,7 +6,7 @@ import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
 
 const REL_TYPE_COLORS = {
@@ -51,9 +51,8 @@ const extractRelationshipMemos = (memos, relationshipId) => {
 const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, loading } = useAuth();
-  const { profiles, isLoading, createProfile } = useProfiles();
+  const { user, loading: authLoading } = useAuth();
+  const { profiles, isLoading: profilesLoading } = useProfiles();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,14 +63,23 @@ const RelationshipsPage = () => {
   const [recordingText, setRecordingText] = useState('');
   const [globalTab, setGlobalTab] = useState('relationships');
   const { memos, createMemo } = useMemos();
+  const isLoading = authLoading || profilesLoading;
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/signin', { state: { from: location } });
-    }
-  }, [user, loading, navigate, location]);
+    const checkAuth = async () => {
+      const isUserAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+      setIsAuthenticated(isUserAuthenticated);
+      
+      if (!isUserAuthenticated && !authLoading) {
+        navigate('/signin', { state: { from: '/relationships' } });
+      }
+    };
+    
+    checkAuth();
+  }, [navigate, authLoading]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
@@ -79,7 +87,7 @@ const RelationshipsPage = () => {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return null;
   }
 
