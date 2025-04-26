@@ -49,7 +49,7 @@ const RelationshipsPage = () => {
     }
   }, [user, loading, navigate]);
 
-  // Don't render anything until auth check is complete
+  // Show loading state while checking authentication
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
