@@ -3,8 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
-// Export the Profile interface
-export interface Profile {
+interface Profile {
   id: string;
   first_name: string;
   last_name: string;

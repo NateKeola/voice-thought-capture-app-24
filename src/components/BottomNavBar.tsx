@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Mic, Users, ListTodo } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface BottomNavBarProps {
   activeTab: string;
@@ -10,25 +10,16 @@ interface BottomNavBarProps {
 
 const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Normalize activeTab based on current path if not explicitly set
-  const normalizedActiveTab = React.useMemo(() => {
-    if (location.pathname.includes('relationships')) return 'relationships';
-    if (location.pathname.includes('tasks')) return 'tasks';
-    if (location.pathname.includes('home')) return 'record';
-    return activeTab;
-  }, [location.pathname, activeTab]);
 
   const handleTabClick = (tab: string) => {
-    onTabChange(tab);
-    
     if (tab === 'relationships') {
       navigate('/relationships');
     } else if (tab === 'tasks') {
       navigate('/tasks');
     } else if (tab === 'record') {
       navigate('/home');
+    } else {
+      onTabChange(tab);
     }
   };
 
@@ -38,7 +29,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
         <button
           onClick={() => handleTabClick('tasks')}
           className={`flex flex-col items-center p-2 ${
-            normalizedActiveTab === 'tasks' ? 'text-purple-600' : 'text-gray-500'
+            activeTab === 'tasks' ? 'text-purple-600' : 'text-gray-500'
           }`}
         >
           <ListTodo size={24} />
@@ -53,7 +44,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
         >
           <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-all
             ${
-              normalizedActiveTab === 'record'
+              activeTab === 'record'
                 ? 'bg-gradient-to-br from-purple-500 via-pink-400 to-orange-400 border-4 border-white'
                 : 'bg-gradient-to-tr from-orange-200 via-purple-100 to-pink-100 border-4 border-white'
             }
@@ -65,14 +56,14 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
             />
           </div>
           <span className={`text-xs mt-1 font-bold tracking-widest ${
-            normalizedActiveTab === 'record' ? 'text-purple-500' : 'text-gray-500'
+            activeTab === 'record' ? 'text-purple-500' : 'text-gray-500'
           }`}>Record</span>
         </button>
         
         <button
           onClick={() => handleTabClick('relationships')}
           className={`flex flex-col items-center p-2 ${
-            normalizedActiveTab === 'relationships' ? 'text-orange-500' : 'text-gray-500'
+            activeTab === 'relationships' ? 'text-orange-500' : 'text-gray-500'
           }`}
         >
           <Users size={24} />

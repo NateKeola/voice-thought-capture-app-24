@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,7 @@ const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
-
-  // Get the intended destination from state, defaulting to '/home'
-  const from = location.state?.from?.pathname || '/home';
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +22,7 @@ const SignIn = () => {
       title: "Welcome back!",
       description: "You've successfully signed in."
     });
-    
-    // Navigate to the page they were trying to access
-    navigate(from);
+    navigate('/home');
   };
 
   return (
