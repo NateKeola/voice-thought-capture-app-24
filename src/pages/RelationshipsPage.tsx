@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
@@ -32,7 +33,7 @@ const extractRelationshipMemos = (memos, relationshipId) => {
 const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { profiles, isLoading, createProfile } = useProfiles();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -42,8 +43,19 @@ const RelationshipsPage = () => {
   const [globalTab, setGlobalTab] = useState('relationships');
   const { memos } = useMemos();
 
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/signin');
+    }
+  }, [user, loading, navigate]);
+
+  // Don't render anything until auth check is complete
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  }
+
+  // Skip the early return to avoid rendering issues
   if (!user) {
-    navigate('/signin');
     return null;
   }
 
