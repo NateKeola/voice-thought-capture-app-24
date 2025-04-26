@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import BottomNavBar from '@/components/BottomNavBar';
@@ -44,17 +43,19 @@ const RelationshipsPage = () => {
   const { memos } = useMemos();
 
   useEffect(() => {
+    setGlobalTab('relationships');
+  }, []);
+
+  useEffect(() => {
     if (!loading && !user) {
       navigate('/signin');
     }
   }, [user, loading, navigate]);
 
-  // Show loading state while checking authentication
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
 
-  // Skip the early return to avoid rendering issues
   if (!user) {
     return null;
   }
@@ -140,7 +141,7 @@ const RelationshipsPage = () => {
       />
       
       <BottomNavBar
-        activeTab={globalTab}
+        activeTab="relationships"
         onTabChange={setGlobalTab}
       />
     </div>
