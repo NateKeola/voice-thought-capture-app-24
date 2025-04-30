@@ -14,8 +14,8 @@ interface TaskCategoryCardProps {
 const TaskCategoryCard: React.FC<TaskCategoryCardProps> = ({ id, name, color, count, total, onSelect, selected }) => (
   <div
     onClick={() => onSelect(id)}
-    className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-l-4`} 
-    style={{ borderColor: color, opacity: selected ? 0.8 : 1 }}
+    className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-l-4 ${selected ? 'ring-2 ring-offset-2' : ''}`} 
+    style={{ borderColor: color, opacity: selected ? 0.8 : 1, ringColor: color }}
   >
     <div className="flex justify-between items-center mb-2">
       <h3 className="font-medium text-gray-800">{name}</h3>

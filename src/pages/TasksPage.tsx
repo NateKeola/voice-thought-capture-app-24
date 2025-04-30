@@ -111,6 +111,12 @@ const TasksPage: React.FC = () => {
     return category ? category.color : "#6B7280";
   };
 
+  // Create a mapping of category IDs to names for the TaskList component
+  const categoryNames = categories.reduce((acc, cat) => {
+    acc[cat.id] = cat.name;
+    return acc;
+  }, {} as { [key: string]: string });
+
   // Filter and sort logic
   let filteredTasks = tasks.filter((task) => {
     if (!showCompleted && task.completed) return false;
@@ -189,7 +195,7 @@ const TasksPage: React.FC = () => {
                 count={tasks.filter((t) => t.category === cat.id && !t.completed).length}
                 total={tasks.filter((t) => t.category === cat.id).length}
                 onSelect={handleCategorySelect}
-                selected={false}
+                selected={selectedCategory === cat.id}
               />
             ))}
           </div>
@@ -201,6 +207,8 @@ const TasksPage: React.FC = () => {
           onToggleComplete={onToggleComplete}
           priorityColors={priorityColors}
           viewMode={viewMode}
+          selectedCategory={selectedCategory}
+          categoryNames={categoryNames}
         />
       </div>
       <TasksFAB />
