@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -95,6 +94,10 @@ const TasksPage: React.FC = () => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
   };
 
+  const handleBackClick = () => {
+    setSelectedCategory(null);
+  };
+
   const onToggleComplete = async (id: number) => {
     // Find the corresponding memo
     const memo = memos.find(m => Number(m.id) === id);
@@ -144,7 +147,12 @@ const TasksPage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
-      <TasksHeader taskCount={tasks.filter((t) => !t.completed).length} />
+      <TasksHeader 
+        taskCount={tasks.filter((t) => !t.completed).length} 
+        selectedCategory={selectedCategory}
+        categoryNames={categoryNames}
+        onBackClick={handleBackClick}
+      />
       <div className="container mx-auto max-w-md px-4 pt-4 pb-4">
         <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
         {/* Toggle Show Completed */}
@@ -209,6 +217,7 @@ const TasksPage: React.FC = () => {
           viewMode={viewMode}
           selectedCategory={selectedCategory}
           categoryNames={categoryNames}
+          onBackClick={handleBackClick}
         />
       </div>
       <TasksFAB />

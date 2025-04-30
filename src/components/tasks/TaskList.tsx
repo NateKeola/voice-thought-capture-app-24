@@ -19,6 +19,7 @@ interface TaskListProps {
   viewMode: "categories" | "timeline";
   selectedCategory: string | null;
   categoryNames: { [key: string]: string };
+  onBackClick?: () => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({
@@ -29,11 +30,18 @@ const TaskList: React.FC<TaskListProps> = ({
   viewMode,
   selectedCategory,
   categoryNames,
+  onBackClick,
 }) => {
   const [openCategory, setOpenCategory] = React.useState<string | null>(null);
   
   if (tasks.length === 0) {
-    return <EmptyTaskState />;
+    return (
+      <EmptyTaskState 
+        selectedCategory={selectedCategory} 
+        categoryName={selectedCategory ? categoryNames[selectedCategory] : undefined} 
+        onBackClick={onBackClick} 
+      />
+    );
   }
 
   // Group tasks by category for category view
