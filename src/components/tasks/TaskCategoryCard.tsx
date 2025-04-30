@@ -14,33 +14,41 @@ interface TaskCategoryCardProps {
 const TaskCategoryCard: React.FC<TaskCategoryCardProps> = ({ id, name, color, count, total, onSelect, selected }) => (
   <div
     onClick={() => onSelect(id)}
-    className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow border-l-4 ${
-      selected ? 'ring-2 ring-offset-2' : ''
+    className={`bg-white rounded-xl p-4 shadow-sm cursor-pointer transition-all duration-200 border-l-4 relative ${
+      selected ? 'shadow-md translate-y-[-2px]' : 'hover:shadow-md hover:translate-y-[-1px]'
     }`}
     style={{ 
       borderColor: color, 
-      opacity: selected ? 0.8 : 1,
-      ...(selected ? { 
-        borderWidth: '2px',  // Use standard CSS property instead of ringColor
-        outlineColor: color  // Use outlineColor instead of ringColor
-      } : {})
+      ...(selected && { 
+        boxShadow: `0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 0 2px ${color}40`,
+      })
     }}
   >
     <div className="flex justify-between items-center mb-2">
       <h3 className="font-medium text-gray-800">{name}</h3>
       <span
-        className="w-6 h-6 rounded-full text-xs flex items-center justify-center text-white"
+        className="w-6 h-6 rounded-full text-xs flex items-center justify-center text-white font-medium shadow-sm"
         style={{ backgroundColor: color }}
       >
         {count}
       </span>
     </div>
-    <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+    <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
       <div
-        className="h-full rounded-full"
-        style={{ backgroundColor: color, width: `${total > 0 ? (count / total) * 100 : 0}%` }}
+        className="h-full rounded-full transition-all duration-300 ease-out"
+        style={{ 
+          backgroundColor: color, 
+          width: `${total > 0 ? (count / total) * 100 : 0}%`,
+          opacity: selected ? 0.9 : 0.7
+        }}
       ></div>
     </div>
+    {selected && (
+      <div 
+        className="absolute inset-0 rounded-xl border-2 pointer-events-none" 
+        style={{ borderColor: `${color}80` }}
+      ></div>
+    )}
   </div>
 );
 

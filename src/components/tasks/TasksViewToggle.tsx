@@ -1,5 +1,6 @@
 
 import React from "react";
+import { ListTodo, Calendar } from "lucide-react";
 
 interface TasksViewToggleProps {
   viewMode: "categories" | "timeline";
@@ -7,26 +8,28 @@ interface TasksViewToggleProps {
 }
 
 const TasksViewToggle: React.FC<TasksViewToggleProps> = ({ viewMode, setViewMode }) => (
-  <div className="mt-6 flex bg-white bg-opacity-20 rounded-xl p-1">
+  <div className="mt-6 flex bg-white rounded-xl p-1 shadow-sm">
     <button
-      className={`py-2 px-4 rounded-lg text-sm font-medium flex-1 transition-all ${
+      className={`py-2 px-4 rounded-lg text-sm font-medium flex-1 flex justify-center items-center space-x-2 transition-all ${
         viewMode === "categories"
-          ? "bg-white text-purple-600 shadow-sm"
-          : "text-white"
+          ? "bg-indigo-100 text-indigo-600"
+          : "text-gray-500 hover:bg-gray-50"
       }`}
       onClick={() => setViewMode("categories")}
     >
-      Categories
+      <ListTodo size={18} />
+      <span>Categories</span>
     </button>
     <button
-      className={`py-2 px-4 rounded-lg text-sm font-medium flex-1 transition-all ${
+      className={`py-2 px-4 rounded-lg text-sm font-medium flex-1 flex justify-center items-center space-x-2 transition-all ${
         viewMode === "timeline"
-          ? "bg-white text-purple-600 shadow-sm"
-          : "text-white"
+          ? "bg-indigo-100 text-indigo-600"
+          : "text-gray-500 hover:bg-gray-50"
       }`}
       onClick={() => setViewMode("timeline")}
     >
-      Timeline
+      <Calendar size={18} />
+      <span>Timeline</span>
     </button>
   </div>
 );

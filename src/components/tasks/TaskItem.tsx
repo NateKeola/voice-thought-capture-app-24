@@ -15,21 +15,32 @@ const TaskItem: React.FC<TaskItemProps> = ({
   getCategoryColor,
   onToggleComplete,
   priorityColors,
-}) => (
-  <div className={`bg-white rounded-xl p-4 shadow-sm ${task.completed ? 'opacity-60' : ''} hover:shadow-md transition-all duration-200`}>
-    <TaskItemHeader 
-      title={task.title}
-      description={task.description}
-      completed={task.completed}
-      categoryColor={getCategoryColor(task.category)}
-      priorityColor={priorityColors[task.priority]}
-      onToggleComplete={() => onToggleComplete(task.id)}
-    />
-    <TaskItemFooter 
-      due={task.due}
-      hasAudio={task.hasAudio}
-    />
-  </div>
-);
+}) => {
+  const categoryColor = getCategoryColor(task.category);
+  
+  return (
+    <div 
+      className={`bg-white rounded-xl p-4 shadow-sm ${
+        task.completed ? 'opacity-60' : ''
+      } hover:shadow-md transition-all duration-200 border-l-4`}
+      style={{ borderColor: categoryColor }}
+    >
+      <TaskItemHeader 
+        title={task.title}
+        description={task.description}
+        completed={task.completed}
+        categoryColor={categoryColor}
+        priorityColor={priorityColors[task.priority]}
+        onToggleComplete={() => onToggleComplete(task.id)}
+      />
+      <TaskItemFooter 
+        due={task.due}
+        hasAudio={task.hasAudio}
+        category={task.category}
+        getCategoryColor={getCategoryColor}
+      />
+    </div>
+  );
+};
 
 export default TaskItem;

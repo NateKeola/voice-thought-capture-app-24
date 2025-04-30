@@ -23,10 +23,11 @@ const TaskItemHeader: React.FC<TaskItemHeaderProps> = ({
     <div className="flex items-start">
       <button
         onClick={onToggleComplete}
-        className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 border-2 transition-colors duration-200"
+        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 border-2 transition-all duration-200 ${
+          completed ? 'bg-gray-100' : 'hover:bg-gray-50'
+        }`}
         style={{
           borderColor: completed ? "#D1D5DB" : categoryColor,
-          background: completed ? "#f3f4f6" : "#fff"
         }}
         aria-label="Toggle complete"
       >
@@ -38,13 +39,15 @@ const TaskItemHeader: React.FC<TaskItemHeaderProps> = ({
             <h3 className={`font-medium ${completed ? "text-gray-500 line-through" : "text-gray-800"}`}>
               {title}
             </h3>
-            <p className={`text-sm ${completed ? "text-gray-400" : "text-gray-600"} mt-1`}>
-              {description}
-            </p>
+            {description && (
+              <p className={`text-sm ${completed ? "text-gray-400" : "text-gray-600"} mt-1`}>
+                {description}
+              </p>
+            )}
           </div>
-          <div className="flex space-x-1">
-            <div className="h-2 w-2 rounded-full mt-1.5" style={{ backgroundColor: categoryColor }} />
-            <div className={`h-2 w-2 rounded-full mt-1.5 ${priorityColor}`} />
+          <div className="flex space-x-1.5 mt-1">
+            <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: categoryColor }} />
+            <div className={`h-2.5 w-2.5 rounded-full ${priorityColor}`} />
           </div>
         </div>
       </div>
