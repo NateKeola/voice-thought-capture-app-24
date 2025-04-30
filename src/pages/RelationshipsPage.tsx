@@ -8,6 +8,7 @@ import { useProfiles } from '@/hooks/useProfiles';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
+import ProfileIconButton from '@/components/ProfileIconButton';
 
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
@@ -193,11 +194,7 @@ const RelationshipsPage = () => {
               {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </p>
           </div>
-          <div className="bg-white bg-opacity-20 p-2 rounded-full">
-            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-              <span className="text-orange-600 font-bold text-lg">MJ</span>
-            </div>
-          </div>
+          <ProfileIconButton />
         </div>
         <div className="mt-6">
           <div className="relative">
