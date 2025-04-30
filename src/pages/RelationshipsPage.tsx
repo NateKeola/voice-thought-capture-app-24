@@ -52,7 +52,7 @@ const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { profiles, isLoading: profilesLoading } = useProfiles();
+  const { profiles, isLoading: profilesLoading, createProfile } = useProfiles();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
