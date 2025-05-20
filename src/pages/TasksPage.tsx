@@ -5,6 +5,11 @@ import TasksViewToggle from "@/components/tasks/TasksViewToggle";
 import TaskList from "@/components/tasks/TaskList";
 import TasksFAB from "@/components/tasks/TasksFAB";
 import BottomNavBar from "@/components/BottomNavBar";
+import TaskDialog from "@/components/tasks/TaskDialog";
+import CategoryDialog from "@/components/tasks/CategoryDialog";
+import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
+import { Button } from "@/components/ui/button";
+import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 
@@ -76,7 +81,9 @@ const mapMemoToTask = (memo: Memo) => {
   };
 };
 
-const TasksPage: React.FC = () => {
+// Inner component to use the TaskDialog context
+const TasksPageContent: React.FC = () => {
+  const { openCategoryDialog } = useTaskDialog();
   const [viewMode, setViewMode] = useState<"categories" | "timeline">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -155,7 +162,7 @@ const TasksPage: React.FC = () => {
       />
       <div className="container mx-auto max-w-md px-4 pt-4 pb-4">
         <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-        {/* Toggle Show Completed */}
+        {/* Toggle Show Completed and Add Category Button */}
         <div className="flex justify-between items-center my-4">
           <h2 className="text-lg font-semibold text-gray-800">
             {viewMode === "categories"
@@ -164,32 +171,45 @@ const TasksPage: React.FC = () => {
                 : "All Categories"
               : "Task Timeline"}
           </h2>
-          <button
-            className="flex items-center text-sm text-gray-500"
-            onClick={() => setShowCompleted((v) => !v)}
-          >
-            <div
-              className={`w-4 h-4 rounded mr-2 border ${
-                showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
-              } flex items-center justify-center`}
+          <div className="flex items-center gap-2">
+            {viewMode === "categories" && !selectedCategory && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-1" 
+                onClick={openCategoryDialog}
+              >
+                <FolderPlus size={16} />
+                <span className="hidden sm:inline">New Category</span>
+              </Button>
+            )}
+            <button
+              className="flex items-center text-sm text-gray-500"
+              onClick={() => setShowCompleted((v) => !v)}
             >
-              {showCompleted && (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 text-white"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              )}
-            </div>
-            Show completed
-          </button>
+              <div
+                className={`w-4 h-4 rounded mr-2 border ${
+                  showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
+                } flex items-center justify-center`}
+              >
+                {showCompleted && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-white"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+              </div>
+              Show completed
+            </button>
+          </div>
         </div>
         {/* Categories */}
         {viewMode === "categories" && !selectedCategory && (
@@ -222,7 +242,20 @@ const TasksPage: React.FC = () => {
       </div>
       <TasksFAB />
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
+      
+      {/* Dialogs */}
+      <TaskDialog />
+      <CategoryDialog />
     </div>
+  );
+};
+
+// Wrapper component that provides the TaskDialog context
+const TasksPage: React.FC = () => {
+  return (
+    <TaskDialogProvider>
+      <TasksPageContent />
+    </TaskDialogProvider>
   );
 };
 
