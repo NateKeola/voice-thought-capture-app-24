@@ -2,18 +2,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { DatabaseTables } from '@/types/database.types';
 
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-  notes: string | null;
-  type: string;
-  created_at: string;
-  last_interaction: string;
-}
+export type Profile = DatabaseTables['profiles'];
 
 export function useProfiles() {
   const { toast } = useToast();
@@ -25,7 +16,7 @@ export function useProfiles() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .order('last_interaction', { ascending: false });
+        .order('last_interaction', { ascending: false }) as { data: Profile[] | null, error: any };
 
       if (error) {
         toast({
@@ -49,7 +40,7 @@ export function useProfiles() {
         .from('profiles')
         .insert([{ ...newProfile, user_id: user.id }])
         .select()
-        .single();
+        .single() as { data: Profile | null, error: any };
 
       if (error) throw error;
       return data;

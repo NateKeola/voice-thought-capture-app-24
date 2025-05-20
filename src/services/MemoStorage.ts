@@ -1,6 +1,10 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Memo, MemoType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { DatabaseTables } from '@/types/database.types';
+
+type DbMemo = DatabaseTables['memos'];
 
 // Maps between frontend Memo type and database schema
 const toDbMemo = (memo: Omit<Memo, 'id' | 'createdAt'> | Partial<Omit<Memo, 'id' | 'createdAt'>>, userId: string) => {
@@ -13,7 +17,7 @@ const toDbMemo = (memo: Omit<Memo, 'id' | 'createdAt'> | Partial<Omit<Memo, 'id'
   };
 };
 
-const fromDbMemo = (dbMemo: any): Memo => {
+const fromDbMemo = (dbMemo: DbMemo): Memo => {
   return {
     id: dbMemo.id,
     text: dbMemo.content,
@@ -87,14 +91,14 @@ export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Me
     .from('memos')
     .insert([dbMemo])
     .select()
-    .single();
+    .single() as { data: DbMemo | null, error: any };
 
   if (error) {
     console.error('Error saving memo:', error);
     throw error;
   }
 
-  return fromDbMemo(data);
+  return fromDbMemo(data!);
 };
 
 // Get all memos
@@ -111,14 +115,14 @@ export const getAllMemos = async (): Promise<Memo[]> => {
   const { data, error } = await supabase
     .from('memos')
     .select('*')
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as { data: DbMemo[] | null, error: any };
 
   if (error) {
     console.error('Error fetching memos:', error);
     throw error;
   }
 
-  return data.map(fromDbMemo);
+  return (data || []).map(fromDbMemo);
 };
 
 // Get a memo by ID
@@ -138,7 +142,7 @@ export const getMemoById = async (id: string): Promise<Memo | null> => {
     .from('memos')
     .select('*')
     .eq('id', id)
-    .single();
+    .single() as { data: DbMemo | null, error: any };
 
   if (error) {
     if (error.code === 'PGRST116') {
@@ -148,7 +152,7 @@ export const getMemoById = async (id: string): Promise<Memo | null> => {
     throw error;
   }
 
-  return fromDbMemo(data);
+  return fromDbMemo(data!);
 };
 
 // Update a memo
@@ -194,14 +198,14 @@ export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 
     .update(dbUpdates)
     .eq('id', id)
     .select()
-    .single();
+    .single() as { data: DbMemo | null, error: any };
 
   if (error) {
     console.error('Error updating memo:', error);
     throw error;
   }
 
-  return fromDbMemo(data);
+  return fromDbMemo(data!);
 };
 
 // Delete a memo
@@ -222,7 +226,7 @@ export const deleteMemo = async (id: string): Promise<boolean> => {
   const { error } = await supabase
     .from('memos')
     .delete()
-    .eq('id', id);
+    .eq('id', id) as { error: any };
 
   if (error) {
     console.error('Error deleting memo:', error);
