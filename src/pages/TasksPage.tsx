@@ -83,7 +83,7 @@ const mapMemoToTask = (memo: Memo) => {
 
 // Inner component to use the TaskDialog context
 const TasksPageContent: React.FC = () => {
-  const { openCategoryDialog } = useTaskDialog();
+  const { openCategoryDialog, openTaskDialog } = useTaskDialog();
   const [viewMode, setViewMode] = useState<"categories" | "timeline">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -151,6 +151,10 @@ const TasksPageContent: React.FC = () => {
     count: tasks.filter((t) => t.category === cat.id && !t.completed).length,
     total: tasks.filter((t) => t.category === cat.id).length,
   }));
+
+  const handleCreateTaskForCategory = (categoryId: string) => {
+    openTaskDialog(categoryId);
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
@@ -223,6 +227,7 @@ const TasksPageContent: React.FC = () => {
                 count={tasks.filter((t) => t.category === cat.id && !t.completed).length}
                 total={tasks.filter((t) => t.category === cat.id).length}
                 onSelect={handleCategorySelect}
+                onCreateTask={handleCreateTaskForCategory}
                 selected={selectedCategory === cat.id}
               />
             ))}

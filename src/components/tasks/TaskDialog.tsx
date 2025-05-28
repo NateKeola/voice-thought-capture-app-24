@@ -52,7 +52,7 @@ const categories = [
 ];
 
 const TaskDialog: React.FC = () => {
-  const { isTaskDialogOpen, closeTaskDialog } = useTaskDialog();
+  const { isTaskDialogOpen, closeTaskDialog, preselectedCategory } = useTaskDialog();
   const { createMemo } = useMemos();
   const { toast } = useToast();
 
@@ -61,11 +61,18 @@ const TaskDialog: React.FC = () => {
     defaultValues: {
       title: "",
       description: "",
-      category: "personal",
+      category: preselectedCategory || "personal",
       priority: "medium",
       due: "today",
     },
   });
+
+  // Update form when preselected category changes
+  React.useEffect(() => {
+    if (preselectedCategory) {
+      form.setValue("category", preselectedCategory);
+    }
+  }, [preselectedCategory, form]);
 
   const onSubmit = async (values: TaskFormValues) => {
     try {
