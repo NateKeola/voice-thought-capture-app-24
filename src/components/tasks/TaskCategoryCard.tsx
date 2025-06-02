@@ -25,6 +25,7 @@ const TaskCategoryCard: React.FC<TaskCategoryCardProps> = ({
 }) => {
   const handleCreateTask = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card selection when clicking the button
+    console.log("Create task button clicked for category:", id);
     onCreateTask?.(id);
   };
 

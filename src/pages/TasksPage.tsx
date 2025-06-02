@@ -153,6 +153,7 @@ const TasksPageContent: React.FC = () => {
   }));
 
   const handleCreateTaskForCategory = (categoryId: string) => {
+    console.log("handleCreateTaskForCategory called with:", categoryId);
     openTaskDialog(categoryId);
   };
 
