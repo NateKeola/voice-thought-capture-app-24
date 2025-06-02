@@ -61,18 +61,25 @@ const TaskDialog: React.FC = () => {
     defaultValues: {
       title: "",
       description: "",
-      category: preselectedCategory || "personal",
+      category: "personal",
       priority: "medium",
       due: "today",
     },
   });
 
-  // Update form when preselected category changes
+  // Update form when dialog opens and when preselected category changes
   React.useEffect(() => {
-    if (preselectedCategory) {
-      form.setValue("category", preselectedCategory);
+    if (isTaskDialogOpen) {
+      console.log("TaskDialog opened with preselectedCategory:", preselectedCategory);
+      form.reset({
+        title: "",
+        description: "",
+        category: preselectedCategory || "personal",
+        priority: "medium",
+        due: "today",
+      });
     }
-  }, [preselectedCategory, form]);
+  }, [isTaskDialogOpen, preselectedCategory, form]);
 
   const onSubmit = async (values: TaskFormValues) => {
     try {
@@ -154,7 +161,7 @@ const TaskDialog: React.FC = () => {
                   <FormLabel>Category</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
