@@ -7,9 +7,18 @@ interface TaskItemFooterProps {
   hasAudio: boolean;
   category: string;
   getCategoryColor: (id: string) => string;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-const TaskItemFooter: React.FC<TaskItemFooterProps> = ({ due, hasAudio, category, getCategoryColor }) => {
+const TaskItemFooter: React.FC<TaskItemFooterProps> = ({ 
+  due, 
+  hasAudio, 
+  category, 
+  getCategoryColor,
+  onEdit,
+  onDelete
+}) => {
   const categoryColor = getCategoryColor(category);
   
   return (
@@ -30,10 +39,18 @@ const TaskItemFooter: React.FC<TaskItemFooterProps> = ({ due, hasAudio, category
         )}
       </div>
       <div className="flex space-x-2">
-        <button className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-50" aria-label="Edit Task">
+        <button 
+          onClick={onEdit}
+          className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-50" 
+          aria-label="Edit Task"
+        >
           <Edit size={16} />
         </button>
-        <button className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-gray-50" aria-label="Delete Task">
+        <button 
+          onClick={onDelete}
+          className="text-gray-400 hover:text-red-500 transition-colors p-1 rounded-full hover:bg-gray-50" 
+          aria-label="Delete Task"
+        >
           <Trash size={16} />
         </button>
       </div>
