@@ -8,6 +8,7 @@ import BottomNavBar from "@/components/BottomNavBar";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import CategoryDialog from "@/components/tasks/CategoryDialog";
 import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
+import { CategoryProvider, useCategories } from "@/contexts/CategoryContext";
 import { Button } from "@/components/ui/button";
 import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
@@ -84,6 +85,7 @@ const mapMemoToTask = (memo: Memo) => {
 // Inner component to use the TaskDialog context
 const TasksPageContent: React.FC = () => {
   const { openCategoryDialog, openTaskDialog } = useTaskDialog();
+  const { categories } = useCategories();
   const [viewMode, setViewMode] = useState<"categories" | "timeline">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -256,12 +258,14 @@ const TasksPageContent: React.FC = () => {
   );
 };
 
-// Wrapper component that provides the TaskDialog context
+// Wrapper component that provides both contexts
 const TasksPage: React.FC = () => {
   return (
-    <TaskDialogProvider>
-      <TasksPageContent />
-    </TaskDialogProvider>
+    <CategoryProvider>
+      <TaskDialogProvider>
+        <TasksPageContent />
+      </TaskDialogProvider>
+    </CategoryProvider>
   );
 };
 

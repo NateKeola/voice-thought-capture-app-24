@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemos } from "@/contexts/MemoContext";
 import { useTaskDialog } from "@/hooks/useTaskDialog";
+import { useCategories } from "@/contexts/CategoryContext";
 import { useToast } from "@/hooks/use-toast";
 
 import {
@@ -43,16 +44,9 @@ const taskFormSchema = z.object({
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
 
-const categories = [
-  { id: "personal", name: "Personal" },
-  { id: "work", name: "Work" },
-  { id: "health", name: "Health" },
-  { id: "finance", name: "Finance" },
-  { id: "home", name: "Home" },
-];
-
 const TaskDialog: React.FC = () => {
   const { isTaskDialogOpen, closeTaskDialog, preselectedCategory } = useTaskDialog();
+  const { categories } = useCategories();
   const { createMemo } = useMemos();
   const { toast } = useToast();
 

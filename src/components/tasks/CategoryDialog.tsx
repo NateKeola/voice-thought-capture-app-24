@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useTaskDialog } from "@/hooks/useTaskDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useCategories } from "@/contexts/CategoryContext";
 
 import {
   Dialog,
@@ -14,21 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// This is a mock function as we don't have a category management system yet
-// In a real app, you'd integrate this with your backend/state management
-const createCategory = async (name: string, color: string): Promise<boolean> => {
-  // Simulating an API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log(`Creating category: ${name} with color: ${color}`);
-      // In a real app, you'd save this to your database
-      resolve(true);
-    }, 500);
-  });
-};
-
 const CategoryDialog: React.FC = () => {
   const { isCategoryDialogOpen, closeCategoryDialog } = useTaskDialog();
+  const { addCategory } = useCategories();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [color, setColor] = useState("#8B5CF6"); // Default to purple
@@ -47,10 +36,10 @@ const CategoryDialog: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await createCategory(name, color);
+      addCategory(name.trim(), color);
       toast({
         title: "Success",
-        description: "Category created successfully. Note: This is currently just simulated functionality.",
+        description: "Category created successfully!",
       });
       closeCategoryDialog();
       setName("");
