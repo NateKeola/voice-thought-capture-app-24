@@ -16,7 +16,6 @@ interface AddRelationshipModalProps {
 
 const relationshipTypes = [
   { id: 'work', label: 'Work', color: '#3B82F6' },
-  { id: 'client', label: 'Client', color: '#8B5CF6' },
   { id: 'personal', label: 'Personal', color: '#10B981' }
 ];
 
@@ -24,7 +23,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    type: 'Work',
+    types: [] as string[],
     relationshipDescription: '',
     email: '',
     phone: '',
@@ -51,10 +50,13 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
       .filter(note => note.trim())
       .join('\n\n---\n\n');
 
+    // Join multiple types with a comma
+    const typeString = formData.types.join(', ');
+
     onSubmit({
       first_name: formData.firstName,
       last_name: formData.lastName,
-      type: formData.type,
+      type: typeString,
       email: formData.email || null,
       phone: formData.phone || null,
       notes: combinedNotes || null
@@ -64,7 +66,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
     setFormData({
       firstName: '',
       lastName: '',
-      type: 'Work',
+      types: [],
       relationshipDescription: '',
       email: '',
       phone: '',
@@ -118,8 +120,8 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
               
               <RelationshipTypeSelector
                 types={relationshipTypes}
-                selectedType={formData.type}
-                onTypeSelect={(label) => setFormData({...formData, type: label})}
+                selectedTypes={formData.types}
+                onTypeSelect={(types) => setFormData({...formData, types})}
               />
 
               <div>
@@ -164,7 +166,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
                 <Button
                   className="bg-orange-500 hover:bg-orange-600"
                   onClick={() => setStep(2)}
-                  disabled={!formData.firstName || !formData.lastName}
+                  disabled={!formData.firstName || !formData.lastName || formData.types.length === 0}
                 >
                   Next
                 </Button>
@@ -179,13 +181,16 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
               </div>
               <div>
                 <h3 className="font-medium text-gray-800">{formData.firstName} {formData.lastName}</h3>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  formData.type === 'Work' ? 'bg-blue-100 text-blue-600' :
-                  formData.type === 'Client' ? 'bg-purple-100 text-purple-600' :
-                  'bg-green-100 text-green-600'
-                }`}>
-                  {formData.type}
-                </span>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {formData.types.map(type => (
+                    <span key={type} className={`text-xs px-2 py-0.5 rounded-full ${
+                      type === 'Work' ? 'bg-blue-100 text-blue-600' :
+                      'bg-green-100 text-green-600'
+                    }`}>
+                      {type}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
 
