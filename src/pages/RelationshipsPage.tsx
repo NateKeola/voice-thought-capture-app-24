@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
@@ -64,23 +65,16 @@ const RelationshipsPage = () => {
   const [recordingText, setRecordingText] = useState('');
   const [globalTab, setGlobalTab] = useState('relationships');
   const { memos, createMemo } = useMemos();
-  const isLoading = authLoading || profilesLoading;
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Redirect to auth if not authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      const isUserAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-      setIsAuthenticated(isUserAuthenticated);
-      
-      if (!isUserAuthenticated && !authLoading) {
-        navigate('/signin', { state: { from: '/relationships' } });
-      }
-    };
-    
-    checkAuth();
-  }, [navigate, authLoading]);
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
-  if (isLoading) {
+  // Show loading while checking authentication
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
@@ -88,9 +82,12 @@ const RelationshipsPage = () => {
     );
   }
 
-  if (!isAuthenticated) {
+  // Don't render if not authenticated
+  if (!user) {
     return null;
   }
+
+  const isLoading = profilesLoading;
 
   const handleCloseModal = () => {
     setShowAddModal(false);
