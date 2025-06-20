@@ -7,6 +7,7 @@ import TasksFAB from "@/components/tasks/TasksFAB";
 import BottomNavBar from "@/components/BottomNavBar";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import CategoryDialog from "@/components/tasks/CategoryDialog";
+import TaskClearAllDialog from "@/components/tasks/TaskClearAllDialog";
 import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
 import { Button } from "@/components/ui/button";
 import { FolderPlus } from "lucide-react";
@@ -88,6 +89,8 @@ const TasksPageContent: React.FC = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
   const [customCategories, setCustomCategories] = useState<any[]>([]);
+  const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
+  const [clearAllAction, setClearAllAction] = useState<"complete" | "delete">("complete");
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
@@ -166,6 +169,11 @@ const TasksPageContent: React.FC = () => {
     openTaskDialog(categoryId);
   };
 
+  const handleClearAll = (action: "complete" | "delete") => {
+    setClearAllAction(action);
+    setIsClearAllDialogOpen(true);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
       <TasksHeader 
@@ -176,7 +184,7 @@ const TasksPageContent: React.FC = () => {
       />
       <div className="container mx-auto max-w-md px-4 pt-4 pb-4">
         <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-        {/* Toggle Show Completed and Add Category Button */}
+        {/* Toggle Show Completed and Action Buttons */}
         <div className="flex justify-between items-center my-4">
           <h2 className="text-lg font-semibold text-gray-800">
             {viewMode === "categories"
@@ -186,6 +194,27 @@ const TasksPageContent: React.FC = () => {
               : "Item Timeline"}
           </h2>
           <div className="flex items-center gap-2">
+            {/* Clear All Buttons */}
+            {filteredTasks.filter(t => !t.completed).length > 0 && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-1 text-green-600 border-green-600 hover:bg-green-50" 
+                  onClick={() => handleClearAll("complete")}
+                >
+                  <span className="text-xs">Complete All</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-1 text-red-600 border-red-600 hover:bg-red-50" 
+                  onClick={() => handleClearAll("delete")}
+                >
+                  <span className="text-xs">Clear All</span>
+                </Button>
+              </>
+            )}
             {viewMode === "categories" && !selectedCategory && (
               <Button 
                 variant="outline" 
@@ -261,6 +290,13 @@ const TasksPageContent: React.FC = () => {
       {/* Dialogs */}
       <TaskDialog />
       <CategoryDialog />
+      <TaskClearAllDialog 
+        isOpen={isClearAllDialogOpen}
+        onClose={() => setIsClearAllDialogOpen(false)}
+        tasks={filteredTasks}
+        action={clearAllAction}
+        categoryName={selectedCategory ? categoryNames[selectedCategory] : undefined}
+      />
     </div>
   );
 };

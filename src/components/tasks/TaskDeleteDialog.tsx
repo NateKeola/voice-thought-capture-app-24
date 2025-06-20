@@ -28,10 +28,27 @@ const TaskDeleteDialog: React.FC<TaskDeleteDialogProps> = ({ isOpen, onClose, ta
     try {
       console.log("Deleting task with ID:", task.id, "Type:", typeof task.id);
       
-      // Mark memo as deleted instead of actually deleting it
-      await updateMemo(task.id, { // task.id is already a string now
-        text: task.title + (task.description ? '. ' + task.description : '') + ' [deleted:true]'
+      // Get the original memo text and append the deleted marker
+      let updatedText = task.title;
+      if (task.description) {
+        updatedText += '. ' + task.description;
+      }
+      
+      // Remove any existing metadata first
+      updatedText = updatedText
+        .replace(/\[priority:\s*\w+\]/gi, '')
+        .replace(/\[due:\s*[\w\s]+\]/gi, '')
+        .replace(/\[deleted:\s*\w+\]/gi, '')
+        .trim();
+      
+      // Add deleted marker
+      updatedText += ' [deleted:true]';
+      
+      await updateMemo(task.id, {
+        text: updatedText
       });
+      
+      console.log("Task marked as deleted successfully");
       
       toast({
         title: "Task removed",
