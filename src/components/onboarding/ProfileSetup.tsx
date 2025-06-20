@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,6 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Camera } from 'lucide-react';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 interface ProfileSetupProps {
   onComplete: (name: string, photoUrl?: string) => void;
@@ -15,10 +19,13 @@ interface ProfileSetupProps {
 export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onSkip }) => {
   const { setUserName } = useUserProfile();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const [name, setName] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -30,10 +37,47 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onSkip }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setUserName(name);
+    setIsLoading(true);
+
+    try {
+      if (user && name.trim()) {
+        // Update user metadata in Supabase
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            full_name: name.trim()
+          }
+        });
+
+        if (error) throw error;
+
+        // Update local context
+        setUserName(name.trim());
+        
+        toast({
+          title: "Profile updated!",
+          description: "Your profile has been set up successfully."
+        });
+      }
+
+      localStorage.setItem('isAuthenticated', 'true');
+      onComplete(name, photoUrl);
+      navigate('/home');
+    } catch (error: any) {
+      toast({
+        title: "Error updating profile",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSkip = () => {
     localStorage.setItem('isAuthenticated', 'true');
+    onSkip();
     navigate('/home');
   };
 
@@ -83,15 +127,16 @@ export const ProfileSetup: React.FC<ProfileSetupProps> = ({ onComplete, onSkip }
             <Button 
               type="submit" 
               className="w-full h-14 rounded-2xl bg-[#FF9500] hover:bg-[#FF9500]/90 shadow-sm text-lg font-bold"
-              disabled={!name.trim()}
+              disabled={!name.trim() || isLoading}
             >
-              Get Started
+              {isLoading ? "Setting up..." : "Get Started"}
             </Button>
             <Button 
               type="button" 
               variant="ghost" 
               className="text-sm text-muted-foreground underline"
-              onClick={onSkip}
+              onClick={handleSkip}
+              disabled={isLoading}
             >
               Skip for now
             </Button>

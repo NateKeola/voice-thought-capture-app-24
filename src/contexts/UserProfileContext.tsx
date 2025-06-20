@@ -1,5 +1,6 @@
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UserProfileContextType {
   userName: string;
@@ -9,15 +10,25 @@ interface UserProfileContextType {
 const UserProfileContext = createContext<UserProfileContextType | undefined>(undefined);
 
 export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userName, setUserName] = useState(() => localStorage.getItem('userName') || '');
+  const { user } = useAuth();
+  const [userName, setUserNameState] = useState(() => localStorage.getItem('userName') || '');
 
-  const updateUserName = (name: string) => {
-    setUserName(name);
+  // Load user name from Supabase user metadata when user is available
+  useEffect(() => {
+    if (user?.user_metadata?.full_name) {
+      const nameFromSupabase = user.user_metadata.full_name;
+      setUserNameState(nameFromSupabase);
+      localStorage.setItem('userName', nameFromSupabase);
+    }
+  }, [user]);
+
+  const setUserName = (name: string) => {
+    setUserNameState(name);
     localStorage.setItem('userName', name);
   };
 
   return (
-    <UserProfileContext.Provider value={{ userName, setUserName: updateUserName }}>
+    <UserProfileContext.Provider value={{ userName, setUserName }}>
       {children}
     </UserProfileContext.Provider>
   );

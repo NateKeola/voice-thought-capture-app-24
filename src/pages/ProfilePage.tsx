@@ -6,6 +6,7 @@ import { renderProfileIcon } from '@/utils/iconRenderer';
 import type { Badge } from '@/types';
 import BottomNavBar from '@/components/BottomNavBar';
 import { useUserProfile } from '@/contexts/UserProfileContext';
+import { useAuth } from '@/hooks/useAuth';
 import ProfileIconButton from '@/components/ProfileIconButton';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
@@ -87,12 +88,14 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('badges');
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const { userName } = useUserProfile();
+  const { user } = useAuth();
+  
   const initials = userName
     ? userName.split(' ').map(n => n.trim()[0] || '').join('').substring(0, 2).toUpperCase()
     : 'MJ';
 
-  const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
-  const joinDate = localStorage.getItem('joinDate') || 'April 2025';
+  const userEmail = user?.email || 'user@example.com';
+  const joinDate = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'April 2025';
 
   const stats = {
     totalMemos: 147,
