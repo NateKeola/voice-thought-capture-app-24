@@ -23,24 +23,27 @@ const TaskItemHeader: React.FC<TaskItemHeaderProps> = ({
     <div className="flex items-start">
       <button
         onClick={onToggleComplete}
-        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 border-2 transition-all duration-200 ${
-          completed ? 'bg-gray-100' : 'hover:bg-gray-50'
+        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 border-2 transition-all duration-200 cursor-pointer ${
+          completed 
+            ? 'bg-green-500 border-green-500 hover:bg-green-600' 
+            : 'bg-white hover:bg-gray-50 border-gray-300'
         }`}
         style={{
-          borderColor: completed ? "#D1D5DB" : categoryColor,
+          borderColor: completed ? "#10B981" : categoryColor,
+          backgroundColor: completed ? "#10B981" : "white",
         }}
-        aria-label="Toggle complete"
+        aria-label={completed ? "Mark as incomplete" : "Mark as complete"}
       >
-        {completed && <Check size={16} className="text-gray-500" />}
+        {completed && <Check size={16} className="text-white" />}
       </button>
       <div className="flex-1">
         <div className="flex items-start justify-between">
           <div>
-            <h3 className={`font-medium ${completed ? "text-gray-500 line-through" : "text-gray-800"}`}>
+            <h3 className={`font-medium transition-all duration-200 ${completed ? "text-gray-500 line-through" : "text-gray-800"}`}>
               {title}
             </h3>
             {description && (
-              <p className={`text-sm ${completed ? "text-gray-400" : "text-gray-600"} mt-1`}>
+              <p className={`text-sm transition-all duration-200 ${completed ? "text-gray-400 line-through" : "text-gray-600"} mt-1`}>
                 {description}
               </p>
             )}

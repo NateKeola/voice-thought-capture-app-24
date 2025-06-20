@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -13,15 +14,7 @@ import { Button } from "@/components/ui/button";
 import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
-
-// Define category data
-const categories = [
-  { id: "personal", name: "Personal", color: "#8B5CF6" },
-  { id: "work", name: "Work", color: "#3B82F6" },
-  { id: "health", name: "Health", color: "#EC4899" },
-  { id: "finance", name: "Finance", color: "#10B981" },
-  { id: "home", name: "Home", color: "#F59E0B" },
-];
+import { useToast } from "@/hooks/use-toast";
 
 const priorityColors = {
   high: "bg-red-500",
@@ -90,6 +83,7 @@ const TasksPageContent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
+  const { toast } = useToast();
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
@@ -108,14 +102,40 @@ const TasksPageContent: React.FC = () => {
   };
 
   const onToggleComplete = async (id: number) => {
+    console.log("Toggling completion for task ID:", id);
+    
     // Find the corresponding memo
     const memo = memos.find(m => Number(m.id) === id);
-    if (!memo) return;
+    if (!memo) {
+      console.error("Memo not found for task ID:", id);
+      return;
+    }
     
-    // Toggle its completed status
-    await updateMemo(memo.id, {
-      completed: !memo.completed
-    });
+    console.log("Found memo:", memo.id, "current completed state:", memo.completed);
+    
+    try {
+      // Toggle its completed status
+      const newCompletedStatus = !memo.completed;
+      await updateMemo(memo.id, {
+        completed: newCompletedStatus
+      });
+      
+      console.log("Successfully updated memo completion status to:", newCompletedStatus);
+      
+      toast({
+        title: newCompletedStatus ? "Task completed!" : "Task marked incomplete",
+        description: newCompletedStatus 
+          ? "Great job! Task has been marked as complete." 
+          : "Task has been marked as incomplete.",
+      });
+    } catch (error) {
+      console.error("Error updating task completion:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update task completion status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getCategoryColor = (categoryId: string) => {
@@ -146,13 +166,6 @@ const TasksPageContent: React.FC = () => {
     if (duePriority[a.due] !== duePriority[b.due]) return duePriority[a.due] - duePriority[b.due];
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
-
-  // Count for pending tasks/category
-  const categoryTaskCounts = categories.map((cat) => ({
-    ...cat,
-    count: tasks.filter((t) => t.category === cat.id && !t.completed).length,
-    total: tasks.filter((t) => t.category === cat.id).length,
-  }));
 
   const handleCreateTaskForCategory = (categoryId: string) => {
     console.log("handleCreateTaskForCategory called with:", categoryId);
