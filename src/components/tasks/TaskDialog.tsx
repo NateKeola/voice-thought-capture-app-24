@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -5,8 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMemos } from "@/contexts/MemoContext";
 import { useTaskDialog } from "@/hooks/useTaskDialog";
 import { useToast } from "@/hooks/use-toast";
-import { useRelationshipSuggestions } from "@/hooks/useRelationshipSuggestions";
-import { useProfiles } from "@/hooks/useProfiles";
 
 import {
   Dialog,
@@ -33,8 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import RelationshipSuggestion from "@/components/relationships/RelationshipSuggestion";
-import AddRelationshipModal from "@/components/relationships/AddRelationshipModal";
 
 const taskFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -58,10 +55,6 @@ const TaskDialog: React.FC = () => {
   const { isTaskDialogOpen, closeTaskDialog, preselectedCategory } = useTaskDialog();
   const { createMemo } = useMemos();
   const { toast } = useToast();
-  const { suggestions, analyzeTextForPeople, dismissSuggestion, acceptSuggestion } = useRelationshipSuggestions();
-  const { createProfile } = useProfiles();
-  const [showAddRelationshipModal, setShowAddRelationshipModal] = useState(false);
-  const [selectedPersonForRelationship, setSelectedPersonForRelationship] = useState(null);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskFormSchema),
@@ -87,37 +80,6 @@ const TaskDialog: React.FC = () => {
       });
     }
   }, [isTaskDialogOpen, preselectedCategory, form]);
-
-  // Watch for changes in title and description to detect people
-  const watchedTitle = form.watch("title");
-  const watchedDescription = form.watch("description");
-
-  React.useEffect(() => {
-    const textToAnalyze = `${watchedTitle} ${watchedDescription || ""}`.trim();
-    if (textToAnalyze.length > 5) {
-      analyzeTextForPeople(textToAnalyze);
-    }
-  }, [watchedTitle, watchedDescription, analyzeTextForPeople]);
-
-  const handleAcceptRelationshipSuggestion = (detectedPerson) => {
-    setSelectedPersonForRelationship(detectedPerson);
-    setShowAddRelationshipModal(true);
-    acceptSuggestion(detectedPerson.fullName);
-  };
-
-  const handleCreateRelationship = async (profileData) => {
-    try {
-      await createProfile.mutateAsync(profileData);
-      setShowAddRelationshipModal(false);
-      setSelectedPersonForRelationship(null);
-      toast({
-        title: "Relationship created",
-        description: "New relationship has been added successfully."
-      });
-    } catch (error) {
-      console.error('Error creating relationship:', error);
-    }
-  };
 
   const onSubmit = async (values: TaskFormValues) => {
     try {
@@ -148,85 +110,97 @@ const TaskDialog: React.FC = () => {
   };
 
   return (
-    <>
-      <Dialog open={isTaskDialogOpen} onOpenChange={closeTaskDialog}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Create New Task</DialogTitle>
-            <DialogDescription>
-              Fill out the form below to create a new task.
-            </DialogDescription>
-          </DialogHeader>
+    <Dialog open={isTaskDialogOpen} onOpenChange={closeTaskDialog}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Create New Task</DialogTitle>
+          <DialogDescription>
+            Fill out the form below to create a new task.
+          </DialogDescription>
+        </DialogHeader>
 
-          {/* Relationship Suggestions */}
-          {suggestions.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {suggestions.map((person, index) => (
-                <RelationshipSuggestion
-                  key={`${person.fullName}-${index}`}
-                  detectedPerson={person}
-                  onAccept={handleAcceptRelationshipSuggestion}
-                  onDismiss={() => dismissSuggestion(person.fullName)}
-                />
-              ))}
-            </div>
-          )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Task Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter task title" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Task Title</FormLabel>
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter task description" 
+                      className="h-20 resize-none" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                  >
                     <FormControl>
-                      <Input placeholder="Enter task title" {...field} />
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    <SelectContent>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="description"
+                name="priority"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Enter task description" 
-                        className="h-20 resize-none" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
+                    <FormLabel>Priority</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      value={field.value}
+                      defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
+                          <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="low">Low</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -234,91 +208,45 @@ const TaskDialog: React.FC = () => {
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Priority</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="due"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select due date" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="today">Today</SelectItem>
+                        <SelectItem value="tomorrow">Tomorrow</SelectItem>
+                        <SelectItem value="this week">This Week</SelectItem>
+                        <SelectItem value="next week">Next Week</SelectItem>
+                        <SelectItem value="next month">Next Month</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-                <FormField
-                  control={form.control}
-                  name="due"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Due</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select due date" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="today">Today</SelectItem>
-                          <SelectItem value="tomorrow">Tomorrow</SelectItem>
-                          <SelectItem value="this week">This Week</SelectItem>
-                          <SelectItem value="next week">Next Week</SelectItem>
-                          <SelectItem value="next month">Next Month</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={closeTaskDialog}>
-                  Cancel
-                </Button>
-                <Button type="submit">Create Task</Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Relationship Modal */}
-      {selectedPersonForRelationship && (
-        <AddRelationshipModal
-          isOpen={showAddRelationshipModal}
-          onClose={() => {
-            setShowAddRelationshipModal(false);
-            setSelectedPersonForRelationship(null);
-          }}
-          onSubmit={handleCreateRelationship}
-          prefilledData={{
-            firstName: selectedPersonForRelationship.firstName,
-            lastName: selectedPersonForRelationship.lastName,
-            type: selectedPersonForRelationship.suggestedCategory,
-            relationshipDescription: `Detected from: ${selectedPersonForRelationship.context}`
-          }}
-        />
-      )}
-    </>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={closeTaskDialog}>
+                Cancel
+              </Button>
+              <Button type="submit">Create Task</Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
