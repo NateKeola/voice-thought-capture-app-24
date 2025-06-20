@@ -4,7 +4,6 @@ import Header from '@/components/home/Header';
 import SearchBar from '@/components/home/SearchBar';
 import TextMemoInput from '@/components/TextMemoInput';
 import BottomNavBar from '@/components/BottomNavBar';
-import PostMemoSuggestions from '@/components/PostMemoSuggestions';
 import { MemoType } from '@/types';
 import ProfileIconButton from '@/components/ProfileIconButton';
 import IntroSection from '@/components/home/IntroSection';
@@ -17,20 +16,7 @@ const HomePage = () => {
   const [activeTab, setActiveTab] = useState('record');
   const [liveTranscription, setLiveTranscription] = useState('');
   const [activeFilter, setActiveFilter] = useState<MemoType | 'all'>('all');
-  const [showPostMemoSuggestions, setShowPostMemoSuggestions] = useState(false);
-  const [lastMemoText, setLastMemoText] = useState('');
   const { memos, isLoading, refreshMemos } = useMemos();
-
-  const handleMemoCreated = (memoId: string) => {
-    refreshMemos();
-    
-    // Find the created memo and show suggestions
-    const createdMemo = memos.find(memo => memo.id === memoId);
-    if (createdMemo) {
-      setLastMemoText(createdMemo.text);
-      setShowPostMemoSuggestions(true);
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -43,7 +29,7 @@ const HomePage = () => {
           <div className="bg-white rounded-full p-2 flex items-center justify-center">
             <RecordingSection 
               onLiveTranscription={setLiveTranscription}
-              onMemoCreated={handleMemoCreated}
+              onMemoCreated={refreshMemos}
               liveTranscription={liveTranscription}
             />
           </div>
@@ -62,7 +48,7 @@ const HomePage = () => {
         
         {/* Text Memo Input */}
         <div className="w-full max-w-sm mt-8">
-          <TextMemoInput onMemoCreated={handleMemoCreated} />
+          <TextMemoInput onMemoCreated={refreshMemos} />
         </div>
 
         {/* Memos Section */}
@@ -76,14 +62,6 @@ const HomePage = () => {
 
       {/* Bottom Navigation */}
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* Post-Memo Relationship Suggestions */}
-      {showPostMemoSuggestions && (
-        <PostMemoSuggestions 
-          memoText={lastMemoText}
-          onClose={() => setShowPostMemoSuggestions(false)}
-        />
-      )}
     </div>
   );
 };
