@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
+import DeleteRelationshipDialog from '@/components/relationships/DeleteRelationshipDialog';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
@@ -54,7 +54,7 @@ const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { profiles, isLoading: profilesLoading, createProfile } = useProfiles();
+  const { profiles, isLoading: profilesLoading, createProfile, deleteProfile } = useProfiles();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -64,6 +64,8 @@ const RelationshipsPage = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingText, setRecordingText] = useState('');
   const [globalTab, setGlobalTab] = useState('relationships');
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [profileToDelete, setProfileToDelete] = useState(null);
   const { memos, createMemo } = useMemos();
 
   // Redirect to auth if not authenticated
@@ -100,6 +102,34 @@ const RelationshipsPage = () => {
     } catch (error) {
       console.error('Error creating profile:', error);
     }
+  };
+
+  const handleDeleteProfile = (profile) => {
+    setProfileToDelete(profile);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteProfile = async () => {
+    if (!profileToDelete) return;
+    
+    try {
+      await deleteProfile.mutateAsync(profileToDelete.id);
+      
+      // If the deleted profile was selected, clear the selection
+      if (selectedProfile?.id === profileToDelete.id) {
+        setSelectedProfile(null);
+      }
+      
+      setShowDeleteDialog(false);
+      setProfileToDelete(null);
+    } catch (error) {
+      console.error('Error deleting profile:', error);
+    }
+  };
+
+  const cancelDeleteProfile = () => {
+    setShowDeleteDialog(false);
+    setProfileToDelete(null);
   };
 
   const filteredProfiles = profiles.filter(profile => {
@@ -256,7 +286,7 @@ const RelationshipsPage = () => {
                 filteredProfiles.map(profile => (
                   <div
                     key={profile.id}
-                    className={`p-4 cursor-pointer hover:bg-orange-50 transition-colors ${
+                    className={`p-4 cursor-pointer hover:bg-orange-50 transition-colors group ${
                       selectedProfile?.id === profile.id ? 'bg-orange-50' : ''
                     }`}
                     onClick={() => setSelectedProfile(profile)}
@@ -272,11 +302,24 @@ const RelationshipsPage = () => {
                           <p className="text-gray-800 font-medium">
                             {`${profile.first_name} ${profile.last_name}`}
                           </p>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            REL_TYPE_COLORS[profile.type.toLowerCase()] || REL_TYPE_COLORS.default
-                          }`}>
-                            {profile.type}
-                          </span>
+                          <div className="flex items-center space-x-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              REL_TYPE_COLORS[profile.type.toLowerCase()] || REL_TYPE_COLORS.default
+                            }`}>
+                              {profile.type}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-100 hover:text-red-600 p-1 h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProfile(profile);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="flex justify-between mt-1">
                           <p className="text-gray-500 text-xs">
@@ -436,6 +479,13 @@ const RelationshipsPage = () => {
         isOpen={showAddModal}
         onClose={handleCloseModal}
         onSubmit={handleCreateProfile}
+      />
+
+      <DeleteRelationshipDialog
+        isOpen={showDeleteDialog}
+        onClose={cancelDeleteProfile}
+        onConfirm={confirmDeleteProfile}
+        relationshipName={profileToDelete ? `${profileToDelete.first_name} ${profileToDelete.last_name}` : ''}
       />
       
       <BottomNavBar

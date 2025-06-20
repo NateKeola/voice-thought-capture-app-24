@@ -61,9 +61,36 @@ export function useProfiles() {
     }
   });
 
+  const deleteProfile = useMutation({
+    mutationFn: async (profileId: string) => {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', profileId);
+
+      if (error) throw error;
+      return profileId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+      toast({
+        title: "Relationship deleted",
+        description: "The relationship has been removed successfully."
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting relationship",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   return {
     profiles,
     isLoading,
-    createProfile
+    createProfile,
+    deleteProfile
   };
 }
