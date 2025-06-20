@@ -45,7 +45,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
           completed={task.completed}
           categoryColor={categoryColor}
           priorityColor={priorityColors[task.priority]}
-          onToggleComplete={() => onToggleComplete(task.id)}
+          taskId={task.id}
+          onToggleComplete={onToggleComplete}
         />
         <TaskItemFooter 
           due={task.due}

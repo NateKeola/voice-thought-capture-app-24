@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -14,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
-import { useToast } from "@/hooks/use-toast";
+import { useTaskCompletion } from "@/hooks/useTaskCompletion";
 
 const priorityColors = {
   high: "bg-red-500",
@@ -83,10 +82,12 @@ const TasksPageContent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
-  const { toast } = useToast();
   
   // Get memos from our unified context
-  const { memos, isLoading, updateMemo } = useMemos();
+  const { memos, isLoading } = useMemos();
+  
+  // Use the new task completion hook
+  const { toggleTaskCompletion } = useTaskCompletion();
   
   // Convert memos to tasks
   const tasks = memos
@@ -99,43 +100,6 @@ const TasksPageContent: React.FC = () => {
 
   const handleBackClick = () => {
     setSelectedCategory(null);
-  };
-
-  const onToggleComplete = async (id: number) => {
-    console.log("Toggling completion for task ID:", id);
-    
-    // Find the corresponding memo
-    const memo = memos.find(m => Number(m.id) === id);
-    if (!memo) {
-      console.error("Memo not found for task ID:", id);
-      return;
-    }
-    
-    console.log("Found memo:", memo.id, "current completed state:", memo.completed);
-    
-    try {
-      // Toggle its completed status
-      const newCompletedStatus = !memo.completed;
-      await updateMemo(memo.id, {
-        completed: newCompletedStatus
-      });
-      
-      console.log("Successfully updated memo completion status to:", newCompletedStatus);
-      
-      toast({
-        title: newCompletedStatus ? "Task completed!" : "Task marked incomplete",
-        description: newCompletedStatus 
-          ? "Great job! Task has been marked as complete." 
-          : "Task has been marked as incomplete.",
-      });
-    } catch (error) {
-      console.error("Error updating task completion:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update task completion status.",
-        variant: "destructive",
-      });
-    }
   };
 
   const getCategoryColor = (categoryId: string) => {
@@ -253,7 +217,7 @@ const TasksPageContent: React.FC = () => {
         <TaskList
           tasks={filteredTasks}
           getCategoryColor={getCategoryColor}
-          onToggleComplete={onToggleComplete}
+          onToggleComplete={toggleTaskCompletion}
           priorityColors={priorityColors}
           viewMode={viewMode}
           selectedCategory={selectedCategory}

@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Check } from "lucide-react";
+import TaskCompletionButton from "./TaskCompletionButton";
 
 interface TaskItemHeaderProps {
   title: string;
@@ -8,7 +8,8 @@ interface TaskItemHeaderProps {
   completed: boolean;
   categoryColor: string;
   priorityColor: string;
-  onToggleComplete: () => void;
+  taskId: number;
+  onToggleComplete: (taskId: number) => void;
 }
 
 const TaskItemHeader: React.FC<TaskItemHeaderProps> = ({
@@ -17,25 +18,17 @@ const TaskItemHeader: React.FC<TaskItemHeaderProps> = ({
   completed,
   categoryColor,
   priorityColor,
+  taskId,
   onToggleComplete,
 }) => {
   return (
-    <div className="flex items-start">
-      <button
-        onClick={onToggleComplete}
-        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 border-2 transition-all duration-200 cursor-pointer hover:scale-105 ${
-          completed 
-            ? 'border-transparent' 
-            : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400'
-        }`}
-        style={{
-          backgroundColor: completed ? categoryColor : "white",
-          borderColor: completed ? categoryColor : undefined,
-        }}
-        aria-label={completed ? "Mark as incomplete" : "Mark as complete"}
-      >
-        {completed && <Check size={16} className="text-white" />}
-      </button>
+    <div className="flex items-start gap-3">
+      <TaskCompletionButton
+        taskId={taskId}
+        isCompleted={completed}
+        categoryColor={categoryColor}
+        onComplete={onToggleComplete}
+      />
       <div className="flex-1">
         <div className="flex items-start justify-between">
           <div>
