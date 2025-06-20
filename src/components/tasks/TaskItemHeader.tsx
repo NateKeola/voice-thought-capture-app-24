@@ -23,14 +23,14 @@ const TaskItemHeader: React.FC<TaskItemHeaderProps> = ({
     <div className="flex items-start">
       <button
         onClick={onToggleComplete}
-        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 border-2 transition-all duration-200 cursor-pointer ${
+        className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center mr-3 border-2 transition-all duration-200 cursor-pointer hover:scale-105 ${
           completed 
-            ? 'bg-green-500 border-green-500 hover:bg-green-600' 
-            : 'bg-white hover:bg-gray-50 border-gray-300'
+            ? 'border-transparent' 
+            : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400'
         }`}
         style={{
-          borderColor: completed ? "#10B981" : categoryColor,
-          backgroundColor: completed ? "#10B981" : "white",
+          backgroundColor: completed ? categoryColor : "white",
+          borderColor: completed ? categoryColor : undefined,
         }}
         aria-label={completed ? "Mark as incomplete" : "Mark as complete"}
       >
