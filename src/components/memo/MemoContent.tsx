@@ -39,7 +39,7 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
   };
 
   return (
-    <div className="container max-w-md mx-auto py-6 px-4">
+    <>
       <div className="mb-6">
         <Button variant="ghost" onClick={onBack} className="p-0">
           <ArrowLeft className="h-5 w-5 mr-2" />
@@ -124,7 +124,7 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
           )}
         </CardFooter>
       </Card>
-    </div>
+    </>
   );
 };
 

@@ -1,5 +1,4 @@
 
-// I'll assume this file exists but wasn't provided in the code snippets
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getMemoById } from '@/services/MemoStorage';
@@ -9,6 +8,10 @@ import MemoError from '@/components/memo/MemoError';
 import { Memo, MemoType } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useMemos } from '@/contexts/MemoContext';
+import { useRelationshipSuggestions } from '@/hooks/useRelationshipSuggestions';
+import { useProfiles } from '@/hooks/useProfiles';
+import RelationshipSuggestion from '@/components/relationships/RelationshipSuggestion';
+import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
 
 const MemoDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +23,12 @@ const MemoDetailPage = () => {
   
   // Use our memo context
   const { updateMemo: updateMemoContext, deleteMemo: deleteMemoContext } = useMemos();
+  
+  // Relationship suggestions
+  const { suggestions, analyzeTextForPeople, dismissSuggestion, acceptSuggestion } = useRelationshipSuggestions();
+  const { createProfile } = useProfiles();
+  const [showAddRelationshipModal, setShowAddRelationshipModal] = useState(false);
+  const [selectedPersonForRelationship, setSelectedPersonForRelationship] = useState(null);
 
   useEffect(() => {
     const fetchMemo = async () => {
@@ -38,6 +47,8 @@ const MemoDetailPage = () => {
           setError('Memo not found');
         } else {
           setMemo(memoData);
+          // Analyze the memo text for people after loading
+          analyzeTextForPeople(memoData.text);
         }
       } catch (error) {
         console.error('Error fetching memo details:', error);
@@ -53,7 +64,27 @@ const MemoDetailPage = () => {
     };
 
     fetchMemo();
-  }, [id, toast]);
+  }, [id, toast, analyzeTextForPeople]);
+
+  const handleAcceptRelationshipSuggestion = (detectedPerson) => {
+    setSelectedPersonForRelationship(detectedPerson);
+    setShowAddRelationshipModal(true);
+    acceptSuggestion(detectedPerson.fullName);
+  };
+
+  const handleCreateRelationship = async (profileData) => {
+    try {
+      await createProfile.mutateAsync(profileData);
+      setShowAddRelationshipModal(false);
+      setSelectedPersonForRelationship(null);
+      toast({
+        title: "Relationship created",
+        description: "New relationship has been added successfully."
+      });
+    } catch (error) {
+      console.error('Error creating relationship:', error);
+    }
+  };
 
   const handleSaveMemo = async (text: string, type: MemoType) => {
     if (!id || !memo) return;
@@ -62,6 +93,8 @@ const MemoDetailPage = () => {
       const updatedMemo = await updateMemoContext(id, { text, type });
       if (updatedMemo) {
         setMemo(updatedMemo);
+        // Re-analyze the updated text for people
+        analyzeTextForPeople(text);
         toast({
           title: "Memo updated",
           description: "Your changes have been saved."
@@ -108,12 +141,46 @@ const MemoDetailPage = () => {
   }
 
   return (
-    <MemoContent
-      memo={memo}
-      onSave={handleSaveMemo}
-      onDelete={handleDeleteMemo}
-      onBack={() => navigate(-1)}
-    />
+    <div className="container max-w-md mx-auto py-6 px-4">
+      {/* Relationship Suggestions */}
+      {suggestions.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {suggestions.map((person, index) => (
+            <RelationshipSuggestion
+              key={`${person.fullName}-${index}`}
+              detectedPerson={person}
+              onAccept={handleAcceptRelationshipSuggestion}
+              onDismiss={() => dismissSuggestion(person.fullName)}
+            />
+          ))}
+        </div>
+      )}
+
+      <MemoContent
+        memo={memo}
+        onSave={handleSaveMemo}
+        onDelete={handleDeleteMemo}
+        onBack={() => navigate(-1)}
+      />
+
+      {/* Add Relationship Modal */}
+      {selectedPersonForRelationship && (
+        <AddRelationshipModal
+          isOpen={showAddRelationshipModal}
+          onClose={() => {
+            setShowAddRelationshipModal(false);
+            setSelectedPersonForRelationship(null);
+          }}
+          onSubmit={handleCreateRelationship}
+          prefilledData={{
+            firstName: selectedPersonForRelationship.firstName,
+            lastName: selectedPersonForRelationship.lastName,
+            type: selectedPersonForRelationship.suggestedCategory,
+            relationshipDescription: `Detected from: ${selectedPersonForRelationship.context}`
+          }}
+        />
+      )}
+    </div>
   );
 };
 
