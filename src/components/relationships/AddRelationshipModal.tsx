@@ -7,6 +7,7 @@ import StepIndicator from './StepIndicator';
 import AvatarSelector from './AvatarSelector';
 import RelationshipTypeSelector from './RelationshipTypeSelector';
 import ContactSearchInput from './ContactSearchInput';
+import ContactSelectionCards from './ContactSelectionCards';
 
 interface AddRelationshipModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedContact, setSelectedContact] = useState(null);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -46,6 +48,11 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
     const first = formData.firstName.charAt(0);
     const last = formData.lastName.charAt(0);
     return (first + last).toUpperCase();
+  };
+
+  const handleContactSelect = (contact: any) => {
+    setSelectedContact(contact);
+    // You can add logic here to populate form fields with selected contact data
   };
 
   const handleSubmit = () => {
@@ -101,18 +108,11 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
                 onSearchChange={setSearchTerm}
               />
 
-              {searchResults.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="block text-gray-700 text-sm font-medium mb-1">Search Results</h4>
-                  <ul>
-                    {searchResults.map((result) => (
-                      <li key={result.id} className="py-2 px-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer">
-                        {result.name} ({result.email})
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              <ContactSelectionCards
+                searchResults={searchResults}
+                selectedContact={selectedContact}
+                onContactSelect={handleContactSelect}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
