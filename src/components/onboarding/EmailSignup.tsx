@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/hooks/useAuth';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
-export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: string) => void }> = ({ 
+export const EmailSignup: React.FC<{ onCreateAccount: (email: string) => void }> = ({ 
   onCreateAccount 
 }) => {
   const [email, setEmail] = useState('');
@@ -33,6 +34,15 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       await signUp(email, password);
@@ -40,7 +50,7 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
         title: "Account created!",
         description: "Please check your email to confirm your account."
       });
-      onCreateAccount(email, password);
+      onCreateAccount(email);
     } catch (error: any) {
       toast({
         title: "Error creating account",
@@ -149,6 +159,15 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
             {isLoading ? "Creating Account..." : "Create Account"}
           </Button>
         </form>
+
+        <div className="mt-6 text-center">
+          <button 
+            className="text-sm text-muted-foreground hover:underline"
+            onClick={() => navigate('/auth')}
+          >
+            Already have an account? <span className="text-[#FF9500] font-medium">Sign in</span>
+          </button>
+        </div>
 
         <div className="mt-6 text-center text-xs text-muted-foreground">
           By creating an account, you agree to our{" "}
