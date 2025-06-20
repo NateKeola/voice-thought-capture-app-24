@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Welcome } from '@/components/onboarding/Welcome';
 import { EmailSignup } from '@/components/onboarding/EmailSignup';
 import { ProfileSetup } from '@/components/onboarding/ProfileSetup';
 import { QuickTour } from '@/components/onboarding/QuickTour';
+import { useAuth } from '@/hooks/useAuth';
 
 const Onboarding = () => {
   const [step, setStep] = useState<'welcome' | 'email-signup' | 'profile-setup' | 'quick-tour'>('welcome');
@@ -14,9 +15,19 @@ const Onboarding = () => {
     photoUrl: '',
   });
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
+
+  // If user is already authenticated, redirect them to home or their intended destination
+  useEffect(() => {
+    if (user) {
+      const from = location.state?.from || '/home';
+      navigate(from, { replace: true });
+    }
+  }, [user, navigate, location.state]);
 
   useEffect(() => {
-    // Remove any previous authentication state when landing on onboarding
+    // Remove any previous localStorage authentication state when landing on onboarding
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('userName');
   }, []);
@@ -31,9 +42,8 @@ const Onboarding = () => {
   };
 
   const handleSignInLink = () => {
-    // Mark user as authenticated (for sign in flow redirects here)
-    localStorage.setItem('isAuthenticated', 'true');
-    navigate('/home');
+    // For existing users who want to sign in, stay on email signup but in sign-in mode
+    setStep('email-signup');
   };
 
   const handleCreateAccount = (email: string, password: string) => {
@@ -51,14 +61,10 @@ const Onboarding = () => {
   };
 
   const handleFinishTour = () => {
-    // Mark user as authenticated
-    localStorage.setItem('isAuthenticated', 'true');
-    // Save userName from formData to localStorage for profile display
-    if (formData.name) {
-      localStorage.setItem('userName', formData.name);
-    }
     // Navigate to home screen when onboarding is complete
-    navigate('/home');
+    // The user is already authenticated from the email signup
+    const from = location.state?.from || '/home';
+    navigate(from, { replace: true });
   };
 
   return (
@@ -90,4 +96,3 @@ const Onboarding = () => {
 };
 
 export default Onboarding;
-

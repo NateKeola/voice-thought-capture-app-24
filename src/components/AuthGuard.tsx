@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -9,6 +9,7 @@ interface AuthGuardProps {
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -19,7 +20,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    // Save the attempted location to redirect back after login
+    return <Navigate to="/onboarding" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;

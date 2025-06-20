@@ -65,20 +65,6 @@ const RelationshipsPage = () => {
   const [globalTab, setGlobalTab] = useState('relationships');
   const { memos, createMemo } = useMemos();
   const isLoading = authLoading || profilesLoading;
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const isUserAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-      setIsAuthenticated(isUserAuthenticated);
-      
-      if (!isUserAuthenticated && !authLoading) {
-        navigate('/signin', { state: { from: '/relationships' } });
-      }
-    };
-    
-    checkAuth();
-  }, [navigate, authLoading]);
 
   if (isLoading) {
     return (
@@ -86,10 +72,6 @@ const RelationshipsPage = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null;
   }
 
   const handleCloseModal = () => {

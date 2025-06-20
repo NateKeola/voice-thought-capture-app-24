@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -17,14 +18,15 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSignIn, setIsSignIn] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signUp } = useAuth();
+  const { signUp, signIn } = useAuth();
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
+    if (!isSignIn && password !== confirmPassword) {
       toast({
         title: "Passwords do not match",
         description: "Please make sure your passwords match.",
@@ -35,15 +37,25 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
 
     setIsLoading(true);
     try {
-      await signUp(email, password);
-      toast({
-        title: "Account created!",
-        description: "Please check your email to confirm your account."
-      });
-      onCreateAccount(email, password);
+      if (isSignIn) {
+        await signIn(email, password);
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in."
+        });
+        // Navigate directly to home after successful sign in
+        navigate('/home');
+      } else {
+        await signUp(email, password);
+        toast({
+          title: "Account created!",
+          description: "Please check your email to confirm your account."
+        });
+        onCreateAccount(email, password);
+      }
     } catch (error: any) {
       toast({
-        title: "Error creating account",
+        title: isSignIn ? "Error signing in" : "Error creating account",
         description: error.message,
         variant: "destructive"
       });
@@ -65,10 +77,12 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold font-montserrat">Create Account</h1>
+          <h1 className="text-2xl font-bold font-montserrat">
+            {isSignIn ? 'Sign In' : 'Create Account'}
+          </h1>
         </div>
 
-        <form onSubmit={handleSignUp} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm text-muted-foreground font-medium">Email</Label>
             <div className="relative">
@@ -98,7 +112,7 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create a password"
+                placeholder={isSignIn ? "Enter your password" : "Create a password"}
                 className="pl-10 h-14 rounded-2xl bg-muted border border-input pr-10"
                 required
               />
@@ -114,48 +128,67 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-sm text-muted-foreground font-medium">Confirm Password</Label>
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                <Lock className="h-5 w-5" />
+          {!isSignIn && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-sm text-muted-foreground font-medium">Confirm Password</Label>
+              <div className="relative">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  className="pl-10 h-14 rounded-2xl bg-muted border border-input pr-10"
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </Button>
               </div>
-              <Input
-                type={showConfirmPassword ? "text" : "password"}
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your password"
-                className="pl-10 h-14 rounded-2xl bg-muted border border-input pr-10"
-                required
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 text-muted-foreground"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-              </Button>
             </div>
-          </div>
+          )}
 
           <Button 
             type="submit" 
             className="w-full h-14 rounded-2xl bg-[#FF9500] hover:bg-[#FF9500]/90 shadow-sm text-base font-medium"
-            disabled={!email || !password || !confirmPassword || isLoading}
+            disabled={!email || !password || (!isSignIn && !confirmPassword) || isLoading}
           >
-            {isLoading ? "Creating Account..." : "Create Account"}
+            {isLoading ? (isSignIn ? "Signing In..." : "Creating Account...") : (isSignIn ? "Sign In" : "Create Account")}
           </Button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-muted-foreground">
-          By creating an account, you agree to our{" "}
-          <a href="#" className="text-[#FF9500] font-medium hover:underline">Terms of Service</a>
-          {" "}and{" "}
-          <a href="#" className="text-[#FF9500] font-medium hover:underline">Privacy Policy</a>
+        <div className="mt-6 text-center">
+          <button 
+            className="text-sm text-muted-foreground hover:underline"
+            onClick={() => setIsSignIn(!isSignIn)}
+          >
+            {isSignIn 
+              ? "Don't have an account? " 
+              : "Already have an account? "
+            }
+            <span className="text-[#FF9500] font-medium">
+              {isSignIn ? "Sign up" : "Sign in"}
+            </span>
+          </button>
         </div>
+
+        {!isSignIn && (
+          <div className="mt-6 text-center text-xs text-muted-foreground">
+            By creating an account, you agree to our{" "}
+            <a href="#" className="text-[#FF9500] font-medium hover:underline">Terms of Service</a>
+            {" "}and{" "}
+            <a href="#" className="text-[#FF9500] font-medium hover:underline">Privacy Policy</a>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
