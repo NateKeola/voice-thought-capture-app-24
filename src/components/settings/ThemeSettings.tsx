@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { X, Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 
 interface ThemeSettingsProps {
   isOpen: boolean;
@@ -33,12 +33,7 @@ const ThemeSettings: React.FC<ThemeSettingsProps> = ({ isOpen, onClose }) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            Theme and Appearance
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="h-5 w-5" />
-            </button>
-          </DialogTitle>
+          <DialogTitle>Theme and Appearance</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">

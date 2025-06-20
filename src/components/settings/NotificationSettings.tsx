@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { X } from 'lucide-react';
 
 interface NotificationSettingsProps {
   isOpen: boolean;
@@ -18,12 +17,7 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ isOpen, onC
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            Notification Preferences
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="h-5 w-5" />
-            </button>
-          </DialogTitle>
+          <DialogTitle>Notification Preferences</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">

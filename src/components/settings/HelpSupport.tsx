@@ -2,7 +2,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { X, MessageCircle, FileText, Shield, Info } from 'lucide-react';
+import { MessageCircle, FileText, Shield, Info } from 'lucide-react';
 
 interface HelpSupportProps {
   isOpen: boolean;
@@ -29,12 +29,7 @@ const HelpSupport: React.FC<HelpSupportProps> = ({ isOpen, onClose }) => {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            Help & Support
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="h-5 w-5" />
-            </button>
-          </DialogTitle>
+          <DialogTitle>Help & Support</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
