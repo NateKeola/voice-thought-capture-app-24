@@ -28,6 +28,9 @@ export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Me
   
   // Regular database storage for authenticated users
   const userId = await getUserId();
+  if (!userId) {
+    throw new Error('User ID not found');
+  }
   return saveDbMemo(memo, userId);
 };
 
@@ -68,6 +71,9 @@ export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 
   }
   
   const userId = await getUserId();
+  if (!userId) {
+    throw new Error('User ID not found');
+  }
   return updateDbMemo(id, updates, userId);
 };
 

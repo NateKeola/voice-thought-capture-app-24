@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { X, User, HardDrive, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { cleanupAuthState } from '@/utils/authUtils';
 
 interface AccountDetailsProps {
   isOpen: boolean;
@@ -13,16 +14,15 @@ interface AccountDetailsProps {
 
 const AccountDetails: React.FC<AccountDetailsProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
-  const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
+  const { signOut, user } = useAuth();
 
   const handleSignOut = async () => {
     try {
+      cleanupAuthState();
       await signOut();
-      localStorage.removeItem('isAuthenticated');
-      localStorage.removeItem('userEmail');
       onClose();
-      navigate('/signin');
+      // Force page reload for clean state
+      window.location.href = '/auth';
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -45,7 +45,7 @@ const AccountDetails: React.FC<AccountDetailsProps> = ({ isOpen, onClose }) => {
             <User className="h-5 w-5 text-gray-500" />
             <div>
               <h3 className="text-sm font-medium text-gray-900">Email</h3>
-              <p className="text-sm text-gray-600">{userEmail}</p>
+              <p className="text-sm text-gray-600">{user?.email || 'Not available'}</p>
             </div>
           </div>
 

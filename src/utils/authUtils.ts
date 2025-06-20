@@ -7,18 +7,23 @@ export const isAuthenticated = async (): Promise<boolean> => {
   return !!data.user;
 };
 
-// Get current user ID or generate a guest ID
-export const getUserId = async (): Promise<string> => {
+// Get current user ID
+export const getUserId = async (): Promise<string | null> => {
   const { data } = await supabase.auth.getUser();
-  if (data.user) {
-    return data.user.id;
-  }
+  return data.user?.id || null;
+};
+
+// Clean up authentication state
+export const cleanupAuthState = () => {
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
   
-  // For users not logged in, use a local storage guest ID
-  let guestId = localStorage.getItem('memo_guest_id');
-  if (!guestId) {
-    guestId = `guest-${crypto.randomUUID()}`;
-    localStorage.setItem('memo_guest_id', guestId);
-  }
-  return guestId;
+  // Remove legacy auth keys
+  localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('userEmail');
+  localStorage.removeItem('userName');
 };
