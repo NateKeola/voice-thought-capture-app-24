@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -29,9 +28,10 @@ const priorityColors = {
 
 // Map memo tasks to the task interface expected by the TaskList component
 const mapMemoToTask = (memo: Memo) => {
-  // Parse priority and due date from memo text or use defaults
+  // Parse priority, due date, and deleted status from memo text
   let priority = "medium";
   let due = "today";
+  let isDeleted = false;
   
   // Try to extract metadata from the memo text
   if (memo.text.includes("[priority:")) {
@@ -44,10 +44,16 @@ const mapMemoToTask = (memo: Memo) => {
     if (match && match[1]) due = match[1].toLowerCase();
   }
   
+  if (memo.text.includes("[deleted:")) {
+    const match = memo.text.match(/\[deleted:\s*(\w+)\]/i);
+    if (match && match[1]) isDeleted = match[1].toLowerCase() === 'true';
+  }
+  
   // Clean the text to remove metadata tags if present
   let cleanText = memo.text
     .replace(/\[priority:\s*\w+\]/gi, '')
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
+    .replace(/\[deleted:\s*\w+\]/gi, '')
     .trim();
   
   // Split into title and description if possible
@@ -69,7 +75,8 @@ const mapMemoToTask = (memo: Memo) => {
     priority: priority as "high" | "medium" | "low",
     due: due,
     created: 0,
-    hasAudio: !!memo.audioUrl
+    hasAudio: !!memo.audioUrl,
+    isDeleted: isDeleted
   };
 };
 
@@ -96,8 +103,10 @@ const TasksPageContent: React.FC = () => {
   // Combine default and custom categories
   const allCategories = [...defaultCategories, ...customCategories];
   
-  // Convert all memos to tasks
-  const tasks = memos.map(mapMemoToTask);
+  // Convert all memos to tasks and filter out deleted ones
+  const tasks = memos
+    .map(mapMemoToTask)
+    .filter(task => !task.isDeleted);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);

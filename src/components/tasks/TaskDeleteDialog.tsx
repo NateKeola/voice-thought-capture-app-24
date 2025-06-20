@@ -21,24 +21,27 @@ interface TaskDeleteDialogProps {
 }
 
 const TaskDeleteDialog: React.FC<TaskDeleteDialogProps> = ({ isOpen, onClose, task }) => {
-  const { deleteMemo } = useMemos();
+  const { updateMemo } = useMemos();
   const { toast } = useToast();
 
   const handleDelete = async () => {
     try {
-      await deleteMemo(task.id.toString());
+      // Mark memo as deleted instead of actually deleting it
+      await updateMemo(task.id.toString(), {
+        text: task.title + (task.description ? '. ' + task.description : '') + ' [deleted:true]'
+      });
       
       toast({
-        title: "Task deleted",
-        description: "Your task has been deleted successfully.",
+        title: "Task removed",
+        description: "Your task has been removed from the tasks view.",
       });
       
       onClose();
     } catch (error) {
-      console.error("Error deleting task:", error);
+      console.error("Error removing task:", error);
       toast({
         title: "Error",
-        description: "There was a problem deleting your task.",
+        description: "There was a problem removing your task.",
         variant: "destructive",
       });
     }
@@ -48,15 +51,15 @@ const TaskDeleteDialog: React.FC<TaskDeleteDialogProps> = ({ isOpen, onClose, ta
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Task</AlertDialogTitle>
+          <AlertDialogTitle>Remove Task</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{task?.title}"? This action cannot be undone.
+            Are you sure you want to remove "{task?.title}" from the tasks view? The memo will still be available in other sections.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
           <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">
-            Delete
+            Remove
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
