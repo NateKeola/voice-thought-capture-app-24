@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Header from '@/components/home/Header';
 import SearchBar from '@/components/home/SearchBar';
