@@ -1,4 +1,3 @@
-
 import React from "react";
 import TaskItem from "./TaskItem";
 import EmptyTaskState from "./EmptyTaskState";
@@ -15,7 +14,7 @@ import { SquareCheck, ChevronDown, ChevronUp } from "lucide-react";
 interface TaskListProps {
   tasks: any[];
   getCategoryColor: (id: string) => string;
-  onToggleComplete: (id: string) => void; // Changed from number to string
+  onToggleComplete: (id: number) => void;
   priorityColors: { [key: string]: string };
   viewMode: "categories" | "timeline";
   selectedCategory: string | null;

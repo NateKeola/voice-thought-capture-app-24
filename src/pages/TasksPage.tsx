@@ -7,18 +7,19 @@ import TasksFAB from "@/components/tasks/TasksFAB";
 import BottomNavBar from "@/components/BottomNavBar";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import CategoryDialog from "@/components/tasks/CategoryDialog";
-import TaskClearAllDialog from "@/components/tasks/TaskClearAllDialog";
 import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
 import { Button } from "@/components/ui/button";
 import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 
-// Default categories that match memo types
-const defaultCategories = [
-  { id: "task", name: "Tasks", color: "#3B82F6" },
-  { id: "idea", name: "Ideas", color: "#8B5CF6" },
-  { id: "note", name: "Notes", color: "#10B981" },
+// Define category data
+const categories = [
+  { id: "personal", name: "Personal", color: "#8B5CF6" },
+  { id: "work", name: "Work", color: "#3B82F6" },
+  { id: "health", name: "Health", color: "#EC4899" },
+  { id: "finance", name: "Finance", color: "#10B981" },
+  { id: "home", name: "Home", color: "#F59E0B" },
 ];
 
 const priorityColors = {
@@ -29,12 +30,17 @@ const priorityColors = {
 
 // Map memo tasks to the task interface expected by the TaskList component
 const mapMemoToTask = (memo: Memo) => {
-  // Parse priority, due date, and deleted status from memo text
+  // Parse category and priority from memo text or use defaults
+  let category = "personal";
   let priority = "medium";
   let due = "today";
-  let isDeleted = false;
   
   // Try to extract metadata from the memo text
+  if (memo.text.includes("[category:")) {
+    const match = memo.text.match(/\[category:\s*(\w+)\]/i);
+    if (match && match[1]) category = match[1].toLowerCase();
+  }
+  
   if (memo.text.includes("[priority:")) {
     const match = memo.text.match(/\[priority:\s*(\w+)\]/i);
     if (match && match[1]) priority = match[1].toLowerCase();
@@ -45,16 +51,11 @@ const mapMemoToTask = (memo: Memo) => {
     if (match && match[1]) due = match[1].toLowerCase();
   }
   
-  if (memo.text.includes("[deleted:")) {
-    const match = memo.text.match(/\[deleted:\s*(\w+)\]/i);
-    if (match && match[1]) isDeleted = match[1].toLowerCase() === 'true';
-  }
-  
   // Clean the text to remove metadata tags if present
   let cleanText = memo.text
+    .replace(/\[category:\s*\w+\]/gi, '')
     .replace(/\[priority:\s*\w+\]/gi, '')
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
-    .replace(/\[deleted:\s*\w+\]/gi, '')
     .trim();
   
   // Split into title and description if possible
@@ -68,16 +69,15 @@ const mapMemoToTask = (memo: Memo) => {
   }
 
   return {
-    id: memo.id, // Keep as string, don't convert to number
+    id: Number(memo.id), // Convert to number to match expected interface
     title: title,
     description: description,
     completed: memo.completed || false,
-    category: memo.type,
+    category: category,
     priority: priority as "high" | "medium" | "low",
     due: due,
-    created: 0,
-    hasAudio: !!memo.audioUrl,
-    isDeleted: isDeleted
+    created: 0, // Not tracking this currently
+    hasAudio: !!memo.audioUrl
   };
 };
 
@@ -88,28 +88,14 @@ const TasksPageContent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
-  const [customCategories, setCustomCategories] = useState<any[]>([]);
-  const [isClearAllDialogOpen, setIsClearAllDialogOpen] = useState(false);
-  const [clearAllAction, setClearAllAction] = useState<"complete" | "delete">("complete");
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
   
-  // Load custom categories from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem('customCategories');
-    if (stored) {
-      setCustomCategories(JSON.parse(stored));
-    }
-  }, []);
-
-  // Combine default and custom categories
-  const allCategories = [...defaultCategories, ...customCategories];
-  
-  // Convert all memos to tasks and filter out deleted ones
+  // Convert memos to tasks
   const tasks = memos
-    .map(mapMemoToTask)
-    .filter(task => !task.isDeleted);
+    .filter(memo => memo.type === 'task')
+    .map(mapMemoToTask);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
@@ -119,16 +105,11 @@ const TasksPageContent: React.FC = () => {
     setSelectedCategory(null);
   };
 
-  const onToggleComplete = async (id: string) => {
-    console.log("Toggling complete for task ID:", id);
+  const onToggleComplete = async (id: number) => {
     // Find the corresponding memo
-    const memo = memos.find(m => m.id === id);
-    if (!memo) {
-      console.error("Memo not found for ID:", id);
-      return;
-    }
+    const memo = memos.find(m => Number(m.id) === id);
+    if (!memo) return;
     
-    console.log("Found memo:", memo);
     // Toggle its completed status
     await updateMemo(memo.id, {
       completed: !memo.completed
@@ -136,12 +117,12 @@ const TasksPageContent: React.FC = () => {
   };
 
   const getCategoryColor = (categoryId: string) => {
-    const category = allCategories.find((c) => c.id === categoryId);
+    const category = categories.find((c) => c.id === categoryId);
     return category ? category.color : "#6B7280";
   };
 
   // Create a mapping of category IDs to names for the TaskList component
-  const categoryNames = allCategories.reduce((acc, cat) => {
+  const categoryNames = categories.reduce((acc, cat) => {
     acc[cat.id] = cat.name;
     return acc;
   }, {} as { [key: string]: string });
@@ -164,14 +145,16 @@ const TasksPageContent: React.FC = () => {
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
 
+  // Count for pending tasks/category
+  const categoryTaskCounts = categories.map((cat) => ({
+    ...cat,
+    count: tasks.filter((t) => t.category === cat.id && !t.completed).length,
+    total: tasks.filter((t) => t.category === cat.id).length,
+  }));
+
   const handleCreateTaskForCategory = (categoryId: string) => {
     console.log("handleCreateTaskForCategory called with:", categoryId);
     openTaskDialog(categoryId);
-  };
-
-  const handleClearAll = (action: "complete" | "delete") => {
-    setClearAllAction(action);
-    setIsClearAllDialogOpen(true);
   };
 
   return (
@@ -184,37 +167,16 @@ const TasksPageContent: React.FC = () => {
       />
       <div className="container mx-auto max-w-md px-4 pt-4 pb-4">
         <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-        {/* Toggle Show Completed and Action Buttons */}
+        {/* Toggle Show Completed and Add Category Button */}
         <div className="flex justify-between items-center my-4">
           <h2 className="text-lg font-semibold text-gray-800">
             {viewMode === "categories"
               ? selectedCategory
-                ? allCategories.find((c) => c.id === selectedCategory)?.name + " Items"
+                ? categories.find((c) => c.id === selectedCategory)?.name + " Tasks"
                 : "All Categories"
-              : "Item Timeline"}
+              : "Task Timeline"}
           </h2>
           <div className="flex items-center gap-2">
-            {/* Clear All Buttons */}
-            {filteredTasks.filter(t => !t.completed).length > 0 && (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-1 text-green-600 border-green-600 hover:bg-green-50" 
-                  onClick={() => handleClearAll("complete")}
-                >
-                  <span className="text-xs">Complete All</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-1 text-red-600 border-red-600 hover:bg-red-50" 
-                  onClick={() => handleClearAll("delete")}
-                >
-                  <span className="text-xs">Clear All</span>
-                </Button>
-              </>
-            )}
             {viewMode === "categories" && !selectedCategory && (
               <Button 
                 variant="outline" 
@@ -257,7 +219,7 @@ const TasksPageContent: React.FC = () => {
         {/* Categories */}
         {viewMode === "categories" && !selectedCategory && (
           <div className="grid grid-cols-2 gap-4 mb-6">
-            {allCategories.map((cat) => (
+            {categories.map((cat) => (
               <TaskCategoryCard
                 key={cat.id}
                 id={cat.id}
@@ -290,13 +252,6 @@ const TasksPageContent: React.FC = () => {
       {/* Dialogs */}
       <TaskDialog />
       <CategoryDialog />
-      <TaskClearAllDialog 
-        isOpen={isClearAllDialogOpen}
-        onClose={() => setIsClearAllDialogOpen(false)}
-        tasks={filteredTasks}
-        action={clearAllAction}
-        categoryName={selectedCategory ? categoryNames[selectedCategory] : undefined}
-      />
     </div>
   );
 };

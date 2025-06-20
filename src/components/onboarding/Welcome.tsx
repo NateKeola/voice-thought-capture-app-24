@@ -4,13 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Mail, Apple, Facebook } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/use-toast';
 
 interface WelcomeProps {
   onContinueWithEmail: () => void;
   onSignInLink: () => void;
-  onSSOLogin: () => void;
+  onSSOLogin: () => void; // New prop for SSO login to trigger profile setup next
 }
 
 export const Welcome: React.FC<WelcomeProps> = ({ 
@@ -19,21 +17,11 @@ export const Welcome: React.FC<WelcomeProps> = ({
   onSSOLogin
 }) => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
-  const { toast } = useToast();
   
-  const handleSSOLogin = async (provider: 'google' | 'apple' | 'facebook') => {
-    try {
-      // For now, we'll just proceed to profile setup
-      // In a real implementation, you would use Supabase OAuth
-      onSSOLogin();
-    } catch (error: any) {
-      toast({
-        title: "Sign in failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
+  const handleSSOLogin = () => {
+    // Normally would call SSO here, then proceed
+    // Instead of navigating directly to /home, we invoke the callback to go to profile setup
+    onSSOLogin();
   };
 
   return (
@@ -51,7 +39,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
           <Button 
             variant="outline" 
             className="w-full justify-start h-14 rounded-2xl shadow-sm"
-            onClick={() => handleSSOLogin('google')}
+            onClick={handleSSOLogin}
           >
             <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -66,7 +54,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
           <Button 
             variant="outline" 
             className="w-full justify-start h-14 rounded-2xl bg-black text-white hover:bg-black/90 border-0 shadow-sm"
-            onClick={() => handleSSOLogin('apple')}
+            onClick={handleSSOLogin}
           >
             <Apple className="mr-3 h-5 w-5" />
             <span className="text-base font-medium">Continue with Apple</span>
@@ -75,7 +63,7 @@ export const Welcome: React.FC<WelcomeProps> = ({
           <Button 
             variant="outline" 
             className="w-full justify-start h-14 rounded-2xl bg-[#4267B2] text-white hover:bg-[#4267B2]/90 border-0 shadow-sm"
-            onClick={() => handleSSOLogin('facebook')}
+            onClick={handleSSOLogin}
           >
             <Facebook className="mr-3 h-5 w-5" />
             <span className="text-base font-medium">Continue with Facebook</span>
@@ -102,3 +90,4 @@ export const Welcome: React.FC<WelcomeProps> = ({
     </Card>
   );
 };
+

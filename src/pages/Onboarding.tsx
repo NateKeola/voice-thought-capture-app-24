@@ -5,8 +5,6 @@ import { Welcome } from '@/components/onboarding/Welcome';
 import { EmailSignup } from '@/components/onboarding/EmailSignup';
 import { ProfileSetup } from '@/components/onboarding/ProfileSetup';
 import { QuickTour } from '@/components/onboarding/QuickTour';
-import { useAuth } from '@/hooks/useAuth';
-import { cleanupAuthState } from '@/utils/authUtils';
 
 const Onboarding = () => {
   const [step, setStep] = useState<'welcome' | 'email-signup' | 'profile-setup' | 'quick-tour'>('welcome');
@@ -16,19 +14,12 @@ const Onboarding = () => {
     photoUrl: '',
   });
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   useEffect(() => {
-    // Clean up any previous authentication state when landing on onboarding
-    cleanupAuthState();
+    // Remove any previous authentication state when landing on onboarding
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('userName');
   }, []);
-
-  // If user is already authenticated, redirect to home
-  useEffect(() => {
-    if (user) {
-      navigate('/home');
-    }
-  }, [user, navigate]);
 
   const handleContinueWithEmail = () => {
     setStep('email-signup');
@@ -40,10 +31,12 @@ const Onboarding = () => {
   };
 
   const handleSignInLink = () => {
-    navigate('/auth');
+    // Mark user as authenticated (for sign in flow redirects here)
+    localStorage.setItem('isAuthenticated', 'true');
+    navigate('/home');
   };
 
-  const handleCreateAccount = (email: string) => {
+  const handleCreateAccount = (email: string, password: string) => {
     setFormData(prev => ({ ...prev, email }));
     setStep('profile-setup');
   };
@@ -58,6 +51,12 @@ const Onboarding = () => {
   };
 
   const handleFinishTour = () => {
+    // Mark user as authenticated
+    localStorage.setItem('isAuthenticated', 'true');
+    // Save userName from formData to localStorage for profile display
+    if (formData.name) {
+      localStorage.setItem('userName', formData.name);
+    }
     // Navigate to home screen when onboarding is complete
     navigate('/home');
   };
@@ -91,3 +90,4 @@ const Onboarding = () => {
 };
 
 export default Onboarding;
+

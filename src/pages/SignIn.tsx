@@ -6,46 +6,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from '@/hooks/useAuth';
-import { cleanupAuthState } from '@/utils/authUtils';
 
 const SignIn = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const { signIn } = useAuth();
   
   // Get the path to redirect to after login
   const from = location.state?.from || '/home';
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      // Clean up any existing auth state
-      cleanupAuthState();
-      
-      await signIn(email, password);
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in."
-      });
-      
-      // Force page reload for clean state
-      window.location.href = from;
-    } catch (error: any) {
-      toast({
-        title: "Sign in failed",
-        description: error.message || "Please check your email and password.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    
+    // For demo purposes, accept any email/password
+    localStorage.setItem('isAuthenticated', 'true');
+    toast({
+      title: "Welcome back!",
+      description: "You've successfully signed in."
+    });
+    
+    // Redirect to the page the user was trying to access
+    navigate(from, { replace: true });
   };
 
   return (
@@ -90,9 +73,9 @@ const SignIn = () => {
             <Button 
               type="submit" 
               className="w-full h-12 bg-[#FF9500] hover:bg-[#FF9500]/90"
-              disabled={!email || !password || isLoading}
+              disabled={!email || !password}
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              Sign In
             </Button>
           </form>
 

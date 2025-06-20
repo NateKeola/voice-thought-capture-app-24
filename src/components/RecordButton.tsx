@@ -159,7 +159,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       
       const memoText = recognizedText || "Empty memo";
       
-      const memoType = await detectMemoType(memoText);
+      const memoType = detectMemoType(memoText);
       
       const memo = await saveMemo({
         text: memoText,
@@ -169,7 +169,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       
       toast({
         title: "Memo saved!",
-        description: `Your ${memoType} has been saved and categorized using AI.`
+        description: `Your ${memoType} has been saved.`
       });
       
       navigate(`/memo/${memo.id}`);

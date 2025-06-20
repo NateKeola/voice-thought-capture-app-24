@@ -8,7 +8,7 @@ import TaskDeleteDialog from "./TaskDeleteDialog";
 interface TaskItemProps {
   task: any;
   getCategoryColor: (id: string) => string;
-  onToggleComplete: (id: string) => void; // Changed from number to string
+  onToggleComplete: (id: number) => void;
   priorityColors: { [key: string]: string };
 }
 
