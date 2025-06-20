@@ -7,6 +7,10 @@ import type { Badge } from '@/types';
 import BottomNavBar from '@/components/BottomNavBar';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import ProfileIconButton from '@/components/ProfileIconButton';
+import NotificationSettings from '@/components/settings/NotificationSettings';
+import ThemeSettings from '@/components/settings/ThemeSettings';
+import AccountDetails from '@/components/settings/AccountDetails';
+import HelpSupport from '@/components/settings/HelpSupport';
 
 const BADGES: Badge[] = [
   { 
@@ -73,9 +77,7 @@ const BADGES: Badge[] = [
 
 const SETTINGS = [
   { id: 1, title: 'Notification Preferences', icon: 'bell' },
-  { id: 2, title: 'Voice Recognition Settings', icon: 'mic' },
   { id: 3, title: 'Theme and Appearance', icon: 'palette' },
-  { id: 4, title: 'Privacy Settings', icon: 'lock' },
   { id: 5, title: 'Account Details', icon: 'user' },
   { id: 6, title: 'Help & Support', icon: 'help-circle' },
   { id: 7, title: 'About Memo', icon: 'info' }
@@ -83,6 +85,7 @@ const SETTINGS = [
 
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('badges');
+  const [activeModal, setActiveModal] = useState<string | null>(null);
   const { userName } = useUserProfile();
   const initials = userName
     ? userName.split(' ').map(n => n.trim()[0] || '').join('').substring(0, 2).toUpperCase()
@@ -95,6 +98,30 @@ const ProfilePage = () => {
     totalMemos: 147,
     completedTasks: 83,
     pendingTasks: 12,
+  };
+
+  const handleSettingClick = (settingId: number) => {
+    switch (settingId) {
+      case 1:
+        setActiveModal('notifications');
+        break;
+      case 3:
+        setActiveModal('theme');
+        break;
+      case 5:
+        setActiveModal('account');
+        break;
+      case 6:
+        setActiveModal('help');
+        break;
+      case 7:
+        setActiveModal('about');
+        break;
+    }
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
   };
 
   return (
@@ -164,7 +191,11 @@ const ProfilePage = () => {
         ) : (
           <div className="space-y-4">
             {SETTINGS.map(setting => (
-              <div key={setting.id} className="bg-white rounded-xl p-4 shadow-sm">
+              <div 
+                key={setting.id} 
+                className="bg-white rounded-xl p-4 shadow-sm cursor-pointer hover:bg-gray-50"
+                onClick={() => handleSettingClick(setting.id)}
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="text-gray-500 mr-3">
@@ -180,6 +211,20 @@ const ProfilePage = () => {
         )}
       </div>
       <BottomNavBar activeTab="profile" onTabChange={() => {}} />
+
+      {/* Modals */}
+      {activeModal === 'notifications' && (
+        <NotificationSettings isOpen={true} onClose={closeModal} />
+      )}
+      {activeModal === 'theme' && (
+        <ThemeSettings isOpen={true} onClose={closeModal} />
+      )}
+      {activeModal === 'account' && (
+        <AccountDetails isOpen={true} onClose={closeModal} />
+      )}
+      {activeModal === 'help' && (
+        <HelpSupport isOpen={true} onClose={closeModal} />
+      )}
     </div>
   );
 };
