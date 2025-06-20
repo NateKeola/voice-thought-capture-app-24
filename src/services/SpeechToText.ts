@@ -1,5 +1,8 @@
 // This service provides speech-to-text functionality using the Web Speech API
 
+import { MemoType } from '@/types';
+import { categorizeMemoWithClaude } from '@/services/categorizationService';
+
 export interface TranscriptionResult {
   text: string;
   confidence: number;
