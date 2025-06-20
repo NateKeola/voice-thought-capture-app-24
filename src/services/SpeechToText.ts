@@ -1,4 +1,3 @@
-
 // This service provides speech-to-text functionality using the Web Speech API
 
 export interface TranscriptionResult {
@@ -116,28 +115,43 @@ export const transcribeAudio = async (audioUrl: string): Promise<TranscriptionRe
 };
 
 // Detect memo type from text content
-export const detectMemoType = (text: string): 'note' | 'task' | 'idea' => {
+export const detectMemoType = async (text: string): Promise<MemoType> => {
+  try {
+    // Use Claude API for categorization
+    return await categorizeMemoWithClaude(text);
+  } catch (error) {
+    console.error('Error with Claude categorization, using fallback:', error);
+    // Fallback to existing logic
+    return detectMemoTypeFallback(text);
+  }
+};
+
+// Keep the existing fallback logic as a separate function
+const detectMemoTypeFallback = (text: string): MemoType => {
   const lowerText = text.toLowerCase();
   
-  // Task detection
-  if (
-    lowerText.includes('need to') ||
-    lowerText.includes('have to') ||
-    lowerText.includes('must') ||
-    lowerText.includes('don\'t forget') ||
-    lowerText.startsWith('remember to')
-  ) {
+  // Task indicators
+  const taskKeywords = [
+    'need to', 'have to', 'must', 'should', 'todo', 'to do', 'task',
+    'remind me', 'don\'t forget', 'remember to', 'deadline', 'due',
+    'schedule', 'appointment', 'meeting', 'call', 'email', 'buy',
+    'pick up', 'complete', 'finish', 'submit', 'send'
+  ];
+  
+  // Idea indicators
+  const ideaKeywords = [
+    'idea', 'concept', 'thought', 'brainstorm', 'what if', 'maybe',
+    'could', 'might', 'potential', 'possibility', 'innovation',
+    'creative', 'invention', 'solution', 'approach', 'strategy'
+  ];
+  
+  // Check for task indicators
+  if (taskKeywords.some(keyword => lowerText.includes(keyword))) {
     return 'task';
   }
   
-  // Idea detection
-  if (
-    lowerText.includes('i should') ||
-    lowerText.includes('maybe i could') ||
-    lowerText.includes('what if') ||
-    lowerText.includes('idea') ||
-    lowerText.includes('thinking about')
-  ) {
+  // Check for idea indicators
+  if (ideaKeywords.some(keyword => lowerText.includes(keyword))) {
     return 'idea';
   }
   

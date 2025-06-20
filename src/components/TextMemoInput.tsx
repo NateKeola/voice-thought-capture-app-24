@@ -69,8 +69,8 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
     }
 
     try {
-      // Detect the memo type
-      const memoType = detectMemoType(text);
+      // Detect the memo type using Claude API
+      const memoType = await detectMemoType(text);
       
       // Save the memo using our context
       const memo = await createMemo({
@@ -82,7 +82,7 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
       if (memo) {
         toast({
           title: "Memo saved!",
-          description: `Your ${memoType} has been saved.`
+          description: `Your ${memoType} has been saved and categorized using AI.`
         });
 
         // Navigate to the memo detail page
