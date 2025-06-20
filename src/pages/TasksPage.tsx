@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -13,13 +14,11 @@ import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 
-// Define category data
+// Updated categories to match memo types
 const categories = [
-  { id: "personal", name: "Personal", color: "#8B5CF6" },
-  { id: "work", name: "Work", color: "#3B82F6" },
-  { id: "health", name: "Health", color: "#EC4899" },
-  { id: "finance", name: "Finance", color: "#10B981" },
-  { id: "home", name: "Home", color: "#F59E0B" },
+  { id: "task", name: "Tasks", color: "#3B82F6" },
+  { id: "idea", name: "Ideas", color: "#8B5CF6" },
+  { id: "note", name: "Notes", color: "#10B981" },
 ];
 
 const priorityColors = {
@@ -30,17 +29,11 @@ const priorityColors = {
 
 // Map memo tasks to the task interface expected by the TaskList component
 const mapMemoToTask = (memo: Memo) => {
-  // Parse category and priority from memo text or use defaults
-  let category = "personal";
+  // Parse priority and due date from memo text or use defaults
   let priority = "medium";
   let due = "today";
   
   // Try to extract metadata from the memo text
-  if (memo.text.includes("[category:")) {
-    const match = memo.text.match(/\[category:\s*(\w+)\]/i);
-    if (match && match[1]) category = match[1].toLowerCase();
-  }
-  
   if (memo.text.includes("[priority:")) {
     const match = memo.text.match(/\[priority:\s*(\w+)\]/i);
     if (match && match[1]) priority = match[1].toLowerCase();
@@ -53,7 +46,6 @@ const mapMemoToTask = (memo: Memo) => {
   
   // Clean the text to remove metadata tags if present
   let cleanText = memo.text
-    .replace(/\[category:\s*\w+\]/gi, '')
     .replace(/\[priority:\s*\w+\]/gi, '')
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
@@ -73,7 +65,7 @@ const mapMemoToTask = (memo: Memo) => {
     title: title,
     description: description,
     completed: memo.completed || false,
-    category: category,
+    category: memo.type, // Use the actual memo type from AI categorization
     priority: priority as "high" | "medium" | "low",
     due: due,
     created: 0, // Not tracking this currently
@@ -92,10 +84,8 @@ const TasksPageContent: React.FC = () => {
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
   
-  // Convert memos to tasks
-  const tasks = memos
-    .filter(memo => memo.type === 'task')
-    .map(mapMemoToTask);
+  // Convert all memos to tasks (not just tasks, since we want to show all memo types)
+  const tasks = memos.map(mapMemoToTask);
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
@@ -172,9 +162,9 @@ const TasksPageContent: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-800">
             {viewMode === "categories"
               ? selectedCategory
-                ? categories.find((c) => c.id === selectedCategory)?.name + " Tasks"
+                ? categories.find((c) => c.id === selectedCategory)?.name + " Items"
                 : "All Categories"
-              : "Task Timeline"}
+              : "Item Timeline"}
           </h2>
           <div className="flex items-center gap-2">
             {viewMode === "categories" && !selectedCategory && (
