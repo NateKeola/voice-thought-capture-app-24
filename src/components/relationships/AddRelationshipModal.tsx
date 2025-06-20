@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
     firstName: '',
     lastName: '',
     type: 'Work',
+    relationshipDescription: '',
     email: '',
     phone: '',
     notes: ''
@@ -44,13 +46,18 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
   };
 
   const handleSubmit = () => {
+    // Combine notes with relationship description
+    const combinedNotes = [formData.relationshipDescription, formData.notes]
+      .filter(note => note.trim())
+      .join('\n\n---\n\n');
+
     onSubmit({
       first_name: formData.firstName,
       last_name: formData.lastName,
       type: formData.type,
       email: formData.email || null,
       phone: formData.phone || null,
-      notes: formData.notes || null
+      notes: combinedNotes || null
     });
     onClose();
     setStep(1);
@@ -58,6 +65,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
       firstName: '',
       lastName: '',
       type: 'Work',
+      relationshipDescription: '',
       email: '',
       phone: '',
       notes: ''
@@ -113,6 +121,20 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
                 selectedType={formData.type}
                 onTypeSelect={(label) => setFormData({...formData, type: label})}
               />
+
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-1">
+                  Relationship Description
+                </label>
+                <Textarea
+                  name="relationshipDescription"
+                  value={formData.relationshipDescription}
+                  onChange={handleChange}
+                  rows={3}
+                  placeholder="Describe your relationship and how it connects to your life..."
+                  className="resize-none"
+                />
+              </div>
               
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">
@@ -166,11 +188,20 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
                 </span>
               </div>
             </div>
+
+            {formData.relationshipDescription && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <label className="block text-gray-700 text-sm font-medium mb-1">
+                  Relationship Description
+                </label>
+                <p className="text-gray-600 text-sm">{formData.relationshipDescription}</p>
+              </div>
+            )}
             
             <div className="space-y-4">
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Notes
+                  Additional Notes
                 </label>
                 <Textarea
                   name="notes"
