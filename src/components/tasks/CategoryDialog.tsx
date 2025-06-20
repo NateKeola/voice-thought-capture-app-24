@@ -14,19 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-// This is a mock function as we don't have a category management system yet
-// In a real app, you'd integrate this with your backend/state management
-const createCategory = async (name: string, color: string): Promise<boolean> => {
-  // Simulating an API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log(`Creating category: ${name} with color: ${color}`);
-      // In a real app, you'd save this to your database
-      resolve(true);
-    }, 500);
-  });
-};
-
 const CategoryDialog: React.FC = () => {
   const { isCategoryDialogOpen, closeCategoryDialog } = useTaskDialog();
   const { toast } = useToast();
@@ -47,14 +34,45 @@ const CategoryDialog: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      await createCategory(name, color);
+      // Get existing categories from localStorage
+      const existingCategories = JSON.parse(localStorage.getItem('customCategories') || '[]');
+      
+      // Check if category already exists
+      const categoryExists = existingCategories.some((cat: any) => 
+        cat.name.toLowerCase() === name.trim().toLowerCase()
+      );
+      
+      if (categoryExists) {
+        toast({
+          title: "Error",
+          description: "A category with this name already exists",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create new category
+      const newCategory = {
+        id: name.toLowerCase().replace(/\s+/g, '-'),
+        name: name.trim(),
+        color: color
+      };
+
+      // Save to localStorage
+      const updatedCategories = [...existingCategories, newCategory];
+      localStorage.setItem('customCategories', JSON.stringify(updatedCategories));
+
       toast({
         title: "Success",
-        description: "Category created successfully. Note: This is currently just simulated functionality.",
+        description: "Category created successfully.",
       });
+      
       closeCategoryDialog();
       setName("");
       setColor("#8B5CF6");
+      
+      // Trigger a page refresh to update the categories
+      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",
@@ -82,7 +100,7 @@ const CategoryDialog: React.FC = () => {
         <DialogHeader>
           <DialogTitle>Create New Category</DialogTitle>
           <DialogDescription>
-            Add a new category for organizing your tasks.
+            Add a new category for organizing your items.
           </DialogDescription>
         </DialogHeader>
 

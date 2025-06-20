@@ -43,12 +43,11 @@ const taskFormSchema = z.object({
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
 
+// Updated to match the categories in TasksPage
 const categories = [
-  { id: "personal", name: "Personal" },
-  { id: "work", name: "Work" },
-  { id: "health", name: "Health" },
-  { id: "finance", name: "Finance" },
-  { id: "home", name: "Home" },
+  { id: "task", name: "Tasks" },
+  { id: "idea", name: "Ideas" },
+  { id: "note", name: "Notes" },
 ];
 
 const TaskDialog: React.FC = () => {
@@ -61,7 +60,7 @@ const TaskDialog: React.FC = () => {
     defaultValues: {
       title: "",
       description: "",
-      category: "personal",
+      category: "task",
       priority: "medium",
       due: "today",
     },
@@ -74,7 +73,7 @@ const TaskDialog: React.FC = () => {
       form.reset({
         title: "",
         description: "",
-        category: preselectedCategory || "personal",
+        category: preselectedCategory || "task",
         priority: "medium",
         due: "today",
       });
@@ -84,26 +83,26 @@ const TaskDialog: React.FC = () => {
   const onSubmit = async (values: TaskFormValues) => {
     try {
       // Format the text to include metadata in square brackets
-      const taskText = `${values.title}. ${values.description || ""} [category:${values.category}] [priority:${values.priority}] [due:${values.due}]`;
+      const taskText = `${values.title}${values.description ? '. ' + values.description : ''} [priority:${values.priority}] [due:${values.due}]`;
       
       await createMemo({
         text: taskText,
-        type: "task",
+        type: values.category as "task" | "idea" | "note",
         audioUrl: "",
       });
 
       toast({
-        title: "Task created",
-        description: "Your task has been created successfully.",
+        title: "Item created",
+        description: "Your item has been created successfully.",
       });
       
       closeTaskDialog();
       form.reset();
     } catch (error) {
-      console.error("Error creating task:", error);
+      console.error("Error creating item:", error);
       toast({
         title: "Error",
-        description: "There was a problem creating your task.",
+        description: "There was a problem creating your item.",
         variant: "destructive",
       });
     }
@@ -113,9 +112,9 @@ const TaskDialog: React.FC = () => {
     <Dialog open={isTaskDialogOpen} onOpenChange={closeTaskDialog}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
+          <DialogTitle>Create New Item</DialogTitle>
           <DialogDescription>
-            Fill out the form below to create a new task.
+            Fill out the form below to create a new item.
           </DialogDescription>
         </DialogHeader>
 
@@ -126,9 +125,9 @@ const TaskDialog: React.FC = () => {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Task Title</FormLabel>
+                  <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter task title" {...field} />
+                    <Input placeholder="Enter title" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -143,7 +142,7 @@ const TaskDialog: React.FC = () => {
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter task description" 
+                      placeholder="Enter description" 
                       className="h-20 resize-none" 
                       {...field} 
                     />
@@ -241,7 +240,7 @@ const TaskDialog: React.FC = () => {
               <Button type="button" variant="outline" onClick={closeTaskDialog}>
                 Cancel
               </Button>
-              <Button type="submit">Create Task</Button>
+              <Button type="submit">Create Item</Button>
             </div>
           </form>
         </Form>

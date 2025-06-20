@@ -14,8 +14,8 @@ import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 
-// Updated categories to match memo types
-const categories = [
+// Default categories that match memo types
+const defaultCategories = [
   { id: "task", name: "Tasks", color: "#3B82F6" },
   { id: "idea", name: "Ideas", color: "#8B5CF6" },
   { id: "note", name: "Notes", color: "#10B981" },
@@ -61,14 +61,14 @@ const mapMemoToTask = (memo: Memo) => {
   }
 
   return {
-    id: Number(memo.id), // Convert to number to match expected interface
+    id: Number(memo.id),
     title: title,
     description: description,
     completed: memo.completed || false,
-    category: memo.type, // Use the actual memo type from AI categorization
+    category: memo.type,
     priority: priority as "high" | "medium" | "low",
     due: due,
-    created: 0, // Not tracking this currently
+    created: 0,
     hasAudio: !!memo.audioUrl
   };
 };
@@ -80,11 +80,23 @@ const TasksPageContent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
+  const [customCategories, setCustomCategories] = useState<any[]>([]);
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
   
-  // Convert all memos to tasks (not just tasks, since we want to show all memo types)
+  // Load custom categories from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('customCategories');
+    if (stored) {
+      setCustomCategories(JSON.parse(stored));
+    }
+  }, []);
+
+  // Combine default and custom categories
+  const allCategories = [...defaultCategories, ...customCategories];
+  
+  // Convert all memos to tasks
   const tasks = memos.map(mapMemoToTask);
 
   const handleCategorySelect = (categoryId: string) => {
@@ -107,12 +119,12 @@ const TasksPageContent: React.FC = () => {
   };
 
   const getCategoryColor = (categoryId: string) => {
-    const category = categories.find((c) => c.id === categoryId);
+    const category = allCategories.find((c) => c.id === categoryId);
     return category ? category.color : "#6B7280";
   };
 
   // Create a mapping of category IDs to names for the TaskList component
-  const categoryNames = categories.reduce((acc, cat) => {
+  const categoryNames = allCategories.reduce((acc, cat) => {
     acc[cat.id] = cat.name;
     return acc;
   }, {} as { [key: string]: string });
@@ -135,13 +147,6 @@ const TasksPageContent: React.FC = () => {
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
 
-  // Count for pending tasks/category
-  const categoryTaskCounts = categories.map((cat) => ({
-    ...cat,
-    count: tasks.filter((t) => t.category === cat.id && !t.completed).length,
-    total: tasks.filter((t) => t.category === cat.id).length,
-  }));
-
   const handleCreateTaskForCategory = (categoryId: string) => {
     console.log("handleCreateTaskForCategory called with:", categoryId);
     openTaskDialog(categoryId);
@@ -162,7 +167,7 @@ const TasksPageContent: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-800">
             {viewMode === "categories"
               ? selectedCategory
-                ? categories.find((c) => c.id === selectedCategory)?.name + " Items"
+                ? allCategories.find((c) => c.id === selectedCategory)?.name + " Items"
                 : "All Categories"
               : "Item Timeline"}
           </h2>
@@ -209,7 +214,7 @@ const TasksPageContent: React.FC = () => {
         {/* Categories */}
         {viewMode === "categories" && !selectedCategory && (
           <div className="grid grid-cols-2 gap-4 mb-6">
-            {categories.map((cat) => (
+            {allCategories.map((cat) => (
               <TaskCategoryCard
                 key={cat.id}
                 id={cat.id}
