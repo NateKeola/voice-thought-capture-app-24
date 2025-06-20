@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import StepIndicator from './StepIndicator';
 import AvatarSelector from './AvatarSelector';
 import RelationshipTypeSelector from './RelationshipTypeSelector';
+import ContactSearchInput from './ContactSearchInput';
 
 interface AddRelationshipModalProps {
   isOpen: boolean;
@@ -32,6 +32,10 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
   
   const [step, setStep] = useState(1);
   const [avatar, setAvatar] = useState<File | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -91,6 +95,25 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
             />
             
             <div className="space-y-4">
+              <ContactSearchInput
+                searchTerm={searchTerm}
+                isSearching={isSearching}
+                onSearchChange={setSearchTerm}
+              />
+
+              {searchResults.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="block text-gray-700 text-sm font-medium mb-1">Search Results</h4>
+                  <ul>
+                    {searchResults.map((result) => (
+                      <li key={result.id} className="py-2 px-3 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer">
+                        {result.name} ({result.email})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-gray-700 text-sm font-medium mb-1">
