@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Header from '@/components/home/Header';
 import SearchBar from '@/components/home/SearchBar';
@@ -22,7 +21,7 @@ const HomePage = () => {
   const { memos, isLoading, refreshMemos } = useMemos();
 
   const handleMemoCreated = (memoId: string) => {
-    refreshMemos();
+    refreshMemos(); // Call refreshMemos without arguments
     
     // Find the created memo and show suggestions
     const createdMemo = memos.find(memo => memo.id === memoId);
