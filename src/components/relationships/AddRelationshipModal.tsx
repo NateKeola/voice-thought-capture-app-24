@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,12 @@ interface AddRelationshipModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (profileData: any) => void;
+  prefilledData?: {
+    firstName?: string;
+    lastName?: string;
+    type?: string;
+    relationshipDescription?: string;
+  };
 }
 
 const relationshipTypes = [
@@ -20,7 +26,7 @@ const relationshipTypes = [
   { id: 'personal', label: 'Personal', color: '#10B981' }
 ];
 
-const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModalProps) => {
+const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddRelationshipModalProps) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -38,6 +44,19 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit }: AddRelationshipModa
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
+
+  // Update form data when prefilledData changes
+  useEffect(() => {
+    if (prefilledData && isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: prefilledData.firstName || '',
+        lastName: prefilledData.lastName || '',
+        types: prefilledData.type ? [prefilledData.type] : [],
+        relationshipDescription: prefilledData.relationshipDescription || ''
+      }));
+    }
+  }, [prefilledData, isOpen]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
