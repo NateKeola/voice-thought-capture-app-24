@@ -39,7 +39,7 @@ serve(async (req) => {
         model: 'claude-3-haiku-20240307',
         temperature: 0,
         max_tokens: 10,
-        system: 'You are a strict text classifier. Classify the user input into exactly ONE of the following categories: note, task, idea. Reply ONLY with the category name (lowercase). If ambiguous, pick the most relevant category.',
+        system: 'You are a strict memo classifier. Classify the user input into exactly ONE of the following categories: note, task, idea. A "task" is something actionable that needs to be done (contains words like "need to", "must", "should", "remind me", "buy", "call", etc.). An "idea" is a creative thought, concept, or possibility (contains words like "what if", "maybe", "could", "brainstorm", "innovation", etc.). A "note" is general information, observations, or anything else. Reply ONLY with the category name (lowercase). If ambiguous, pick the most relevant category.',
         messages: [
           {
             role: 'user',
