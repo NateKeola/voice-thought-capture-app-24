@@ -67,7 +67,7 @@ const mapMemoToTask = (memo: Memo) => {
   }
 
   return {
-    id: Number(memo.id),
+    id: memo.id, // Keep as string, don't convert to number
     title: title,
     description: description,
     completed: memo.completed || false,
@@ -116,11 +116,16 @@ const TasksPageContent: React.FC = () => {
     setSelectedCategory(null);
   };
 
-  const onToggleComplete = async (id: number) => {
+  const onToggleComplete = async (id: string) => {
+    console.log("Toggling complete for task ID:", id);
     // Find the corresponding memo
-    const memo = memos.find(m => Number(m.id) === id);
-    if (!memo) return;
+    const memo = memos.find(m => m.id === id);
+    if (!memo) {
+      console.error("Memo not found for ID:", id);
+      return;
+    }
     
+    console.log("Found memo:", memo);
     // Toggle its completed status
     await updateMemo(memo.id, {
       completed: !memo.completed

@@ -26,8 +26,10 @@ const TaskDeleteDialog: React.FC<TaskDeleteDialogProps> = ({ isOpen, onClose, ta
 
   const handleDelete = async () => {
     try {
+      console.log("Deleting task with ID:", task.id, "Type:", typeof task.id);
+      
       // Mark memo as deleted instead of actually deleting it
-      await updateMemo(task.id.toString(), {
+      await updateMemo(task.id, { // task.id is already a string now
         text: task.title + (task.description ? '. ' + task.description : '') + ' [deleted:true]'
       });
       
