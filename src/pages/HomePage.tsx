@@ -22,7 +22,7 @@ const HomePage = () => {
   const { memos, isLoading, refreshMemos } = useMemos();
 
   const handleMemoCreated = (memoId: string) => {
-    refreshMemos(); // Call refreshMemos without arguments
+    refreshMemos();
     
     // Find the created memo and show suggestions
     const createdMemo = memos.find(memo => memo.id === memoId);
