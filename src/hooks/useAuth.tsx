@@ -38,7 +38,8 @@ export function useAuth() {
         emailRedirectTo: redirectUrl,
         data: {
           first_name: firstName,
-          last_name: lastName
+          last_name: lastName,
+          full_name: firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || ''
         }
       }
     });

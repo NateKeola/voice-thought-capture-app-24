@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/hooks/useAuth';
-import { ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 
 export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: string) => void }> = ({ 
   onCreateAccount 
@@ -15,6 +15,8 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +48,8 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
         // Navigate directly to home after successful sign in
         navigate('/home');
       } else {
-        await signUp(email, password);
+        // Pass the first and last name to signUp function
+        await signUp(email, password, firstName, lastName);
         toast({
           title: "Account created!",
           description: "Please check your email to confirm your account."
@@ -83,6 +86,45 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {!isSignIn && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="firstName" className="text-sm text-muted-foreground font-medium">First Name</Label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <Input 
+                    type="text"
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="First name" 
+                    className="pl-10 h-14 rounded-2xl bg-muted border border-input"
+                    required={!isSignIn}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName" className="text-sm text-muted-foreground font-medium">Last Name</Label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                    <User className="h-5 w-5" />
+                  </div>
+                  <Input 
+                    type="text"
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Last name" 
+                    className="pl-10 h-14 rounded-2xl bg-muted border border-input"
+                    required={!isSignIn}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm text-muted-foreground font-medium">Email</Label>
             <div className="relative">
