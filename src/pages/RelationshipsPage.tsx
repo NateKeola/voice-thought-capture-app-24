@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Link } from 'lucide-react';
 import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
 import ProfileIconButton from '@/components/ProfileIconButton';
+import RecordButton from '@/components/RecordButton';
 
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
@@ -58,13 +59,32 @@ const RelationshipsPage = () => {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddMemoModal, setShowAddMemoModal] = useState(false);
+  const [showLinkMemoModal, setShowLinkMemoModal] = useState(false);
   const [newMemoText, setNewMemoText] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingText, setRecordingText] = useState('');
   const [globalTab, setGlobalTab] = useState('relationships');
   const { memos, createMemo } = useMemos();
+  const [isRecordingMode, setIsRecordingMode] = useState(false);
   const isLoading = authLoading || profilesLoading;
+
+  // Get recent memos (last 10) that aren't already linked to relationships
+  const getRecentMemos = () => {
+    const relationshipMemoIds = new Set();
+    profiles.forEach(profile => {
+      const relationshipMemos = extractRelationshipMemos(memos, profile.id);
+      relationshipMemos.forEach(memo => relationshipMemoIds.add(memo.id));
+    });
+    
+    return memos
+      .filter(memo => !relationshipMemoIds.has(memo.id))
+      .slice(0, 10)
+      .map(memo => ({
+        id: memo.id,
+        text: memo.text.substring(0, 60) + (memo.text.length > 60 ? '...' : ''),
+        type: memo.type,
+        createdAt: memo.createdAt
+      }));
+  };
 
   if (isLoading) {
     return (
@@ -98,13 +118,12 @@ const RelationshipsPage = () => {
   });
 
   const handleAddMemo = async () => {
-    if (!newMemoText.trim() && !recordingText.trim()) return;
-    const memoText = newMemoText || recordingText;
+    if (!newMemoText.trim()) return;
     
     if (!selectedProfile) return;
     
     try {
-      const fullMemoText = `[Contact: ${selectedProfile.id}] ${memoText}`;
+      const fullMemoText = `[Contact: ${selectedProfile.id}] ${newMemoText}`;
       
       await createMemo({
         text: fullMemoText,
@@ -113,8 +132,8 @@ const RelationshipsPage = () => {
       });
       
       setNewMemoText('');
-      setRecordingText('');
       setShowAddMemoModal(false);
+      setIsRecordingMode(false);
       toast({
         title: "Memo added",
         description: `Your memo for ${selectedProfile.first_name} ${selectedProfile.last_name} has been saved.`,
@@ -129,14 +148,44 @@ const RelationshipsPage = () => {
     }
   };
 
-  const toggleRecording = () => {
-    if (isRecording) {
-      setRecordingText("Met about the new project proposal. They had some concerns about timeline but were excited about the concept overall.");
-      setIsRecording(false);
-    } else {
-      setRecordingText('');
-      setIsRecording(true);
+  const handleLinkExistingMemo = async (memoId) => {
+    if (!selectedProfile) return;
+    
+    try {
+      const memo = memos.find(m => m.id === memoId);
+      if (!memo) return;
+      
+      const updatedText = `[Contact: ${selectedProfile.id}] ${memo.text}`;
+      
+      // Update the memo to link it to the relationship
+      await fetch('/api/memos/' + memoId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: updatedText })
+      });
+      
+      setShowLinkMemoModal(false);
+      toast({
+        title: "Memo linked",
+        description: `Memo linked to ${selectedProfile.first_name} ${selectedProfile.last_name}.`,
+      });
+    } catch (error) {
+      console.error('Error linking memo:', error);
+      toast({
+        title: "Error linking memo",
+        description: "There was a problem linking the memo.",
+        variant: "destructive"
+      });
     }
+  };
+
+  const handleMemoCreated = (memoId) => {
+    setShowAddMemoModal(false);
+    setIsRecordingMode(false);
+    toast({
+      title: "Voice memo added",
+      description: `Your voice memo for ${selectedProfile?.first_name} ${selectedProfile?.last_name} has been saved.`,
+    });
   };
 
   const getTypeColor = (type) => REL_TYPE_COLORS[type.toLowerCase()] || REL_TYPE_COLORS.default;
@@ -289,15 +338,25 @@ const RelationshipsPage = () => {
                       <p className="text-gray-500 text-xs">Added: {new Date(selectedProfile.created_at).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <Button
-                    className="px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg flex items-center"
-                    onClick={() => setShowAddMemoModal(true)}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 3a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
-                    </svg>
-                    Add Memo
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      className="px-3 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg flex items-center"
+                      onClick={() => setShowLinkMemoModal(true)}
+                      size="sm"
+                    >
+                      <Link className="h-4 w-4 mr-1" />
+                      Link Memo
+                    </Button>
+                    <Button
+                      className="px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg flex items-center"
+                      onClick={() => setShowAddMemoModal(true)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 3a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
+                      </svg>
+                      Add Memo
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex-1 p-4 overflow-y-auto">
                   <div className="space-y-4">
@@ -342,6 +401,7 @@ const RelationshipsPage = () => {
         </div>
       </div>
 
+      {/* Enhanced Add Memo Modal with Voice Recording */}
       {showAddMemoModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl w-full max-w-md p-6 mx-4">
@@ -352,8 +412,7 @@ const RelationshipsPage = () => {
                 onClick={() => {
                   setShowAddMemoModal(false);
                   setNewMemoText('');
-                  setRecordingText('');
-                  setIsRecording(false);
+                  setIsRecordingMode(false);
                 }}
                 aria-label="Close"
               >
@@ -362,15 +421,31 @@ const RelationshipsPage = () => {
                 </svg>
               </button>
             </div>
-            {isRecording ? (
+
+            <div className="flex gap-3 mb-4">
+              <Button
+                onClick={() => setIsRecordingMode(false)}
+                variant={!isRecordingMode ? "default" : "outline"}
+                className="flex-1"
+              >
+                Text
+              </Button>
+              <Button
+                onClick={() => setIsRecordingMode(true)}
+                variant={isRecordingMode ? "default" : "outline"}
+                className="flex-1"
+              >
+                Voice
+              </Button>
+            </div>
+
+            {isRecordingMode ? (
               <div className="mb-4">
                 <div className="py-8 flex flex-col items-center">
-                  <div className="w-16 h-16 rounded-full bg-red-500 animate-pulse flex items-center justify-center mb-4">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-600 animate-pulse">Recording...</p>
+                  <RecordButton 
+                    onMemoCreated={handleMemoCreated}
+                    onLiveTranscription={(text) => setNewMemoText(text)}
+                  />
                 </div>
               </div>
             ) : (
@@ -382,36 +457,71 @@ const RelationshipsPage = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                   rows={4}
                   placeholder="Add your memo here..."
-                  value={recordingText || newMemoText}
-                  onChange={(e) => {
-                    if (recordingText) {
-                      setRecordingText(e.target.value);
-                    } else {
-                      setNewMemoText(e.target.value);
-                    }
-                  }}
+                  value={newMemoText}
+                  onChange={(e) => setNewMemoText(e.target.value)}
                 ></textarea>
               </div>
             )}
-            <div className="flex flex-col space-y-3">
-              <Button
-                className={`w-full flex items-center justify-center ${isRecording ? 'bg-red-500' : 'bg-orange-100 text-orange-500'}`}
-                onClick={toggleRecording}
-                type="button"
-                variant={isRecording ? undefined : "outline"}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-                {isRecording ? 'Stop Recording' : 'Record Voice'}
-              </Button>
+
+            {!isRecordingMode && (
               <Button
                 className="w-full bg-orange-500 text-white"
                 onClick={handleAddMemo}
-                disabled={(!newMemoText && !recordingText) || isRecording}
+                disabled={!newMemoText.trim()}
               >
                 Save Memo
               </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Link Existing Memo Modal */}
+      {showLinkMemoModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 mx-4 max-h-96">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-gray-800 text-lg">Link Recent Memo</h3>
+              <button
+                className="text-gray-500"
+                onClick={() => setShowLinkMemoModal(false)}
+                aria-label="Close"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto max-h-64">
+              {getRecentMemos().length === 0 ? (
+                <p className="text-gray-500 text-center py-4">No recent memos available to link</p>
+              ) : (
+                <div className="space-y-2">
+                  {getRecentMemos().map((memo) => (
+                    <div
+                      key={memo.id}
+                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleLinkExistingMemo(memo.id)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-800">{memo.text}</p>
+                          <div className="flex items-center mt-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${getMemoTypeColor(memo.type)}`}>
+                              {memo.type}
+                            </span>
+                            <span className="text-xs text-gray-500 ml-2">
+                              {new Date(memo.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                        <Link className="h-4 w-4 text-gray-400 ml-2 flex-shrink-0" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
