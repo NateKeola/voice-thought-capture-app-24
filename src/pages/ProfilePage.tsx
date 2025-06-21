@@ -14,6 +14,8 @@ import NotificationSettings from '@/components/settings/NotificationSettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import AccountDetails from '@/components/settings/AccountDetails';
 import HelpSupport from '@/components/settings/HelpSupport';
+import { useAchievements } from '@/hooks/useAchievements';
+import { useNavigate } from 'react-router-dom';
 
 const BADGES: Badge[] = [
   { 
@@ -108,32 +110,11 @@ const ProfilePage = () => {
     pendingTasks: memos.filter(memo => !memo.completed).length,
   };
 
-  const handleSettingClick = (settingId: number) => {
-    switch (settingId) {
-      case 1:
-        setActiveModal('notifications');
-        break;
-      case 3:
-        setActiveModal('theme');
-        break;
-      case 5:
-        setActiveModal('account');
-        break;
-      case 6:
-        setActiveModal('help');
-        break;
-      case 7:
-        setActiveModal('about');
-        break;
-    }
-  };
+  const { getUnlockedAchievements, getCompletionPercentage, loading: achievementsLoading } = useAchievements();
+  const navigate = useNavigate();
 
-  const closeModal = () => {
-    setActiveModal(null);
-  };
-
-  const handleStatsClick = () => {
-    setShowMemoTable(true);
+  const handleAchievementsClick = () => {
+    navigate('/achievements');
   };
 
   return (
@@ -226,6 +207,43 @@ const ProfilePage = () => {
         )}
       </div>
       <BottomNavBar activeTab="profile" onTabChange={() => {}} />
+
+      {/* Achievement Stats Section */}
+      <div className="px-6 mt-4">
+        <div 
+          className="bg-white rounded-xl shadow-sm p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={handleAchievementsClick}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Achievements</h3>
+              <p className="text-sm text-gray-500">
+                {achievementsLoading ? 'Loading...' : `${getCompletionPercentage()}% complete`}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="text-2xl">🏆</div>
+              <div className="text-orange-500">
+                {renderProfileIcon('chevron-right')}
+              </div>
+            </div>
+          </div>
+          {!achievementsLoading && (
+            <div className="mt-3">
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>Progress</span>
+                <span>{getUnlockedAchievements().length} unlocked</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-orange-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${getCompletionPercentage()}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Modals */}
       {activeModal === 'notifications' && (
