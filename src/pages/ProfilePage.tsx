@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import AchievementBadge from '@/components/profile/AchievementBadge';
+import MemoStatsTable from '@/components/profile/MemoStatsTable';
 import { ChevronRight } from 'lucide-react';
 import { renderProfileIcon } from '@/utils/iconRenderer';
 import type { Badge } from '@/types';
 import BottomNavBar from '@/components/BottomNavBar';
 import { useUserProfile } from '@/contexts/UserProfileContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useMemos } from '@/contexts/MemoContext';
 import ProfileIconButton from '@/components/ProfileIconButton';
 import NotificationSettings from '@/components/settings/NotificationSettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
@@ -87,8 +89,10 @@ const SETTINGS = [
 const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('badges');
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const [showMemoTable, setShowMemoTable] = useState(false);
   const { userName } = useUserProfile();
   const { user } = useAuth();
+  const { memos } = useMemos();
   
   const initials = userName
     ? userName.split(' ').map(n => n.trim()[0] || '').join('').substring(0, 2).toUpperCase()
@@ -97,10 +101,11 @@ const ProfilePage = () => {
   const userEmail = user?.email || 'user@example.com';
   const joinDate = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'April 2025';
 
+  // Calculate real statistics from memos
   const stats = {
-    totalMemos: 147,
-    completedTasks: 83,
-    pendingTasks: 12,
+    totalMemos: memos.length,
+    completedTasks: memos.filter(memo => memo.completed).length,
+    pendingTasks: memos.filter(memo => !memo.completed).length,
   };
 
   const handleSettingClick = (settingId: number) => {
@@ -127,6 +132,10 @@ const ProfilePage = () => {
     setActiveModal(null);
   };
 
+  const handleStatsClick = () => {
+    setShowMemoTable(true);
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <div className="relative">
@@ -147,7 +156,10 @@ const ProfilePage = () => {
               <p className="text-gray-400 text-xs mt-1">Member since {joinDate}</p>
             </div>
           </div>
-          <div className="flex justify-around mt-6">
+          <div 
+            className="flex justify-around mt-6 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors"
+            onClick={handleStatsClick}
+          >
             <div className="text-center">
               <p className="text-gray-800 font-bold text-xl">{stats.totalMemos}</p>
               <p className="text-gray-500 text-xs">Total Memos</p>
@@ -228,6 +240,12 @@ const ProfilePage = () => {
       {activeModal === 'help' && (
         <HelpSupport isOpen={true} onClose={closeModal} />
       )}
+      
+      {/* Memo Stats Table */}
+      <MemoStatsTable 
+        isOpen={showMemoTable} 
+        onClose={() => setShowMemoTable(false)} 
+      />
     </div>
   );
 };
