@@ -1,48 +1,52 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { QueryClient } from 'react-query';
 
-import AuthGuard from '@/components/AuthGuard';
-import LoginPage from '@/pages/LoginPage';
-import SignUpPage from '@/pages/SignUpPage';
-import HomePage from '@/pages/HomePage';
-import ProfilePage from '@/pages/ProfilePage';
-import CategoryPage from '@/pages/CategoryPage';
-import { UserProfileProvider } from '@/contexts/UserProfileContext';
-import { MemoProvider } from '@/contexts/MemoContext';
-import { CategoryProvider } from '@/contexts/CategoryContext';
-import { Toaster } from '@/components/ui/toaster';
-import { AchievementProvider } from '@/contexts/AchievementContext';
-import AchievementsPage from '@/pages/AchievementsPage';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import HomePage from "./pages/HomePage";
+import MemosPage from "./pages/MemosPage";
+import RelationshipsPage from "./pages/RelationshipsPage";
+import MemoDetailPage from "./pages/MemoDetailPage";
+import NotFound from "./pages/NotFound";
+import Onboarding from "./pages/Onboarding";
+import AuthPage from "./pages/AuthPage";
+import Index from "./pages/Index";
+import ProfilePage from "./pages/ProfilePage";
+import TasksPage from "./pages/TasksPage";
+import AuthGuard from "./components/AuthGuard";
+import { UserProfileProvider } from "./contexts/UserProfileContext";
+import { MemoProvider } from "./contexts/MemoContext";
 
-function App() {
+const queryClient = new QueryClient();
+
+const App = () => {
   return (
-    <Router>
-      <QueryClient>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
         <UserProfileProvider>
           <MemoProvider>
-            <CategoryProvider>
-              <AchievementProvider>
-                <div className="relative">
-                  <AuthGuard>
-                    <Routes>
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/signup" element={<SignUpPage />} />
-                      <Route path="/" element={<HomePage />} />
-                      <Route path="/profile" element={<ProfilePage />} />
-                      <Route path="/category/:categoryId" element={<CategoryPage />} />
-                      <Route path="/achievements" element={<AchievementsPage />} />
-                    </Routes>
-                  </AuthGuard>
-                  <Toaster />
-                </div>
-              </AchievementProvider>
-            </CategoryProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/home" element={<AuthGuard><HomePage /></AuthGuard>} />
+                <Route path="/memos" element={<AuthGuard><MemosPage /></AuthGuard>} />
+                <Route path="/tasks" element={<AuthGuard><TasksPage /></AuthGuard>} />
+                <Route path="/relationships" element={<AuthGuard><RelationshipsPage /></AuthGuard>} />
+                <Route path="/memo/:id" element={<AuthGuard><MemoDetailPage /></AuthGuard>} />
+                <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
           </MemoProvider>
         </UserProfileProvider>
-      </QueryClient>
-    </Router>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
-}
+};
 
 export default App;

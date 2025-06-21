@@ -9,42 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      achievement_progress: {
-        Row: {
-          achievement_id: string
-          created_at: string | null
-          current_progress: number | null
-          id: string
-          last_updated: string | null
-          metadata: Json | null
-          unlocked: boolean | null
-          unlocked_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          achievement_id: string
-          created_at?: string | null
-          current_progress?: number | null
-          id?: string
-          last_updated?: string | null
-          metadata?: Json | null
-          unlocked?: boolean | null
-          unlocked_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          achievement_id?: string
-          created_at?: string | null
-          current_progress?: number | null
-          id?: string
-          last_updated?: string | null
-          metadata?: Json | null
-          unlocked?: boolean | null
-          unlocked_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       memos: {
         Row: {
           audio_url: string | null
@@ -122,15 +86,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      update_achievement_progress: {
-        Args: {
-          p_user_id: string
-          p_achievement_id: string
-          p_progress_increment?: number
-          p_target_progress?: number
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never

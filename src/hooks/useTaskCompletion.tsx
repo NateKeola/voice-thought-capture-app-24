@@ -1,12 +1,10 @@
 
 import { useMemos } from "@/contexts/MemoContext";
 import { useToast } from "@/hooks/use-toast";
-import { useAchievementContext } from "@/contexts/AchievementContext";
 
 export const useTaskCompletion = () => {
   const { memos, updateMemo } = useMemos();
   const { toast } = useToast();
-  const { triggerTaskCompleted } = useAchievementContext();
 
   const toggleTaskCompletion = async (taskId: number) => {
     console.log("Toggling completion for task ID:", taskId);
@@ -33,15 +31,6 @@ export const useTaskCompletion = () => {
       });
       
       console.log("Successfully updated task completion status to:", newCompletedStatus);
-      
-      // Trigger achievement check if task was completed
-      if (newCompletedStatus) {
-        triggerTaskCompleted({
-          id: memo.id,
-          createdAt: memo.createdAt,
-          isOverdue: false // You can add logic to determine if task was overdue
-        });
-      }
       
       toast({
         title: newCompletedStatus ? "Task completed!" : "Task marked incomplete",

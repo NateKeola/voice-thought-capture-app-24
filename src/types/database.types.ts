@@ -22,15 +22,4 @@ export type DatabaseTables = {
     created_at: string;
     updated_at: string;
   };
-  achievement_progress: {
-    id: string;
-    user_id: string;
-    achievement_id: string;
-    current_progress: number;
-    unlocked: boolean;
-    unlocked_at: string | null;
-    last_updated: string;
-    metadata: Record<string, any>;
-    created_at: string;
-  };
 }
