@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,8 +9,16 @@ import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/hooks/useAuth';
 import { ArrowLeft, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 
-export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: string) => void }> = ({ 
-  onCreateAccount 
+interface EmailSignupProps {
+  onCreateAccount: (email: string, password: string) => void;
+  onSuccessfulSignIn?: () => void;
+  initialMode?: 'signup' | 'signin';
+}
+
+export const EmailSignup: React.FC<EmailSignupProps> = ({ 
+  onCreateAccount,
+  onSuccessfulSignIn,
+  initialMode = 'signup'
 }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,10 +28,15 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSignIn, setIsSignIn] = useState(false);
+  const [isSignIn, setIsSignIn] = useState(initialMode === 'signin');
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signUp, signIn } = useAuth();
+
+  // Update mode when initialMode prop changes
+  useEffect(() => {
+    setIsSignIn(initialMode === 'signin');
+  }, [initialMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,8 +58,12 @@ export const EmailSignup: React.FC<{ onCreateAccount: (email: string, password: 
           title: "Welcome back!",
           description: "You've successfully signed in."
         });
-        // Navigate directly to home after successful sign in
-        navigate('/home');
+        // Call the success callback if provided, otherwise navigate to home
+        if (onSuccessfulSignIn) {
+          onSuccessfulSignIn();
+        } else {
+          navigate('/home');
+        }
       } else {
         // Pass the first and last name to signUp function
         await signUp(email, password, firstName, lastName);

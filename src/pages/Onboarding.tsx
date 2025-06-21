@@ -8,7 +8,7 @@ import { QuickTour } from '@/components/onboarding/QuickTour';
 import { useAuth } from '@/hooks/useAuth';
 
 const Onboarding = () => {
-  const [step, setStep] = useState<'welcome' | 'email-signup' | 'profile-setup' | 'quick-tour'>('welcome');
+  const [step, setStep] = useState<'welcome' | 'email-signup' | 'email-signin' | 'profile-setup' | 'quick-tour'>('welcome');
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -42,13 +42,19 @@ const Onboarding = () => {
   };
 
   const handleSignInLink = () => {
-    // For existing users who want to sign in, stay on email signup but in sign-in mode
-    setStep('email-signup');
+    // For existing users who want to sign in, go to sign-in specific step
+    setStep('email-signin');
   };
 
   const handleCreateAccount = (email: string, password: string) => {
     setFormData(prev => ({ ...prev, email }));
     setStep('profile-setup');
+  };
+
+  const handleSuccessfulSignIn = () => {
+    // Navigate directly to home after successful sign in
+    const from = location.state?.from || '/home';
+    navigate(from, { replace: true });
   };
 
   const handleProfileComplete = (name: string, photoUrl: string = '') => {
@@ -79,6 +85,14 @@ const Onboarding = () => {
       
       {step === 'email-signup' && (
         <EmailSignup onCreateAccount={handleCreateAccount} />
+      )}
+      
+      {step === 'email-signin' && (
+        <EmailSignup 
+          onCreateAccount={handleCreateAccount}
+          onSuccessfulSignIn={handleSuccessfulSignIn}
+          initialMode="signin"
+        />
       )}
       
       {step === 'profile-setup' && (
