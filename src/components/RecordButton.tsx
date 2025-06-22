@@ -31,7 +31,8 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     stopRecording: stopAudioRecording,
     pauseRecording,
     resumeRecording,
-    cancelRecording
+    cancelRecording,
+    transcribeRecording
   } = useAudioRecorder();
 
   useEffect(() => {
@@ -47,18 +48,56 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       try {
         setIsProcessing(true);
         
+        // Stop live transcription
         if (speechRecognitionRef.current) {
           speechRecognitionRef.current.stop();
           speechRecognitionRef.current = null;
         }
         
+        // Stop audio recording
         const url = await stopAudioRecording();
         setAudioUrl(url);
         
-        toast({
-          title: "Recording complete",
-          description: "You can now save your memo"
-        });
+        // Use Whisper for final, high-quality transcription
+        try {
+          console.log('Getting high-quality transcription with Whisper...');
+          const whisperText = await transcribeRecording();
+          
+          if (whisperText.trim()) {
+            setRecognizedText(whisperText);
+            
+            if (onLiveTranscription) {
+              onLiveTranscription(whisperText);
+            }
+            
+            toast({
+              title: "Recording complete",
+              description: "High-quality transcription ready"
+            });
+          } else {
+            toast({
+              title: "Recording complete",
+              description: "No speech detected in recording",
+              variant: "destructive"
+            });
+          }
+        } catch (transcriptionError) {
+          console.error('Whisper transcription failed:', transcriptionError);
+          
+          // Fallback to live transcription if Whisper fails
+          if (recognizedText.trim()) {
+            toast({
+              title: "Recording complete",
+              description: "Using live transcription (Whisper unavailable)"
+            });
+          } else {
+            toast({
+              title: "Transcription failed",
+              description: "Could not transcribe the audio. Please try again.",
+              variant: "destructive"
+            });
+          }
+        }
         
         setRecordingComplete(true);
         setIsProcessing(false);
@@ -77,6 +116,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       
       startAudioRecording();
       
+      // Start live transcription for real-time feedback
       try {
         speechRecognitionRef.current = startLiveTranscription(
           (interimText) => {
@@ -93,21 +133,13 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
             }
           },
           (error) => {
-            console.error('Speech recognition error:', error);
-            toast({
-              title: "Voice recognition error",
-              description: error.message,
-              variant: "destructive"
-            });
+            console.error('Live speech recognition error:', error);
+            // Don't show error toast for live transcription since Whisper is the fallback
           }
         );
       } catch (error) {
-        console.error('Failed to start speech recognition:', error);
-        toast({
-          title: "Voice recognition not available",
-          description: "Your browser may not support this feature.",
-          variant: "destructive"
-        });
+        console.error('Failed to start live speech recognition:', error);
+        // Continue without live transcription, Whisper will handle it at the end
       }
     }
   };

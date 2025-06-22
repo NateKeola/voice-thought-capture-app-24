@@ -1,122 +1,197 @@
-import { useState, useRef } from 'react';
 
-export const useAudioRecorder = () => {
+import { transcribeAudio } from './SpeechToText';
+
+interface AudioRecorderHook {
+  isRecording: boolean;
+  isPaused: boolean;
+  recordingDuration: number;
+  formattedDuration: string;
+  startRecording: () => void;
+  stopRecording: () => Promise<string | null>;
+  pauseRecording: () => void;
+  resumeRecording: () => void;
+  cancelRecording: () => void;
+  transcribeRecording: () => Promise<string>;
+}
+
+export const useAudioRecorder = (): AudioRecorderHook => {
+  let mediaRecorder: MediaRecorder | null = null;
+  let audioChunks: Blob[] = [];
+  let stream: MediaStream | null = null;
+  let recordingInterval: NodeJS.Timeout | null = null;
+  let startTime = 0;
+  let pausedDuration = 0;
+  let lastPauseTime = 0;
+  
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
-  
-  const timerRef = useRef<number | null>(null);
-  const MAX_DURATION = 60; // 1 minute in seconds
-  
-  const startRecording = () => {
-    try {
-      setIsRecording(true);
-      setRecordingDuration(0);
-      setError(null);
-      setIsPaused(false);
-      
-      timerRef.current = window.setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-      
-      console.log('Started recording');
-    } catch (err) {
-      console.error('Failed to start recording:', err);
-      setError('Failed to start recording.');
-      setIsRecording(false);
-    }
-  };
-  
-  const pauseRecording = () => {
-    try {
-      setIsPaused(true);
-      
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
-      console.log('Paused recording at', recordingDuration);
-    } catch (err) {
-      console.error('Failed to pause recording:', err);
-      setError('Failed to pause recording.');
-    }
-  };
-  
-  const resumeRecording = () => {
-    try {
-      setIsPaused(false);
-      
-      timerRef.current = window.setInterval(() => {
-        setRecordingDuration(prev => {
-          if (prev >= MAX_DURATION) {
-            stopRecording();
-            return MAX_DURATION;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-      
-      console.log('Resumed recording at', recordingDuration);
-    } catch (err) {
-      console.error('Failed to resume recording:', err);
-      setError('Failed to resume recording.');
-    }
-  };
-  
-  const stopRecording = async (): Promise<string> => {
-    try {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
-      setIsRecording(false);
-      setIsPaused(false);
-      
-      const fakeAudioUrl = `memo_${Date.now()}.m4a`;
-      setAudioUrl(fakeAudioUrl);
-      
-      console.log('Stopped recording, duration:', recordingDuration);
-      return fakeAudioUrl;
-    } catch (err) {
-      console.error('Failed to stop recording:', err);
-      setError('Failed to stop recording.');
-      setIsRecording(false);
-      throw new Error('Failed to stop recording');
-    }
-  };
-  
-  const cancelRecording = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
-    setIsRecording(false);
-    setRecordingDuration(0);
-    setIsPaused(false);
-  };
-  
+  const [recordingDuration, setRecordingDuration] = useState(0);
+
   const formatDuration = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
+  const startRecording = async () => {
+    try {
+      console.log('Starting audio recording...');
+      
+      stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 44100,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      audioChunks = [];
+      startTime = Date.now();
+      pausedDuration = 0;
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunks.push(event.data);
+        }
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+      setIsPaused(false);
+      
+      // Update duration every second
+      recordingInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime - pausedDuration) / 1000);
+        setRecordingDuration(elapsed);
+      }, 1000);
+      
+      console.log('Recording started successfully');
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      throw error;
+    }
+  };
+
+  const stopRecording = (): Promise<string | null> => {
+    return new Promise((resolve) => {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        resolve(null);
+        return;
+      }
+
+      console.log('Stopping audio recording...');
+      
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Cleanup
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          stream = null;
+        }
+        
+        if (recordingInterval) {
+          clearInterval(recordingInterval);
+          recordingInterval = null;
+        }
+        
+        setIsRecording(false);
+        setIsPaused(false);
+        setRecordingDuration(0);
+        
+        console.log('Recording stopped, audio URL created');
+        resolve(audioUrl);
+      };
+      
+      mediaRecorder.stop();
+    });
+  };
+
+  const pauseRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      console.log('Pausing recording...');
+      mediaRecorder.pause();
+      setIsPaused(true);
+      lastPauseTime = Date.now();
+      
+      if (recordingInterval) {
+        clearInterval(recordingInterval);
+        recordingInterval = null;
+      }
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorder && mediaRecorder.state === 'paused') {
+      console.log('Resuming recording...');
+      mediaRecorder.resume();
+      setIsPaused(false);
+      
+      // Add paused time to total paused duration
+      pausedDuration += Date.now() - lastPauseTime;
+      
+      // Restart duration timer
+      recordingInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime - pausedDuration) / 1000);
+        setRecordingDuration(elapsed);
+      }, 1000);
+    }
+  };
+
+  const cancelRecording = () => {
+    console.log('Cancelling recording...');
+    
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      stream = null;
+    }
+    
+    if (recordingInterval) {
+      clearInterval(recordingInterval);
+      recordingInterval = null;
+    }
+    
+    audioChunks = [];
+    setIsRecording(false);
+    setIsPaused(false);
+    setRecordingDuration(0);
+  };
+
+  const transcribeRecording = async (): Promise<string> => {
+    if (audioChunks.length === 0) {
+      throw new Error('No audio data to transcribe');
+    }
+    
+    console.log('Transcribing audio with Whisper...');
+    
+    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    const result = await transcribeAudio(audioBlob);
+    
+    console.log('Transcription completed:', result.text);
+    return result.text;
+  };
+
   return {
     isRecording,
     isPaused,
     recordingDuration,
     formattedDuration: formatDuration(recordingDuration),
-    audioUrl,
-    error,
     startRecording,
+    stopRecording,
     pauseRecording,
     resumeRecording,
-    stopRecording,
-    cancelRecording
+    cancelRecording,
+    transcribeRecording
   };
 };

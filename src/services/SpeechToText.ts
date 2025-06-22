@@ -1,5 +1,5 @@
 
-// This service provides speech-to-text functionality using the Web Speech API
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TranscriptionResult {
   text: string;
@@ -11,12 +11,12 @@ interface SpeechRecognitionEvent extends Event {
   resultIndex: number;
 }
 
-// Check browser compatibility
+// Check browser compatibility for live transcription
 const isSpeechRecognitionSupported = () => {
   return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
 };
 
-// Create a speech recognition instance
+// Create a speech recognition instance for live transcription
 const createRecognitionInstance = () => {
   // @ts-ignore - TypeScript doesn't have built-in types for the Web Speech API
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -26,7 +26,7 @@ const createRecognitionInstance = () => {
   return new SpeechRecognition();
 };
 
-// Live transcription with continuous results
+// Live transcription with continuous results (using Web Speech API for real-time)
 export const startLiveTranscription = (
   onInterimResult: (text: string) => void,
   onFinalResult: (result: TranscriptionResult) => void,
@@ -51,7 +51,7 @@ export const startLiveTranscription = (
       
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const transcript = event.results[i][0].transcript;
-        const confidence = event.results[i][0].confidence;
+        const confidence = event.results[i][0].confidence || 0.5;
         
         if (event.results[i].isFinal) {
           finalTranscript += transcript;
@@ -79,7 +79,6 @@ export const startLiveTranscription = (
     
     recognition.onerror = (event) => {
       if (event.error === 'no-speech') {
-        // This is a common error that doesn't need to be shown to the user
         console.log('No speech detected.');
       } else {
         onError(new Error(`Speech recognition error: ${event.error}`));
@@ -87,8 +86,6 @@ export const startLiveTranscription = (
     };
     
     recognition.onend = () => {
-      // The Web Speech API has a tendency to stop automatically
-      // We could auto-restart here if we wanted continuous recognition
       console.log('Speech recognition service disconnected');
     };
     
@@ -105,14 +102,53 @@ export const startLiveTranscription = (
   }
 };
 
-// For compatibility with existing code
-export const transcribeAudio = async (audioUrl: string): Promise<TranscriptionResult> => {
-  // This is just a stub for backwards compatibility
-  console.log('Legacy transcription called for:', audioUrl);
-  return {
-    text: "This memo was recorded with the legacy system.",
-    confidence: 0.7
-  };
+// Enhanced transcribe audio function using OpenAI Whisper API
+export const transcribeAudio = async (audioBlob: Blob): Promise<TranscriptionResult> => {
+  try {
+    console.log('Starting Whisper transcription...');
+    
+    // Convert blob to base64
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    // Convert to base64 in chunks to handle large files
+    let binary = '';
+    const chunkSize = 0x8000;
+    
+    for (let i = 0; i < uint8Array.length; i += chunkSize) {
+      const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    
+    const base64Audio = btoa(binary);
+    
+    console.log('Calling Whisper API...');
+    
+    // Call our Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('whisper-transcription', {
+      body: { audio: base64Audio }
+    });
+    
+    if (error) {
+      console.error('Supabase function error:', error);
+      throw new Error(`Transcription failed: ${error.message}`);
+    }
+    
+    if (data.error) {
+      console.error('Whisper API error:', data.error);
+      throw new Error(`Whisper API error: ${data.error}`);
+    }
+    
+    console.log('Transcription successful:', data.text);
+    
+    return {
+      text: data.text || '',
+      confidence: data.confidence || 0.95
+    };
+  } catch (error) {
+    console.error('Error in transcribeAudio:', error);
+    throw error instanceof Error ? error : new Error('Unknown transcription error');
+  }
 };
 
 // Detect memo type from text content
