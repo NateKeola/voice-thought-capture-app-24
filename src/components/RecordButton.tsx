@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Loader2, Save, Trash2 } from "lucide-react";
-import { useAudioRecorder } from "@/services/AudioRecorder";
+import { AudioRecorderService } from "@/services/AudioRecorder";
 import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
 import { saveMemo } from "@/services/MemoStorage";
 import { useToast } from "@/components/ui/use-toast";
@@ -19,29 +19,42 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   const [isProcessing, setIsProcessing] = useState(false);
   const [recognizedText, setRecognizedText] = useState('');
   const [recordingComplete, setRecordingComplete] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   
-  const {
-    isRecording,
-    isPaused,
-    recordingDuration,
-    formattedDuration,
-    startRecording: startAudioRecording,
-    stopRecording: stopAudioRecording,
-    pauseRecording,
-    resumeRecording,
-    cancelRecording,
-    transcribeRecording
-  } = useAudioRecorder();
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [formattedDuration, setFormattedDuration] = useState('0:00');
+  
+  const audioServiceRef = useRef<AudioRecorderService | null>(null);
+  const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
+  const durationInterval = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // Initialize audio service
+    audioServiceRef.current = new AudioRecorderService();
+    
     return () => {
+      // Cleanup
       if (speechRecognitionRef.current) {
         speechRecognitionRef.current.stop();
       }
+      if (durationInterval.current) {
+        clearInterval(durationInterval.current);
+      }
+      audioServiceRef.current?.destroy();
     };
   }, []);
+
+  const updateRecordingState = () => {
+    if (audioServiceRef.current) {
+      setIsRecording(audioServiceRef.current.getIsRecording());
+      setIsPaused(audioServiceRef.current.getIsPaused());
+      setRecordingDuration(audioServiceRef.current.getRecordingDuration());
+      setFormattedDuration(audioServiceRef.current.getFormattedDuration());
+    }
+  };
 
   const handleToggleRecording = async () => {
     if (isRecording) {
@@ -54,48 +67,57 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
           speechRecognitionRef.current = null;
         }
         
+        // Stop duration tracking
+        if (durationInterval.current) {
+          clearInterval(durationInterval.current);
+          durationInterval.current = null;
+        }
+        
         // Stop audio recording
-        const url = await stopAudioRecording();
-        setAudioUrl(url);
+        const blob = await audioServiceRef.current?.stopRecording();
+        setAudioBlob(blob);
+        updateRecordingState();
         
         // Use Whisper for final, high-quality transcription
-        try {
-          console.log('Getting high-quality transcription with Whisper...');
-          const whisperText = await transcribeRecording();
-          
-          if (whisperText.trim()) {
-            setRecognizedText(whisperText);
+        if (blob && audioServiceRef.current) {
+          try {
+            console.log('Getting high-quality transcription with Whisper...');
+            const result = await audioServiceRef.current.transcribeAudio(blob);
             
-            if (onLiveTranscription) {
-              onLiveTranscription(whisperText);
+            if (result.transcription.trim()) {
+              setRecognizedText(result.transcription);
+              
+              if (onLiveTranscription) {
+                onLiveTranscription(result.transcription);
+              }
+              
+              toast({
+                title: "Recording complete",
+                description: "High-quality transcription ready"
+              });
+            } else {
+              toast({
+                title: "Recording complete",
+                description: "No speech detected in recording",
+                variant: "destructive"
+              });
             }
+          } catch (transcriptionError) {
+            console.error('Whisper transcription failed:', transcriptionError);
             
-            toast({
-              title: "Recording complete",
-              description: "High-quality transcription ready"
-            });
-          } else {
-            toast({
-              title: "Recording complete",
-              description: "No speech detected in recording",
-              variant: "destructive"
-            });
-          }
-        } catch (transcriptionError) {
-          console.error('Whisper transcription failed:', transcriptionError);
-          
-          // Fallback to live transcription if Whisper fails
-          if (recognizedText.trim()) {
-            toast({
-              title: "Recording complete",
-              description: "Using live transcription (Whisper unavailable)"
-            });
-          } else {
-            toast({
-              title: "Transcription failed",
-              description: "Could not transcribe the audio. Please try again.",
-              variant: "destructive"
-            });
+            // Fallback to live transcription if Whisper fails
+            if (recognizedText.trim()) {
+              toast({
+                title: "Recording complete",
+                description: "Using live transcription (Whisper unavailable)"
+              });
+            } else {
+              toast({
+                title: "Transcription failed",
+                description: "Could not transcribe the audio. Please try again.",
+                variant: "destructive"
+              });
+            }
           }
         }
         
@@ -113,8 +135,15 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     } else {
       setRecordingComplete(false);
       setRecognizedText('');
+      setAudioBlob(null);
       
-      startAudioRecording();
+      await audioServiceRef.current?.startRecording();
+      updateRecordingState();
+      
+      // Start duration tracking
+      durationInterval.current = setInterval(() => {
+        updateRecordingState();
+      }, 1000);
       
       // Start live transcription for real-time feedback
       try {
@@ -146,7 +175,13 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
 
   const handlePauseResume = () => {
     if (isPaused) {
-      resumeRecording();
+      audioServiceRef.current?.resumeRecording();
+      updateRecordingState();
+      
+      // Restart duration tracking
+      durationInterval.current = setInterval(() => {
+        updateRecordingState();
+      }, 1000);
       
       try {
         speechRecognitionRef.current = startLiveTranscription(
@@ -165,18 +200,20 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
           },
           (error) => {
             console.error('Speech recognition error:', error);
-            toast({
-              title: "Voice recognition error",
-              description: error.message,
-              variant: "destructive"
-            });
           }
         );
       } catch (error) {
         console.error('Failed to restart speech recognition:', error);
       }
     } else {
-      pauseRecording();
+      audioServiceRef.current?.pauseRecording();
+      updateRecordingState();
+      
+      // Stop duration tracking
+      if (durationInterval.current) {
+        clearInterval(durationInterval.current);
+        durationInterval.current = null;
+      }
       
       if (speechRecognitionRef.current) {
         speechRecognitionRef.current.stop();
@@ -192,6 +229,8 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       const memoText = recognizedText || "Empty memo";
       
       const memoType = detectMemoType(memoText);
+      
+      const audioUrl = audioBlob ? URL.createObjectURL(audioBlob) : undefined;
       
       const memo = await saveMemo({
         text: memoText,
@@ -216,7 +255,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       
       setRecognizedText('');
       setRecordingComplete(false);
-      setAudioUrl(null);
+      setAudioBlob(null);
       
     } catch (error) {
       console.error('Error saving memo:', error);
@@ -233,9 +272,10 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   const handleCancel = () => {
     setRecordingComplete(false);
     setRecognizedText('');
-    setAudioUrl(null);
+    setAudioBlob(null);
     
-    cancelRecording();
+    audioServiceRef.current?.cancelRecording();
+    updateRecordingState();
     
     if (onLiveTranscription) {
       onLiveTranscription('');

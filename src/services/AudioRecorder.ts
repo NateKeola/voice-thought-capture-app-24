@@ -1,74 +1,99 @@
 
 import { transcribeAudio } from './SpeechToText';
 
-interface AudioRecorderHook {
-  isRecording: boolean;
-  isPaused: boolean;
-  recordingDuration: number;
-  formattedDuration: string;
-  startRecording: () => void;
-  stopRecording: () => Promise<string | null>;
-  pauseRecording: () => void;
-  resumeRecording: () => void;
-  cancelRecording: () => void;
-  transcribeRecording: () => Promise<string>;
+export interface AudioRecorderConfig {
+  sampleRate?: number;
+  channelCount?: number;
+  echoCancellation?: boolean;
+  noiseSuppression?: boolean;
+  autoGainControl?: boolean;
 }
 
-export const useAudioRecorder = (): AudioRecorderHook => {
-  let mediaRecorder: MediaRecorder | null = null;
-  let audioChunks: Blob[] = [];
-  let stream: MediaStream | null = null;
-  let recordingInterval: NodeJS.Timeout | null = null;
-  let startTime = 0;
-  let pausedDuration = 0;
-  let lastPauseTime = 0;
+export interface TranscriptionResult {
+  transcription: string;
+  confidence?: number;
+  duration?: number;
+}
+
+export class AudioRecorderService {
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private stream: MediaStream | null = null;
+  private recordingInterval: NodeJS.Timeout | null = null;
+  private startTime = 0;
+  private pausedDuration = 0;
+  private lastPauseTime = 0;
+  private config: AudioRecorderConfig;
   
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
+  private isRecording = false;
+  private isPaused = false;
+  private recordingDuration = 0;
 
-  const formatDuration = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+  constructor(config: AudioRecorderConfig = {}) {
+    this.config = {
+      sampleRate: 44100,
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      ...config
+    };
+  }
+
+  public getIsRecording(): boolean {
+    return this.isRecording;
+  }
+
+  public getIsPaused(): boolean {
+    return this.isPaused;
+  }
+
+  public getRecordingDuration(): number {
+    return this.recordingDuration;
+  }
+
+  public getFormattedDuration(): string {
+    const mins = Math.floor(this.recordingDuration / 60);
+    const secs = this.recordingDuration % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }
 
-  const startRecording = async () => {
+  public async startRecording(): Promise<void> {
     try {
       console.log('Starting audio recording...');
       
-      stream = await navigator.mediaDevices.getUserMedia({ 
+      this.stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
-          sampleRate: 44100,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+          sampleRate: this.config.sampleRate,
+          channelCount: this.config.channelCount,
+          echoCancellation: this.config.echoCancellation,
+          noiseSuppression: this.config.noiseSuppression,
+          autoGainControl: this.config.autoGainControl
         }
       });
       
-      mediaRecorder = new MediaRecorder(stream, {
+      this.mediaRecorder = new MediaRecorder(this.stream, {
         mimeType: 'audio/webm;codecs=opus'
       });
       
-      audioChunks = [];
-      startTime = Date.now();
-      pausedDuration = 0;
+      this.audioChunks = [];
+      this.startTime = Date.now();
+      this.pausedDuration = 0;
       
-      mediaRecorder.ondataavailable = (event) => {
+      this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          audioChunks.push(event.data);
+          this.audioChunks.push(event.data);
         }
       };
       
-      mediaRecorder.start();
-      setIsRecording(true);
-      setIsPaused(false);
+      this.mediaRecorder.start();
+      this.isRecording = true;
+      this.isPaused = false;
       
       // Update duration every second
-      recordingInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime - pausedDuration) / 1000);
-        setRecordingDuration(elapsed);
+      this.recordingInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - this.startTime - this.pausedDuration) / 1000);
+        this.recordingDuration = elapsed;
       }, 1000);
       
       console.log('Recording started successfully');
@@ -76,122 +101,135 @@ export const useAudioRecorder = (): AudioRecorderHook => {
       console.error('Error starting recording:', error);
       throw error;
     }
-  };
+  }
 
-  const stopRecording = (): Promise<string | null> => {
+  public stopRecording(): Promise<Blob | null> {
     return new Promise((resolve) => {
-      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+      if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
         resolve(null);
         return;
       }
 
       console.log('Stopping audio recording...');
       
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
+      this.mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
         
         // Cleanup
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          stream = null;
-        }
+        this.cleanup();
         
-        if (recordingInterval) {
-          clearInterval(recordingInterval);
-          recordingInterval = null;
-        }
-        
-        setIsRecording(false);
-        setIsPaused(false);
-        setRecordingDuration(0);
-        
-        console.log('Recording stopped, audio URL created');
-        resolve(audioUrl);
+        console.log('Recording stopped, audio blob created');
+        resolve(audioBlob);
       };
       
-      mediaRecorder.stop();
+      this.mediaRecorder.stop();
     });
-  };
+  }
 
-  const pauseRecording = () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
+  public pauseRecording(): void {
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       console.log('Pausing recording...');
-      mediaRecorder.pause();
-      setIsPaused(true);
-      lastPauseTime = Date.now();
+      this.mediaRecorder.pause();
+      this.isPaused = true;
+      this.lastPauseTime = Date.now();
       
-      if (recordingInterval) {
-        clearInterval(recordingInterval);
-        recordingInterval = null;
+      if (this.recordingInterval) {
+        clearInterval(this.recordingInterval);
+        this.recordingInterval = null;
       }
     }
-  };
+  }
 
-  const resumeRecording = () => {
-    if (mediaRecorder && mediaRecorder.state === 'paused') {
+  public resumeRecording(): void {
+    if (this.mediaRecorder && this.mediaRecorder.state === 'paused') {
       console.log('Resuming recording...');
-      mediaRecorder.resume();
-      setIsPaused(false);
+      this.mediaRecorder.resume();
+      this.isPaused = false;
       
       // Add paused time to total paused duration
-      pausedDuration += Date.now() - lastPauseTime;
+      this.pausedDuration += Date.now() - this.lastPauseTime;
       
       // Restart duration timer
-      recordingInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime - pausedDuration) / 1000);
-        setRecordingDuration(elapsed);
+      this.recordingInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - this.startTime - this.pausedDuration) / 1000);
+        this.recordingDuration = elapsed;
       }, 1000);
     }
-  };
+  }
 
-  const cancelRecording = () => {
+  public cancelRecording(): void {
     console.log('Cancelling recording...');
     
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
+    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+      this.mediaRecorder.stop();
     }
     
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      stream = null;
-    }
-    
-    if (recordingInterval) {
-      clearInterval(recordingInterval);
-      recordingInterval = null;
-    }
-    
-    audioChunks = [];
-    setIsRecording(false);
-    setIsPaused(false);
-    setRecordingDuration(0);
-  };
+    this.cleanup();
+    this.audioChunks = [];
+  }
 
-  const transcribeRecording = async (): Promise<string> => {
-    if (audioChunks.length === 0) {
-      throw new Error('No audio data to transcribe');
+  public async transcribeAudio(audioBlob: Blob): Promise<TranscriptionResult> {
+    try {
+      console.log('Transcribing audio with Whisper...');
+      
+      const result = await transcribeAudio(audioBlob);
+      
+      console.log('Transcription completed:', result.text);
+      return {
+        transcription: result.text,
+        confidence: result.confidence,
+        duration: this.recordingDuration
+      };
+    } catch (error) {
+      console.error('Transcription error:', error);
+      throw error;
+    }
+  }
+
+  public destroy(): void {
+    this.cleanup();
+  }
+
+  private cleanup(): void {
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
     }
     
-    console.log('Transcribing audio with Whisper...');
+    if (this.recordingInterval) {
+      clearInterval(this.recordingInterval);
+      this.recordingInterval = null;
+    }
     
-    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-    const result = await transcribeAudio(audioBlob);
-    
-    console.log('Transcription completed:', result.text);
-    return result.text;
-  };
+    this.isRecording = false;
+    this.isPaused = false;
+    this.recordingDuration = 0;
+  }
+}
 
+// For backward compatibility, export a hook that uses the service
+export const useAudioRecorder = () => {
+  // This is now just a simple wrapper that creates the service
+  const audioService = new AudioRecorderService();
+  
   return {
-    isRecording,
-    isPaused,
-    recordingDuration,
-    formattedDuration: formatDuration(recordingDuration),
-    startRecording,
-    stopRecording,
-    pauseRecording,
-    resumeRecording,
-    cancelRecording,
-    transcribeRecording
+    isRecording: audioService.getIsRecording(),
+    isPaused: audioService.getIsPaused(),
+    recordingDuration: audioService.getRecordingDuration(),
+    formattedDuration: audioService.getFormattedDuration(),
+    startRecording: () => audioService.startRecording(),
+    stopRecording: () => audioService.stopRecording(),
+    pauseRecording: () => audioService.pauseRecording(),
+    resumeRecording: () => audioService.resumeRecording(),
+    cancelRecording: () => audioService.cancelRecording(),
+    transcribeRecording: async () => {
+      if (audioService['audioChunks'].length === 0) {
+        throw new Error('No audio data to transcribe');
+      }
+      
+      const audioBlob = new Blob(audioService['audioChunks'], { type: 'audio/webm' });
+      const result = await audioService.transcribeAudio(audioBlob);
+      return result.transcription;
+    }
   };
 };
