@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -324,7 +323,7 @@ const TasksPageContent: React.FC = () => {
             searchQuery={searchQuery}
             searchResults={searchResults.map(task => ({
               id: task.id,
-              text: `${task.title}${task.description ? ` - ${task.description}` : ''}`,
+              text: task.description || task.title, // Show actual memo text, not synopsis
               type: 'task' as const,
               createdAt: new Date().toISOString(),
               title: task.title
