@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -29,9 +28,9 @@ const priorityColors = {
 };
 
 // Map memo to the interface expected by the TaskList component
-const mapMemoToItem = (memo: Memo, type: 'task' | 'list') => {
+const mapMemoToItem = (memo: Memo, type: 'task' | 'note') => {
   // Parse category and priority from memo text or use defaults
-  let category = type === 'task' ? "personal" : "shopping";
+  let category = type === 'task' ? "personal" : "general";
   let priority = "medium";
   let due = "today";
   
@@ -203,8 +202,8 @@ const TasksPageContent: React.FC = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [completedListIds, setCompletedListIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem('completedListIds');
+  const [completedNoteIds, setCompletedNoteIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('completedNoteIds');
     return saved ? JSON.parse(saved) : [];
   });
   
@@ -214,24 +213,24 @@ const TasksPageContent: React.FC = () => {
   }, [completedTaskIds]);
 
   useEffect(() => {
-    localStorage.setItem('completedListIds', JSON.stringify(completedListIds));
-  }, [completedListIds]);
+    localStorage.setItem('completedNoteIds', JSON.stringify(completedNoteIds));
+  }, [completedNoteIds]);
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
   
-  // Convert memos to tasks and lists
+  // Convert memos to tasks and notes
   const tasks = memos
     .filter(memo => memo.type === 'task')
     .map(memo => mapMemoToItem(memo, 'task'));
 
-  const lists = memos
-    .filter(memo => memo.type === 'list')
-    .map(memo => mapMemoToItem(memo, 'list'));
+  const notes = memos
+    .filter(memo => memo.type === 'note')
+    .map(memo => mapMemoToItem(memo, 'note'));
 
   // Get current items and completion state based on active tab
-  const currentItems = personalTab === "tasks" ? tasks : lists;
-  const currentCompletedIds = personalTab === "tasks" ? completedTaskIds : completedListIds;
+  const currentItems = personalTab === "tasks" ? tasks : notes;
+  const currentCompletedIds = personalTab === "tasks" ? completedTaskIds : completedNoteIds;
   const currentCategories = personalTab === "tasks" ? categories : listCategories;
 
   console.log('All item IDs:', currentItems.map(t => t.id));
@@ -239,7 +238,7 @@ const TasksPageContent: React.FC = () => {
 
   // Search through current items
   const handleSearchResults = (results: any[]) => {
-    const itemType = personalTab === "tasks" ? 'task' : 'list';
+    const itemType = personalTab === "tasks" ? 'task' : 'note';
     const itemMemos = results.filter(memo => memo.type === itemType);
     const itemResults = itemMemos.map(memo => mapMemoToItem(memo, itemType));
     setSearchResults(itemResults);
@@ -263,18 +262,18 @@ const TasksPageContent: React.FC = () => {
     });
   };
 
-  const toggleListCompletion = (listId: string) => {
-    console.log('Toggling list:', listId);
-    setCompletedListIds(prev => {
-      if (prev.includes(listId)) {
-        return prev.filter(id => id !== listId);
+  const toggleNoteCompletion = (noteId: string) => {
+    console.log('Toggling note:', noteId);
+    setCompletedNoteIds(prev => {
+      if (prev.includes(noteId)) {
+        return prev.filter(id => id !== noteId);
       } else {
-        return [...prev, listId];
+        return [...prev, noteId];
       }
     });
   };
 
-  const toggleItemCompletion = personalTab === "tasks" ? toggleTaskCompletion : toggleListCompletion;
+  const toggleItemCompletion = personalTab === "tasks" ? toggleTaskCompletion : toggleNoteCompletion;
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
@@ -389,7 +388,7 @@ const TasksPageContent: React.FC = () => {
             searchResults={searchResults.map(item => ({
               id: item.id,
               text: item.description || item.title,
-              type: personalTab === "tasks" ? 'task' as const : 'list' as const,
+              type: personalTab === "tasks" ? 'task' as const : 'note' as const,
               createdAt: new Date().toISOString(),
               title: item.title
             }))}
@@ -431,7 +430,7 @@ const TasksPageContent: React.FC = () => {
         <Tabs value={personalTab} onValueChange={setPersonalTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="tasks">Tasks</TabsTrigger>
-            <TabsTrigger value="lists">Lists</TabsTrigger>
+            <TabsTrigger value="notes">Notes</TabsTrigger>
           </TabsList>
           
           <TabsContent value="tasks" className="mt-4">
@@ -528,16 +527,16 @@ const TasksPageContent: React.FC = () => {
             )}
           </TabsContent>
           
-          <TabsContent value="lists" className="mt-4">
+          <TabsContent value="notes" className="mt-4">
             <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             
             <div className="flex justify-between items-center my-4">
               <h2 className="text-lg font-semibold text-gray-800">
                 {viewMode === "categories"
                   ? selectedCategory
-                    ? listCategories.find((c) => c.id === selectedCategory)?.name + " Lists"
-                    : "All List Categories"
-                  : "Recent Lists"}
+                    ? listCategories.find((c) => c.id === selectedCategory)?.name + " Notes"
+                    : "All Note Categories"
+                  : "Recent Notes"}
               </h2>
               <div className="flex items-center gap-2">
                 {viewMode === "categories" && !selectedCategory && (
@@ -590,8 +589,8 @@ const TasksPageContent: React.FC = () => {
                     id={cat.id}
                     name={cat.name}
                     color={cat.color}
-                    count={lists.filter((l) => l.category === cat.id && !completedListIds.includes(l.id)).length}
-                    total={lists.filter((l) => l.category === cat.id).length}
+                    count={notes.filter((l) => l.category === cat.id && !completedNoteIds.includes(l.id)).length}
+                    total={notes.filter((l) => l.category === cat.id).length}
                     onSelect={handleCategorySelect}
                     onCreateTask={handleCreateForCategory}
                     onDeleteCategory={handleDeleteListCategory}
@@ -615,7 +614,7 @@ const TasksPageContent: React.FC = () => {
                 ))}
                 {filteredItems.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    <p>No lists found.</p>
+                    <p>No notes found.</p>
                   </div>
                 )}
               </div>
