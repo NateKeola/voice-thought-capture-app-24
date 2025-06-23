@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { FolderPlus, Check } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
-import { useTaskCompletion } from "@/hooks/useTaskCompletion";
 import { TitleGenerationService } from "@/services/titleGeneration";
 
 const priorityColors = {
@@ -81,7 +80,7 @@ const mapMemoToTask = (memo: Memo) => {
   };
 };
 
-// Enhanced Task Item Component with minimal completion tracking
+// Enhanced Task Item Component with single completion tracking
 const EnhancedTaskItem: React.FC<{
   task: any;
   getCategoryColor: (id: string) => string;
@@ -105,7 +104,7 @@ const EnhancedTaskItem: React.FC<{
       style={{ borderColor: categoryColor }}
     >
       <div className="flex items-start gap-3 mb-3">
-        {/* Simple Completion Button */}
+        {/* Single Completion Button */}
         <button
           onClick={handleToggle}
           className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 border-2 ${
@@ -177,7 +176,7 @@ const TasksPageContent: React.FC = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
   
-  // Simple completion tracking - minimal state management
+  // SINGLE completion tracking state
   const [completedTaskIds, setCompletedTaskIds] = useState<number[]>([]);
   
   // Get memos from our unified context
@@ -188,7 +187,7 @@ const TasksPageContent: React.FC = () => {
     .filter(memo => memo.type === 'task')
     .map(mapMemoToTask);
 
-  // Simple toggle function
+  // SINGLE toggle function
   const toggleTaskCompletion = (taskId: number) => {
     setCompletedTaskIds(prev => {
       if (prev.includes(taskId)) {
@@ -220,13 +219,8 @@ const TasksPageContent: React.FC = () => {
     return acc;
   }, {} as { [key: string]: string });
 
-  // Simple filtering - don't hide tasks based on completion, just filter by category and show/hide completed
+  // Simple filtering - KEEP ALL TASKS VISIBLE, just filter by category
   let filteredTasks = tasks.filter((task) => {
-    const isCompleted = completedTaskIds.includes(task.id);
-    
-    // Only filter by showCompleted toggle if it's turned off
-    if (!showCompleted && isCompleted) return false;
-    
     if (viewMode === "categories" && selectedCategory) {
       return task.category === selectedCategory;
     }
@@ -326,7 +320,7 @@ const TasksPageContent: React.FC = () => {
             ))}
           </div>
         )}
-        {/* Task list with minimal completion tracking */}
+        {/* Task list with single completion tracking */}
         <div className="space-y-3">
           {filteredTasks.map((task) => (
             <EnhancedTaskItem
