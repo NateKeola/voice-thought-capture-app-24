@@ -11,7 +11,7 @@ import CategoryDialog from "@/components/tasks/CategoryDialog";
 import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
 import { CategoryProvider, useCategories } from "@/contexts/CategoryContext";
 import { Button } from "@/components/ui/button";
-import { FolderPlus } from "lucide-react";
+import { FolderPlus, Check } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
@@ -82,6 +82,95 @@ const mapMemoToTask = (memo: Memo) => {
   };
 };
 
+// Enhanced Task Item Component with visual completion feedback
+const EnhancedTaskItem: React.FC<{
+  task: any;
+  getCategoryColor: (id: string) => string;
+  priorityColors: { [key: string]: string };
+  isCompleted: boolean;
+  onToggleComplete: (id: number) => void;
+}> = ({ task, getCategoryColor, priorityColors, isCompleted, onToggleComplete }) => {
+  const categoryColor = getCategoryColor(task.category);
+  
+  const handleToggle = () => {
+    onToggleComplete(task.id);
+  };
+
+  return (
+    <div 
+      className={`bg-white rounded-xl p-4 shadow-sm border-l-4 transition-all duration-200 ${
+        isCompleted ? 'opacity-60 bg-gray-50' : 'hover:shadow-md'
+      }`}
+      style={{ borderColor: categoryColor }}
+    >
+      <div className="flex items-start gap-3 mb-3">
+        {/* Completion Button */}
+        <button
+          onClick={handleToggle}
+          className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 border-2 ${
+            isCompleted 
+              ? 'bg-green-500 border-green-500 shadow-md' 
+              : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-green-400'
+          }`}
+          aria-label={isCompleted ? "Mark as incomplete" : "Complete task"}
+        >
+          {isCompleted && <Check size={18} className="text-white font-bold" />}
+        </button>
+
+        <div className="flex-1">
+          {/* Task Title */}
+          <h3 className={`font-bold text-gray-800 mb-1 text-sm leading-tight transition-all duration-200 ${
+            isCompleted ? 'line-through text-gray-500' : ''
+          }`}>
+            {task.title}
+          </h3>
+          
+          {/* Task Description */}
+          {task.description && task.description !== task.title && (
+            <p className={`text-sm leading-relaxed transition-all duration-200 ${
+              isCompleted ? 'line-through text-gray-400' : 'text-gray-600'
+            }`}>
+              {task.description}
+            </p>
+          )}
+
+          {/* Completed Label */}
+          {isCompleted && (
+            <div className="flex items-center gap-1 mt-2">
+              <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
+                ✓ Completed
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {/* Priority indicator */}
+        <div
+          className={`w-3 h-3 rounded-full ${priorityColors[task.priority]} flex-shrink-0 mt-1 ${
+            isCompleted ? 'opacity-50' : ''
+          }`}
+          title="Priority indicator"
+        />
+      </div>
+
+      {/* Task Footer */}
+      <div className="flex items-center justify-between text-xs text-gray-500 mt-3">
+        <div className="flex items-center gap-2">
+          <div 
+            className="w-2 h-2 rounded-full" 
+            style={{ backgroundColor: categoryColor }}
+          ></div>
+          <span className={isCompleted ? 'line-through' : ''}>{task.category}</span>
+          {task.hasAudio && (
+            <span className="text-blue-500">🎵</span>
+          )}
+        </div>
+        <span className={`${isCompleted ? 'line-through' : ''}`}>Due {task.due}</span>
+      </div>
+    </div>
+  );
+};
+
 // Inner component to use the TaskDialog context
 const TasksPageContent: React.FC = () => {
   const { openCategoryDialog, openTaskDialog } = useTaskDialog();
@@ -91,16 +180,29 @@ const TasksPageContent: React.FC = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
   
+  // Simple state to track completed tasks
+  const [completedTasks, setCompletedTasks] = useState<Set<number>>(new Set());
+  
   // Get memos from our unified context
   const { memos, isLoading } = useMemos();
-  
-  // Use the new task completion hook
-  const { toggleTaskCompletion } = useTaskCompletion();
   
   // Convert memos to tasks
   const tasks = memos
     .filter(memo => memo.type === 'task')
     .map(mapMemoToTask);
+
+  // Handle task completion toggle
+  const handleToggleComplete = (taskId: number) => {
+    setCompletedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
@@ -123,7 +225,8 @@ const TasksPageContent: React.FC = () => {
 
   // Filter and sort logic
   let filteredTasks = tasks.filter((task) => {
-    if (!showCompleted && task.completed) return false;
+    const isTaskCompleted = completedTasks.has(task.id);
+    if (!showCompleted && isTaskCompleted) return false;
     if (viewMode === "categories" && selectedCategory) {
       return task.category === selectedCategory;
     }
@@ -134,7 +237,10 @@ const TasksPageContent: React.FC = () => {
   const duePriority = { today: 0, tomorrow: 1, "this week": 2, "next week": 3, "next month": 4 };
   const priorityOrder = { high: 0, medium: 1, low: 2 };
   filteredTasks = [...filteredTasks].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    const aCompleted = completedTasks.has(a.id);
+    const bCompleted = completedTasks.has(b.id);
+    
+    if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
     if (duePriority[a.due] !== duePriority[b.due]) return duePriority[a.due] - duePriority[b.due];
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
@@ -147,7 +253,7 @@ const TasksPageContent: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
       <TasksHeader 
-        taskCount={tasks.filter((t) => !t.completed).length} 
+        taskCount={tasks.filter((t) => !completedTasks.has(t.id)).length} 
         selectedCategory={selectedCategory}
         categoryNames={categoryNames}
         onBackClick={handleBackClick}
@@ -212,7 +318,7 @@ const TasksPageContent: React.FC = () => {
                 id={cat.id}
                 name={cat.name}
                 color={cat.color}
-                count={tasks.filter((t) => t.category === cat.id && !t.completed).length}
+                count={tasks.filter((t) => t.category === cat.id && !completedTasks.has(t.id)).length}
                 total={tasks.filter((t) => t.category === cat.id).length}
                 onSelect={handleCategorySelect}
                 onCreateTask={handleCreateTaskForCategory}
@@ -221,17 +327,24 @@ const TasksPageContent: React.FC = () => {
             ))}
           </div>
         )}
-        {/* Task list */}
-        <TaskList
-          tasks={filteredTasks}
-          getCategoryColor={getCategoryColor}
-          onToggleComplete={toggleTaskCompletion}
-          priorityColors={priorityColors}
-          viewMode={viewMode}
-          selectedCategory={selectedCategory}
-          categoryNames={categoryNames}
-          onBackClick={handleBackClick}
-        />
+        {/* Enhanced Task list with visual completion feedback */}
+        <div className="space-y-3">
+          {filteredTasks.map((task) => (
+            <EnhancedTaskItem
+              key={task.id}
+              task={task}
+              getCategoryColor={getCategoryColor}
+              priorityColors={priorityColors}
+              isCompleted={completedTasks.has(task.id)}
+              onToggleComplete={handleToggleComplete}
+            />
+          ))}
+          {filteredTasks.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <p>No tasks found.</p>
+            </div>
+          )}
+        </div>
       </div>
       <TasksFAB />
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
