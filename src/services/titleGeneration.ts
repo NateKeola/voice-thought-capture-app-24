@@ -1,99 +1,194 @@
 
+// src/services/titleGeneration.ts
+// Simple, intelligent title generation - NO API REQUIRED
+
 import { MemoType } from '@/types';
 
 export class TitleGenerationService {
-  static generateTitle(text: string, type: MemoType): string {
-    // Remove any contact tags for title generation
-    const cleanText = text.replace(/\[Contact: [^\]]+\]/g, '').trim();
+  static generateTitle(text: string, memoType: MemoType = 'note'): string {
+    if (!text || text.trim().length === 0) {
+      return 'Untitled Memo';
+    }
+
+    const cleanText = text.trim();
     
-    // Get first 80 characters for analysis
-    const snippet = cleanText.substring(0, 80).trim();
-    
-    switch (type) {
+    // If already short, just clean it up
+    if (cleanText.length <= 30) {
+      return this.cleanShortText(cleanText);
+    }
+
+    // Generate based on type
+    switch (memoType) {
       case 'task':
-        return this.generateTaskTitle(cleanText, snippet);
+        return this.generateTaskTitle(cleanText);
       case 'idea':
-        return this.generateIdeaTitle(cleanText, snippet);
+        return this.generateIdeaTitle(cleanText);
       case 'note':
       default:
-        return this.generateNoteTitle(cleanText, snippet);
+        return this.generateNoteTitle(cleanText);
     }
   }
 
-  private static generateTaskTitle(cleanText: string, snippet: string): string {
-    // For tasks, try to extract the main action
-    const taskWords = ['complete', 'finish', 'do', 'make', 'create', 'buy', 'call', 'email', 'schedule', 'plan', 'need to', 'should', 'must'];
-    const lowerSnippet = snippet.toLowerCase();
+  private static generateTaskTitle(text: string): string {
+    const lowerText = text.toLowerCase();
     
-    for (const word of taskWords) {
-      if (lowerSnippet.includes(word)) {
-        // Take the sentence containing the action word
-        const sentences = cleanText.split(/[.!?]/);
-        const actionSentence = sentences.find(s => s.toLowerCase().includes(word));
-        if (actionSentence) {
-          return this.truncateTitle(actionSentence.trim());
-        }
+    // Look for action patterns
+    const actionPatterns = [
+      { pattern: /(?:schedule|book)\s+([^.,!?]{1,25})/i, prefix: 'Schedule' },
+      { pattern: /(?:call|phone)\s+([^.,!?]{1,25})/i, prefix: 'Call' },
+      { pattern: /(?:email|message)\s+([^.,!?]{1,25})/i, prefix: 'Email' },
+      { pattern: /(?:buy|purchase|get)\s+([^.,!?]{1,25})/i, prefix: 'Buy' },
+      { pattern: /(?:send|deliver)\s+([^.,!?]{1,25})/i, prefix: 'Send' },
+      { pattern: /(?:remind|remember)\s+(?:me\s+)?(?:to\s+)?([^.,!?]{1,25})/i, prefix: 'Remind' },
+      { pattern: /(?:need to|have to|should|must)\s+([^.,!?]{1,25})/i, prefix: 'Task' },
+    ];
+
+    for (const { pattern, prefix } of actionPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        const object = this.cleanTitleText(match[1]);
+        return `${prefix} ${object}`;
       }
     }
+
+    // Fallback: look for first meaningful phrase
+    const firstSentence = text.split(/[.!?]/)[0];
+    const words = firstSentence.split(' ').filter(w => w.length > 2);
+    const meaningfulWords = words.slice(0, 4).join(' ');
     
-    // Fallback: use first sentence
-    const taskFirstSentence = cleanText.split(/[.!?]/)[0];
-    return this.truncateTitle(taskFirstSentence);
+    return this.cleanTitleText(meaningfulWords) || 'Task Item';
   }
 
-  private static generateIdeaTitle(cleanText: string, snippet: string): string {
-    // For ideas, look for creative keywords
-    const ideaKeywords = ['idea', 'concept', 'thought', 'innovation', 'solution', 'plan', 'what if', 'maybe we could'];
-    const ideaLower = snippet.toLowerCase();
+  private static generateIdeaTitle(text: string): string {
+    const lowerText = text.toLowerCase();
     
-    // If contains idea keywords, use the context
-    for (const keyword of ideaKeywords) {
-      if (ideaLower.includes(keyword)) {
-        const sentences = cleanText.split(/[.!?]/);
-        const ideaSentence = sentences.find(s => s.toLowerCase().includes(keyword));
-        if (ideaSentence) {
-          return this.truncateTitle(ideaSentence.trim());
-        }
+    // Look for idea patterns
+    const ideaPatterns = [
+      /(?:idea|concept|thought)(?:\s+for|\s+about)?\s+([^.,!?]{1,30})/i,
+      /(?:what if|maybe|could)\s+(?:we\s+)?([^.,!?]{1,30})/i,
+      /(?:new|innovative)\s+([^.,!?]{1,30})/i,
+      /(?:feature|solution|improvement)\s+(?:for|to|that)\s+([^.,!?]{1,30})/i,
+    ];
+
+    for (const pattern of ideaPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return this.cleanTitleText(match[1]);
       }
     }
+
+    // Look for key concepts (nouns and important words)
+    const firstSentence = text.split(/[.!?]/)[0];
+    const words = firstSentence.split(' ');
     
-    // Fallback: use first meaningful part
-    const ideaFirstPart = cleanText.split(/[.!?]/)[0];
-    return this.truncateTitle(ideaFirstPart);
+    // Find capitalized words (proper nouns) and important words
+    const importantWords = words.filter(word => {
+      const clean = word.replace(/[^\w]/g, '');
+      return clean.length > 3 && 
+             (clean[0] === clean[0].toUpperCase() || 
+              this.isImportantWord(clean.toLowerCase()));
+    });
+
+    if (importantWords.length > 0) {
+      return this.cleanTitleText(importantWords.slice(0, 3).join(' '));
+    }
+
+    // Fallback
+    const meaningfulWords = words.filter(w => w.length > 3).slice(0, 3);
+    return this.cleanTitleText(meaningfulWords.join(' ')) || 'New Idea';
   }
 
-  private static generateNoteTitle(cleanText: string, snippet: string): string {
-    // For notes, use the first sentence or key phrase
-    const sentences = cleanText.split(/[.!?]/);
-    const noteFirstSentence = sentences[0] || cleanText;
+  private static generateNoteTitle(text: string): string {
+    const firstSentence = text.split(/[.!?]/)[0];
     
-    // If it's a short sentence, use it as is
-    if (noteFirstSentence.length <= 40) {
-      return noteFirstSentence.trim();
-    }
-    
-    return this.truncateTitle(noteFirstSentence);
-  }
+    // Look for people and topics
+    const patterns = [
+      /(?:met with|talked to|called|spoke with)\s+([^.,!?]{1,20})/i,
+      /(?:meeting|call|discussion)\s+(?:with|about)\s+([^.,!?]{1,20})/i,
+      /([A-Z][a-z]+)\s+(?:said|mentioned|told|explained)/,
+      /(?:about|regarding)\s+([^.,!?]{1,25})/i,
+    ];
 
-  private static truncateTitle(text: string): string {
-    const maxLength = 40;
-    
-    if (text.length <= maxLength) {
-      return text.trim();
-    }
-    
-    // Find a natural break point
-    const words = text.split(' ');
-    let title = '';
-    for (const word of words) {
-      if ((title + ' ' + word).length <= maxLength - 3) {
-        title += (title ? ' ' : '') + word;
-      } else {
-        break;
+    for (const pattern of patterns) {
+      const match = firstSentence.match(pattern);
+      if (match && match[1]) {
+        return this.cleanTitleText(match[1]);
       }
     }
+
+    // Look for capitalized words (names, places, etc.)
+    const words = firstSentence.split(' ');
+    const capitalizedWords = words.filter(word => 
+      /^[A-Z][a-z]+/.test(word) && word.length > 1
+    );
+
+    if (capitalizedWords.length > 0) {
+      return capitalizedWords.slice(0, 3).join(' ');
+    }
+
+    // Extract key topics
+    const meaningfulWords = words.filter(word => {
+      const clean = word.toLowerCase().replace(/[^\w]/g, '');
+      return clean.length > 3 && !this.isStopWord(clean);
+    });
+
+    if (meaningfulWords.length > 0) {
+      return this.cleanTitleText(meaningfulWords.slice(0, 3).join(' '));
+    }
+
+    return 'Note';
+  }
+
+  private static isImportantWord(word: string): boolean {
+    const important = [
+      'app', 'feature', 'system', 'project', 'meeting', 'team', 'client',
+      'design', 'development', 'marketing', 'sales', 'product', 'service',
+      'business', 'strategy', 'plan', 'idea', 'concept', 'solution'
+    ];
+    return important.includes(word);
+  }
+
+  private static isStopWord(word: string): boolean {
+    const stopWords = [
+      'the', 'and', 'for', 'with', 'that', 'this', 'have', 'can', 'could',
+      'would', 'should', 'will', 'was', 'were', 'been', 'being', 'are',
+      'said', 'told', 'went', 'came', 'when', 'where', 'what', 'how'
+    ];
+    return stopWords.includes(word);
+  }
+
+  private static cleanTitleText(text: string): string {
+    if (!text) return '';
     
-    return title + (title.length < text.length ? '...' : '');
+    // Remove extra whitespace and punctuation
+    let cleaned = text
+      .replace(/[^\w\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Capitalize properly
+    cleaned = cleaned
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+
+    // Limit length
+    if (cleaned.length > 30) {
+      const words = cleaned.split(' ');
+      cleaned = words.slice(0, 4).join(' ');
+    }
+
+    return cleaned;
+  }
+
+  private static cleanShortText(text: string): string {
+    return text
+      .replace(/[^\w\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   }
 }
 
