@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { detectMemoType } from '@/services/SpeechToText';
+import { generateEnhancedTitle } from '@/services/titleGeneration';
 import { useToast } from '@/components/ui/use-toast';
 import { Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -37,11 +38,15 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
       // Detect the memo type
       const memoType = detectMemoType(text);
       
+      // Generate title for the memo
+      const generatedTitle = generateEnhancedTitle(text, memoType);
+      
       // Save the memo using our context
       const memo = await createMemo({
         text: text,
         type: memoType,
-        audioUrl: null // No audio for text-only memos
+        audioUrl: null, // No audio for text-only memos
+        title: generatedTitle
       });
       
       if (memo) {

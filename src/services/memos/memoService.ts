@@ -1,6 +1,6 @@
-
 import { Memo, MemoType } from '@/types';
 import { isAuthenticated, getUserId } from '@/utils/authUtils';
+import { generateEnhancedTitle } from '@/services/titleGeneration';
 import {
   saveLocalMemo,
   getAllLocalMemos,
@@ -18,12 +18,18 @@ import {
 
 // Save a new memo
 export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Memo> => {
+  // Generate title if not provided
+  const memoWithTitle = {
+    ...memo,
+    title: memo.title || generateEnhancedTitle(memo.text, memo.type)
+  };
+  
   // Check if user is logged in
   const authenticated = await isAuthenticated();
   
   if (!authenticated) {
     // Handle case for unauthenticated users by storing in local storage
-    return saveLocalMemo(memo);
+    return saveLocalMemo(memoWithTitle);
   }
   
   // Regular database storage for authenticated users
@@ -31,7 +37,7 @@ export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Me
   if (!userId) {
     throw new Error('User ID not found');
   }
-  return saveDbMemo(memo, userId);
+  return saveDbMemo(memoWithTitle, userId);
 };
 
 // Get all memos

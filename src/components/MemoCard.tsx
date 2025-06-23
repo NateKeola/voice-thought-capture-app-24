@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Memo } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { FileText, CheckCircle, CircleAlert, FileAudio } from "lucide-react";
+import { generateEnhancedTitle } from '@/services/titleGeneration';
 
 interface MemoCardProps {
   memo: Memo;
@@ -11,10 +11,13 @@ interface MemoCardProps {
 }
 
 const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
-  const { text, type, createdAt, audioUrl } = memo;
+  const { text, type, createdAt, audioUrl, title } = memo;
   
   // Remove contact tags from display text
   const displayText = text.replace(/\[Contact: [^\]]+\]/g, '').trim();
+  
+  // Generate title if not already present
+  const memoTitle = title || generateEnhancedTitle(text, type);
   
   const getTypeConfig = (type: string) => {
     switch (type) {
@@ -65,7 +68,12 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
-            <p className="text-base text-foreground line-clamp-3">{displayText}</p>
+            {/* Bold synopsis title */}
+            <h3 className="font-bold text-foreground mb-1 text-sm leading-tight">
+              {memoTitle}
+            </h3>
+            {/* Original memo text (truncated) */}
+            <p className="text-sm text-muted-foreground line-clamp-2">{displayText}</p>
           </div>
         </div>
       </CardContent>

@@ -4,9 +4,10 @@ export interface Memo {
   id: string;
   text: string;
   type: MemoType;
-  audioUrl: string;
+  audioUrl?: string | null;
   createdAt: string;
   completed?: boolean;
+  title?: string; // Add optional title field for generated synopsis
 }
 
 export interface RecordingState {
