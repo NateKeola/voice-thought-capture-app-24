@@ -10,6 +10,7 @@ export interface Category {
 interface CategoryContextType {
   categories: Category[];
   addCategory: (name: string, color: string) => void;
+  deleteCategory: (id: string) => void;
   getCategoryById: (id: string) => Category | undefined;
 }
 
@@ -44,12 +45,16 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setCategories(prev => [...prev, newCategory]);
   };
 
+  const deleteCategory = (id: string) => {
+    setCategories(prev => prev.filter(cat => cat.id !== id));
+  };
+
   const getCategoryById = (id: string) => {
     return categories.find(cat => cat.id === id);
   };
 
   return (
-    <CategoryContext.Provider value={{ categories, addCategory, getCategoryById }}>
+    <CategoryContext.Provider value={{ categories, addCategory, deleteCategory, getCategoryById }}>
       {children}
     </CategoryContext.Provider>
   );

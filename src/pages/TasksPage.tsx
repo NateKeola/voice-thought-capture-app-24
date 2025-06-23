@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -18,6 +17,7 @@ import { FolderPlus, Check } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 import { TitleGenerationService } from "@/services/titleGeneration";
+import { toast } from "sonner";
 
 const priorityColors = {
   high: "bg-red-500",
@@ -185,7 +185,7 @@ const EnhancedTaskItem: React.FC<{
 // Inner component to use the TaskDialog context
 const TasksPageContent: React.FC = () => {
   const { openCategoryDialog, openTaskDialog } = useTaskDialog();
-  const { categories } = useCategories();
+  const { categories, deleteCategory } = useCategories();
   const [viewMode, setViewMode] = useState<"categories" | "timeline">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -253,6 +253,16 @@ const TasksPageContent: React.FC = () => {
 
   const handleBackClick = () => {
     setSelectedCategory(null);
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    deleteCategory(categoryId);
+    toast.success("Category deleted successfully");
+    
+    // If we're currently viewing the deleted category, go back to the main view
+    if (selectedCategory === categoryId) {
+      setSelectedCategory(null);
+    }
   };
 
   const getCategoryColor = (categoryId: string) => {
@@ -439,6 +449,7 @@ const TasksPageContent: React.FC = () => {
                     total={tasks.filter((t) => t.category === cat.id).length}
                     onSelect={handleCategorySelect}
                     onCreateTask={handleCreateTaskForCategory}
+                    onDeleteCategory={handleDeleteCategory}
                     selected={selectedCategory === cat.id}
                   />
                 ))}
@@ -536,6 +547,7 @@ const TasksPageContent: React.FC = () => {
                     total={0} // TODO: Replace with actual list total when lists are implemented
                     onSelect={handleCategorySelect}
                     onCreateTask={handleCreateTaskForCategory}
+                    onDeleteCategory={handleDeleteCategory}
                     selected={selectedCategory === cat.id}
                   />
                 ))}
