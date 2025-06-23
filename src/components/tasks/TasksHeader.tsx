@@ -1,20 +1,25 @@
-
 import React from "react";
 import ProfileIconButton from "@/components/ProfileIconButton";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 
 interface TasksHeaderProps {
   taskCount: number;
   selectedCategory: string | null;
   categoryNames?: { [key: string]: string };
   onBackClick?: () => void;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+  isSearchActive?: boolean;
 }
 
 const TasksHeader: React.FC<TasksHeaderProps> = ({ 
   taskCount, 
   selectedCategory, 
   categoryNames = {}, 
-  onBackClick 
+  onBackClick,
+  searchQuery = "",
+  onSearchChange,
+  isSearchActive = false
 }) => (
   <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 pt-12 pb-8 px-6 rounded-b-3xl relative overflow-hidden">
     <div className="absolute top-0 left-0 right-0 bottom-0 opacity-20 pointer-events-none">

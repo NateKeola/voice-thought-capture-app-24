@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -9,6 +8,8 @@ import TasksFAB from "@/components/tasks/TasksFAB";
 import BottomNavBar from "@/components/BottomNavBar";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import CategoryDialog from "@/components/tasks/CategoryDialog";
+import SearchBar from "@/components/home/SearchBar";
+import SearchResults from "@/components/home/SearchResults";
 import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
 import { CategoryProvider, useCategories } from "@/contexts/CategoryContext";
 import { Button } from "@/components/ui/button";
@@ -97,8 +98,8 @@ const EnhancedTaskItem: React.FC<{
   task: any;
   getCategoryColor: (id: string) => string;
   priorityColors: { [key: string]: string };
-  completedTaskIds: string[]; // Changed from number[] to string[]
-  onToggleComplete: (id: string) => void; // Changed from number to string
+  completedTaskIds: string[];
+  onToggleComplete: (id: string) => void;
 }> = ({ task, getCategoryColor, priorityColors, completedTaskIds, onToggleComplete }) => {
   const categoryColor = getCategoryColor(task.category);
   const isCompleted = completedTaskIds.includes(task.id);
@@ -189,6 +190,11 @@ const TasksPageContent: React.FC = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
   
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  
   // SINGLE completion tracking state with localStorage persistence
   const [completedTaskIds, setCompletedTaskIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('completedTaskIds');
@@ -210,18 +216,30 @@ const TasksPageContent: React.FC = () => {
 
   console.log('All task IDs:', tasks.map(t => t.id));
   console.log('Duplicate IDs:', tasks.map(t => t.id).filter((id, index, arr) => arr.indexOf(id) !== index));
-  console.log('Current completed IDs:', completedTaskIds); // Debug log
+  console.log('Current completed IDs:', completedTaskIds);
+
+  // Search through tasks
+  const handleSearchResults = (results: any[]) => {
+    // Filter task memos and convert to tasks
+    const taskMemos = results.filter(memo => memo.type === 'task');
+    const taskResults = taskMemos.map(mapMemoToTask);
+    setSearchResults(taskResults);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setSearchResults([]);
+    setIsSearchActive(false);
+  };
 
   // SINGLE toggle function - Updated for string IDs
   const toggleTaskCompletion = (taskId: string) => {
-    console.log('Task ID being passed:', taskId); // Debug log
-    console.log('Toggling task:', taskId); // Debug log
+    console.log('Task ID being passed:', taskId);
+    console.log('Toggling task:', taskId);
     setCompletedTaskIds(prev => {
       if (prev.includes(taskId)) {
-        // Task is completed, mark as incomplete
         return prev.filter(id => id !== taskId);
       } else {
-        // Task is not completed, mark as completed
         return [...prev, taskId];
       }
     });
@@ -256,7 +274,7 @@ const TasksPageContent: React.FC = () => {
     // Filter by completion status based on toggle
     const isTaskCompleted = completedTaskIds.includes(task.id);
     if (!showCompleted && isTaskCompleted) {
-      return false; // Hide completed tasks when toggle is off
+      return false;
     }
     
     return true;
@@ -278,6 +296,52 @@ const TasksPageContent: React.FC = () => {
     openTaskDialog(categoryId);
   };
 
+  // If search is active, show search results
+  if (isSearchActive) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
+        <TasksHeader 
+          taskCount={tasks.filter((t) => !completedTaskIds.includes(t.id)).length} 
+          selectedCategory={null}
+          categoryNames={categoryNames}
+          onBackClick={handleBackClick}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          isSearchActive={isSearchActive}
+        />
+        
+        <SearchBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          memos={memos}
+          onSearchResults={handleSearchResults}
+          isSearchActive={isSearchActive}
+          onSearchActiveChange={setIsSearchActive}
+        />
+
+        <div className="container mx-auto max-w-md px-4">
+          <SearchResults
+            searchQuery={searchQuery}
+            searchResults={searchResults.map(task => ({
+              id: task.id,
+              text: `${task.title}${task.description ? ` - ${task.description}` : ''}`,
+              type: 'task' as const,
+              createdAt: new Date().toISOString(),
+              title: task.title
+            }))}
+            onClearSearch={handleClearSearch}
+          />
+        </div>
+
+        <TasksFAB />
+        <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
+        
+        <TaskDialog />
+        <CategoryDialog />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
       <TasksHeader 
@@ -285,9 +349,23 @@ const TasksPageContent: React.FC = () => {
         selectedCategory={selectedCategory}
         categoryNames={categoryNames}
         onBackClick={handleBackClick}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        isSearchActive={isSearchActive}
       />
+
+      <SearchBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        memos={memos}
+        onSearchResults={handleSearchResults}
+        isSearchActive={isSearchActive}
+        onSearchActiveChange={setIsSearchActive}
+      />
+
       <div className="container mx-auto max-w-md px-4 pt-4 pb-4">
         <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+        
         {/* Toggle Show Completed and Add Category Button */}
         <div className="flex justify-between items-center my-4">
           <h2 className="text-lg font-semibold text-gray-800">
@@ -337,6 +415,7 @@ const TasksPageContent: React.FC = () => {
             </button>
           </div>
         </div>
+
         {/* Categories - Show count only, no tasks */}
         {viewMode === "categories" && !selectedCategory && (
           <div className="grid grid-cols-2 gap-4 mb-6">
@@ -355,11 +434,12 @@ const TasksPageContent: React.FC = () => {
             ))}
           </div>
         )}
+
         {/* Task list - only show when NOT in category overview */}
         {!(viewMode === "categories" && !selectedCategory) && (
           <div className="space-y-3">
             {filteredTasks.map((task) => {
-              console.log('Task being rendered:', task.id, task.title); // Debug log
+              console.log('Task being rendered:', task.id, task.title);
               return (
                 <EnhancedTaskItem
                   key={task.id}
@@ -379,10 +459,10 @@ const TasksPageContent: React.FC = () => {
           </div>
         )}
       </div>
+
       <TasksFAB />
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
       
-      {/* Dialogs */}
       <TaskDialog />
       <CategoryDialog />
     </div>
@@ -401,4 +481,3 @@ const TasksPage: React.FC = () => {
 };
 
 export default TasksPage;
-
