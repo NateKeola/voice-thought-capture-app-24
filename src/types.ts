@@ -1,4 +1,5 @@
-export type MemoType = 'note' | 'task' | 'idea';
+
+export type MemoType = 'note' | 'task' | 'idea' | 'list';
 
 export interface Memo {
   id: string;

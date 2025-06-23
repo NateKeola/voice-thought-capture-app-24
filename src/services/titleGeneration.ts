@@ -23,6 +23,8 @@ export class TitleGenerationService {
         return this.generateTaskTitle(cleanText);
       case 'idea':
         return this.generateIdeaTitle(cleanText);
+      case 'list':
+        return this.generateListTitle(cleanText);
       case 'note':
       default:
         return this.generateNoteTitle(cleanText);
@@ -96,6 +98,27 @@ export class TitleGenerationService {
     // Fallback
     const meaningfulWords = words.filter(w => w.length > 3).slice(0, 3);
     return this.cleanTitleText(meaningfulWords.join(' ')) || 'New Idea';
+  }
+
+  private static generateListTitle(text: string): string {
+    // Look for list patterns
+    const listPatterns = [
+      /(?:list|checklist|items)\s+(?:for|of)\s+([^.,!?]{1,25})/i,
+      /(?:shopping|grocery|todo)\s+list/i,
+      /things?\s+(?:to|for)\s+([^.,!?]{1,25})/i,
+    ];
+
+    for (const pattern of listPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return this.cleanTitleText(`${match[1]} List`);
+      }
+    }
+
+    // Fallback: use first meaningful words + "List"
+    const firstPart = text.split(/[.!?]/)[0];
+    const words = firstPart.split(' ').filter(w => w.length > 2).slice(0, 3);
+    return this.cleanTitleText(words.join(' ') + ' List') || 'New List';
   }
 
   private static generateNoteTitle(text: string): string {
