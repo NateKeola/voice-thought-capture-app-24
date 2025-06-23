@@ -1,3 +1,4 @@
+
 import React from "react";
 import ProfileIconButton from "@/components/ProfileIconButton";
 import { ArrowLeft, Search } from "lucide-react";
@@ -40,7 +41,7 @@ const TasksHeader: React.FC<TasksHeaderProps> = ({
         )}
         <div>
           <h1 className="text-2xl font-bold text-white">
-            {selectedCategory ? categoryNames[selectedCategory] || selectedCategory : "My Tasks"}
+            {selectedCategory ? categoryNames[selectedCategory] || selectedCategory : "Personal"}
           </h1>
           <p className="text-purple-100 text-sm mt-1">
             {taskCount} {taskCount === 1 ? 'task' : 'tasks'} pending

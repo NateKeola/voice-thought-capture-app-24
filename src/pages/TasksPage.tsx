@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -12,6 +13,7 @@ import SearchResults from "@/components/home/SearchResults";
 import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
 import { CategoryProvider, useCategories } from "@/contexts/CategoryContext";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FolderPlus, Check } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
@@ -187,7 +189,8 @@ const TasksPageContent: React.FC = () => {
   const [viewMode, setViewMode] = useState<"categories" | "timeline">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [activeTab, setActiveTab] = useState("tasks");
+  const [activeTab, setActiveTab] = useState("personal");
+  const [personalTab, setPersonalTab] = useState("tasks");
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -363,100 +366,190 @@ const TasksPageContent: React.FC = () => {
       />
 
       <div className="container mx-auto max-w-md px-4 pt-4 pb-4">
-        <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
-        
-        {/* Toggle Show Completed and Add Category Button */}
-        <div className="flex justify-between items-center my-4">
-          <h2 className="text-lg font-semibold text-gray-800">
-            {viewMode === "categories"
-              ? selectedCategory
-                ? categories.find((c) => c.id === selectedCategory)?.name + " Tasks"
-                : "All Categories"
-              : "Task Timeline"}
-          </h2>
-          <div className="flex items-center gap-2">
-            {viewMode === "categories" && !selectedCategory && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-1" 
-                onClick={openCategoryDialog}
-              >
-                <FolderPlus size={16} />
-                <span className="hidden sm:inline">New Category</span>
-              </Button>
-            )}
-            <button
-              className="flex items-center text-sm text-gray-500"
-              onClick={() => setShowCompleted((v) => !v)}
-            >
-              <div
-                className={`w-4 h-4 rounded mr-2 border ${
-                  showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
-                } flex items-center justify-center`}
-              >
-                {showCompleted && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-white"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+        {/* Personal Tabs */}
+        <Tabs value={personalTab} onValueChange={setPersonalTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="lists">Lists</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="tasks" className="mt-4">
+            <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+            
+            {/* Toggle Show Completed and Add Category Button */}
+            <div className="flex justify-between items-center my-4">
+              <h2 className="text-lg font-semibold text-gray-800">
+                {viewMode === "categories"
+                  ? selectedCategory
+                    ? categories.find((c) => c.id === selectedCategory)?.name + " Tasks"
+                    : "All Categories"
+                  : "Task Timeline"}
+              </h2>
+              <div className="flex items-center gap-2">
+                {viewMode === "categories" && !selectedCategory && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1" 
+                    onClick={openCategoryDialog}
                   >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
+                    <FolderPlus size={16} />
+                    <span className="hidden sm:inline">New Category</span>
+                  </Button>
+                )}
+                <button
+                  className="flex items-center text-sm text-gray-500"
+                  onClick={() => setShowCompleted((v) => !v)}
+                >
+                  <div
+                    className={`w-4 h-4 rounded mr-2 border ${
+                      showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
+                    } flex items-center justify-center`}
+                  >
+                    {showCompleted && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 text-white"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  Show completed
+                </button>
+              </div>
+            </div>
+
+            {/* Categories - Show count only, no tasks */}
+            {viewMode === "categories" && !selectedCategory && (
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {categories.map((cat) => (
+                  <TaskCategoryCard
+                    key={cat.id}
+                    id={cat.id}
+                    name={cat.name}
+                    color={cat.color}
+                    count={tasks.filter((t) => t.category === cat.id && !completedTaskIds.includes(t.id)).length}
+                    total={tasks.filter((t) => t.category === cat.id).length}
+                    onSelect={handleCategorySelect}
+                    onCreateTask={handleCreateTaskForCategory}
+                    selected={selectedCategory === cat.id}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Task list - only show when NOT in category overview */}
+            {!(viewMode === "categories" && !selectedCategory) && (
+              <div className="space-y-3">
+                {filteredTasks.map((task) => {
+                  console.log('Task being rendered:', task.id, task.title);
+                  return (
+                    <EnhancedTaskItem
+                      key={task.id}
+                      task={task}
+                      getCategoryColor={getCategoryColor}
+                      priorityColors={priorityColors}
+                      completedTaskIds={completedTaskIds}
+                      onToggleComplete={toggleTaskCompletion}
                     />
-                  </svg>
+                  );
+                })}
+                {filteredTasks.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No tasks found.</p>
+                  </div>
                 )}
               </div>
-              Show completed
-            </button>
-          </div>
-        </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="lists" className="mt-4">
+            <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+            
+            {/* Toggle Show Completed and Add Category Button - Lists version */}
+            <div className="flex justify-between items-center my-4">
+              <h2 className="text-lg font-semibold text-gray-800">
+                {viewMode === "categories"
+                  ? selectedCategory
+                    ? categories.find((c) => c.id === selectedCategory)?.name + " Lists"
+                    : "All Categories"
+                  : "List Timeline"}
+              </h2>
+              <div className="flex items-center gap-2">
+                {viewMode === "categories" && !selectedCategory && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex items-center gap-1" 
+                    onClick={openCategoryDialog}
+                  >
+                    <FolderPlus size={16} />
+                    <span className="hidden sm:inline">New Category</span>
+                  </Button>
+                )}
+                <button
+                  className="flex items-center text-sm text-gray-500"
+                  onClick={() => setShowCompleted((v) => !v)}
+                >
+                  <div
+                    className={`w-4 h-4 rounded mr-2 border ${
+                      showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
+                    } flex items-center justify-center`}
+                  >
+                    {showCompleted && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4 text-white"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  Show completed
+                </button>
+              </div>
+            </div>
 
-        {/* Categories - Show count only, no tasks */}
-        {viewMode === "categories" && !selectedCategory && (
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            {categories.map((cat) => (
-              <TaskCategoryCard
-                key={cat.id}
-                id={cat.id}
-                name={cat.name}
-                color={cat.color}
-                count={tasks.filter((t) => t.category === cat.id && !completedTaskIds.includes(t.id)).length}
-                total={tasks.filter((t) => t.category === cat.id).length}
-                onSelect={handleCategorySelect}
-                onCreateTask={handleCreateTaskForCategory}
-                selected={selectedCategory === cat.id}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Task list - only show when NOT in category overview */}
-        {!(viewMode === "categories" && !selectedCategory) && (
-          <div className="space-y-3">
-            {filteredTasks.map((task) => {
-              console.log('Task being rendered:', task.id, task.title);
-              return (
-                <EnhancedTaskItem
-                  key={task.id}
-                  task={task}
-                  getCategoryColor={getCategoryColor}
-                  priorityColors={priorityColors}
-                  completedTaskIds={completedTaskIds}
-                  onToggleComplete={toggleTaskCompletion}
-                />
-              );
-            })}
-            {filteredTasks.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <p>No tasks found.</p>
+            {/* Categories for Lists - Show count only, no tasks */}
+            {viewMode === "categories" && !selectedCategory && (
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {categories.map((cat) => (
+                  <TaskCategoryCard
+                    key={cat.id}
+                    id={cat.id}
+                    name={cat.name}
+                    color={cat.color}
+                    count={0} // TODO: Replace with actual list count when lists are implemented
+                    total={0} // TODO: Replace with actual list total when lists are implemented
+                    onSelect={handleCategorySelect}
+                    onCreateTask={handleCreateTaskForCategory}
+                    selected={selectedCategory === cat.id}
+                  />
+                ))}
               </div>
             )}
-          </div>
-        )}
+
+            {/* Lists placeholder - TODO: Implement lists functionality */}
+            {!(viewMode === "categories" && !selectedCategory) && (
+              <div className="text-center py-8 text-gray-500">
+                <p>Lists functionality coming soon!</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       <TasksFAB />

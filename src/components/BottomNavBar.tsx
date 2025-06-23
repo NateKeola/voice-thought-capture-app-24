@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Mic, Users, ListTodo } from 'lucide-react';
+import { Mic, Users, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 interface BottomNavBarProps {
@@ -18,7 +18,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
     if (path === '/relationships') {
       onTabChange('relationships');
     } else if (path === '/tasks') {
-      onTabChange('tasks');
+      onTabChange('personal');
     } else if (path === '/home') {
       onTabChange('record');
     }
@@ -30,7 +30,7 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
     // Ensure we're not navigating from the current page to the same page
     if (tab === 'relationships' && location.pathname !== '/relationships') {
       navigate('/relationships');
-    } else if (tab === 'tasks' && location.pathname !== '/tasks') {
+    } else if (tab === 'personal' && location.pathname !== '/tasks') {
       navigate('/tasks');
     } else if (tab === 'record' && location.pathname !== '/home') {
       navigate('/home');
@@ -41,13 +41,13 @@ const BottomNavBar: React.FC<BottomNavBarProps> = ({ activeTab, onTabChange }) =
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 z-30">
       <div className="container max-w-md mx-auto flex justify-around items-center">
         <button
-          onClick={() => handleTabClick('tasks')}
+          onClick={() => handleTabClick('personal')}
           className={`flex flex-col items-center p-2 ${
-            activeTab === 'tasks' ? 'text-purple-600' : 'text-gray-500'
+            activeTab === 'personal' ? 'text-purple-600' : 'text-gray-500'
           }`}
         >
-          <ListTodo size={24} />
-          <span className="text-xs mt-1">Tasks</span>
+          <User size={24} />
+          <span className="text-xs mt-1">Personal</span>
         </button>
         
         {/* Gorgeous gradient "Record" centerpiece button */}
