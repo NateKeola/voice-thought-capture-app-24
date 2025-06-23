@@ -24,9 +24,10 @@ const TaskItemHeader: React.FC<TaskItemHeaderProps> = ({
   return (
     <div className="flex items-start gap-3 mb-3">
       <TaskCompletionButton
-        completed={completed}
+        isCompleted={completed}
         taskId={taskId}
-        onToggle={onToggleComplete}
+        categoryColor={categoryColor}
+        onComplete={onToggleComplete}
       />
       <div className="flex-1">
         {/* Display title in bold */}

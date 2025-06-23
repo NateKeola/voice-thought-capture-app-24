@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -14,7 +15,7 @@ import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
-import TitleGenerationService from "@/services/TitleGenerationService";
+import { TitleGenerationService } from "@/services/titleGeneration";
 
 const priorityColors = {
   high: "bg-red-500",
