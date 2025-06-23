@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -68,8 +69,14 @@ const mapMemoToTask = (memo: Memo) => {
   }
 
   // FIX: Use string ID instead of converting to number to avoid NaN
-  const taskId = memo.id; // Keep as string instead of Number(memo.id)
-  console.log('Mapping memo to task:', { memoId: memo.id, taskId, title }); // Debug log
+  const taskId = String(memo.id);
+  console.log('Mapping memo to task:', { 
+    memoId: memo.id, 
+    memoIdType: typeof memo.id,
+    taskId, 
+    taskIdType: typeof taskId,
+    title 
+  });
 
   return {
     id: taskId, // Use string ID to avoid NaN issues
@@ -192,6 +199,8 @@ const TasksPageContent: React.FC = () => {
     .filter(memo => memo.type === 'task')
     .map(mapMemoToTask);
 
+  console.log('All task IDs:', tasks.map(t => t.id));
+  console.log('Duplicate IDs:', tasks.map(t => t.id).filter((id, index, arr) => arr.indexOf(id) !== index));
   console.log('Current completed IDs:', completedTaskIds); // Debug log
 
   // SINGLE toggle function - Updated for string IDs
@@ -228,11 +237,19 @@ const TasksPageContent: React.FC = () => {
     return acc;
   }, {} as { [key: string]: string });
 
-  // Simple filtering - KEEP ALL TASKS VISIBLE, just filter by category
+  // Filter tasks by category and completion status
   let filteredTasks = tasks.filter((task) => {
+    // Filter by category if selected
     if (viewMode === "categories" && selectedCategory) {
-      return task.category === selectedCategory;
+      if (task.category !== selectedCategory) return false;
     }
+    
+    // Filter by completion status based on toggle
+    const isTaskCompleted = completedTaskIds.includes(task.id);
+    if (!showCompleted && isTaskCompleted) {
+      return false; // Hide completed tasks when toggle is off
+    }
+    
     return true;
   });
 
