@@ -4,11 +4,14 @@ import React, { createContext, useContext, useState } from "react";
 interface TaskDialogContextType {
   isTaskDialogOpen: boolean;
   isCategoryDialogOpen: boolean;
+  isListCategoryDialogOpen: boolean;
   preselectedCategory: string | null;
   openTaskDialog: (categoryId?: string) => void;
   closeTaskDialog: () => void;
   openCategoryDialog: () => void;
   closeCategoryDialog: () => void;
+  openListCategoryDialog: () => void;
+  closeListCategoryDialog: () => void;
 }
 
 const TaskDialogContext = createContext<TaskDialogContextType | undefined>(undefined);
@@ -16,6 +19,7 @@ const TaskDialogContext = createContext<TaskDialogContextType | undefined>(undef
 export const TaskDialogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isListCategoryDialogOpen, setIsListCategoryDialogOpen] = useState(false);
   const [preselectedCategory, setPreselectedCategory] = useState<string | null>(null);
 
   const openTaskDialog = (categoryId?: string) => {
@@ -30,17 +34,23 @@ export const TaskDialogProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   
   const openCategoryDialog = () => setIsCategoryDialogOpen(true);
   const closeCategoryDialog = () => setIsCategoryDialogOpen(false);
+  
+  const openListCategoryDialog = () => setIsListCategoryDialogOpen(true);
+  const closeListCategoryDialog = () => setIsListCategoryDialogOpen(false);
 
   return (
     <TaskDialogContext.Provider
       value={{
         isTaskDialogOpen,
         isCategoryDialogOpen,
+        isListCategoryDialogOpen,
         preselectedCategory,
         openTaskDialog,
         closeTaskDialog,
         openCategoryDialog,
         closeCategoryDialog,
+        openListCategoryDialog,
+        closeListCategoryDialog,
       }}
     >
       {children}

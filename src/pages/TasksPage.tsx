@@ -11,6 +11,8 @@ import SearchBar from "@/components/home/SearchBar";
 import SearchResults from "@/components/home/SearchResults";
 import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
 import { CategoryProvider, useCategories } from "@/contexts/CategoryContext";
+import { ListsProvider, useListsCategories } from "@/contexts/ListsContext";
+import ListCategoryDialog from "@/components/tasks/ListCategoryDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FolderPlus, Check } from "lucide-react";
@@ -184,8 +186,9 @@ const EnhancedTaskItem: React.FC<{
 
 // Inner component to use the TaskDialog context
 const TasksPageContent: React.FC = () => {
-  const { openCategoryDialog, openTaskDialog } = useTaskDialog();
+  const { openCategoryDialog, openTaskDialog, openListCategoryDialog } = useTaskDialog();
   const { categories, deleteCategory } = useCategories();
+  const { listCategories, deleteListCategory } = useListsCategories();
   const [viewMode, setViewMode] = useState<"categories" | "timeline">("categories");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -265,13 +268,34 @@ const TasksPageContent: React.FC = () => {
     }
   };
 
+  const handleDeleteListCategory = (categoryId: string) => {
+    deleteListCategory(categoryId);
+    toast.success("List category deleted successfully");
+    
+    // If we're currently viewing the deleted category, go back to the main view
+    if (selectedCategory === categoryId) {
+      setSelectedCategory(null);
+    }
+  };
+
   const getCategoryColor = (categoryId: string) => {
     const category = categories.find((c) => c.id === categoryId);
     return category ? category.color : "#6B7280";
   };
 
+  const getListCategoryColor = (categoryId: string) => {
+    const category = listCategories.find((c) => c.id === categoryId);
+    return category ? category.color : "#6B7280";
+  };
+
   // Create a mapping of category IDs to names for the TaskList component
   const categoryNames = categories.reduce((acc, cat) => {
+    acc[cat.id] = cat.name;
+    return acc;
+  }, {} as { [key: string]: string });
+
+  // Create a mapping of list category IDs to names
+  const listCategoryNames = listCategories.reduce((acc, cat) => {
     acc[cat.id] = cat.name;
     return acc;
   }, {} as { [key: string]: string });
@@ -456,6 +480,26 @@ const TasksPageContent: React.FC = () => {
               </div>
             )}
 
+            {/* List Categories - Independent from task categories */}
+            {viewMode === "categories" && !selectedCategory && (
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {listCategories.map((cat) => (
+                  <TaskCategoryCard
+                    key={cat.id}
+                    id={cat.id}
+                    name={cat.name}
+                    color={cat.color}
+                    count={0} // TODO: Replace with actual list count when lists are implemented
+                    total={0} // TODO: Replace with actual list total when lists are implemented
+                    onSelect={handleCategorySelect}
+                    onCreateTask={handleCreateTaskForCategory}
+                    onDeleteCategory={handleDeleteListCategory}
+                    selected={selectedCategory === cat.id}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* Task list - only show when NOT in category overview */}
             {!(viewMode === "categories" && !selectedCategory) && (
               <div className="space-y-3">
@@ -484,13 +528,13 @@ const TasksPageContent: React.FC = () => {
           <TabsContent value="lists" className="mt-4">
             <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             
-            {/* Toggle Show Completed and Add Category Button - Lists version */}
+            {/* Toggle Show Completed and Add List Category Button */}
             <div className="flex justify-between items-center my-4">
               <h2 className="text-lg font-semibold text-gray-800">
                 {viewMode === "categories"
                   ? selectedCategory
-                    ? categories.find((c) => c.id === selectedCategory)?.name + " Lists"
-                    : "All Categories"
+                    ? listCategories.find((c) => c.id === selectedCategory)?.name + " Lists"
+                    : "All List Categories"
                   : "List Timeline"}
               </h2>
               <div className="flex items-center gap-2">
@@ -499,7 +543,7 @@ const TasksPageContent: React.FC = () => {
                     variant="outline" 
                     size="sm" 
                     className="flex items-center gap-1" 
-                    onClick={openCategoryDialog}
+                    onClick={openListCategoryDialog}
                   >
                     <FolderPlus size={16} />
                     <span className="hidden sm:inline">New Category</span>
@@ -534,26 +578,6 @@ const TasksPageContent: React.FC = () => {
               </div>
             </div>
 
-            {/* Categories for Lists - Show count only, no tasks */}
-            {viewMode === "categories" && !selectedCategory && (
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {categories.map((cat) => (
-                  <TaskCategoryCard
-                    key={cat.id}
-                    id={cat.id}
-                    name={cat.name}
-                    color={cat.color}
-                    count={0} // TODO: Replace with actual list count when lists are implemented
-                    total={0} // TODO: Replace with actual list total when lists are implemented
-                    onSelect={handleCategorySelect}
-                    onCreateTask={handleCreateTaskForCategory}
-                    onDeleteCategory={handleDeleteCategory}
-                    selected={selectedCategory === cat.id}
-                  />
-                ))}
-              </div>
-            )}
-
             {/* Lists placeholder - TODO: Implement lists functionality */}
             {!(viewMode === "categories" && !selectedCategory) && (
               <div className="text-center py-8 text-gray-500">
@@ -569,6 +593,7 @@ const TasksPageContent: React.FC = () => {
       
       <TaskDialog />
       <CategoryDialog />
+      <ListCategoryDialog />
     </div>
   );
 };
@@ -577,9 +602,11 @@ const TasksPageContent: React.FC = () => {
 const TasksPage: React.FC = () => {
   return (
     <CategoryProvider>
-      <TaskDialogProvider>
-        <TasksPageContent />
-      </TaskDialogProvider>
+      <ListsProvider>
+        <TaskDialogProvider>
+          <TasksPageContent />
+        </TaskDialogProvider>
+      </ListsProvider>
     </CategoryProvider>
   );
 };
