@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -188,8 +189,16 @@ const TasksPageContent: React.FC = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
   
-  // SINGLE completion tracking state - Changed to string[] for UUID support
-  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
+  // SINGLE completion tracking state with localStorage persistence
+  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem('completedTaskIds');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  // Save to localStorage whenever completedTaskIds changes
+  useEffect(() => {
+    localStorage.setItem('completedTaskIds', JSON.stringify(completedTaskIds));
+  }, [completedTaskIds]);
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
@@ -328,7 +337,7 @@ const TasksPageContent: React.FC = () => {
             </button>
           </div>
         </div>
-        {/* Categories */}
+        {/* Categories - Show count only, no tasks */}
         {viewMode === "categories" && !selectedCategory && (
           <div className="grid grid-cols-2 gap-4 mb-6">
             {categories.map((cat) => (
@@ -346,7 +355,7 @@ const TasksPageContent: React.FC = () => {
             ))}
           </div>
         )}
-        {/* Task list with single completion tracking */}
+        {/* Task list always shown in timeline section */}
         <div className="space-y-3">
           {filteredTasks.map((task) => {
             console.log('Task being rendered:', task.id, task.title); // Debug log
@@ -390,3 +399,4 @@ const TasksPage: React.FC = () => {
 };
 
 export default TasksPage;
+
