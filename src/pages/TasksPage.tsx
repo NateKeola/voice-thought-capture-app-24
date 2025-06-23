@@ -431,14 +431,14 @@ const TasksPageContent: React.FC = () => {
           <TabsContent value="tasks" className="mt-4">
             <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             
-            {/* Toggle Show Completed and Add Category Button */}
+            {/* Header with conditional Show Completed toggle */}
             <div className="flex justify-between items-center my-4">
               <h2 className="text-lg font-semibold text-gray-800">
                 {viewMode === "categories"
                   ? selectedCategory
                     ? categories.find((c) => c.id === selectedCategory)?.name + " Tasks"
                     : "All Task Categories"
-                  : "Task Timeline"}
+                  : "Recent Tasks"}
               </h2>
               <div className="flex items-center gap-2">
                 {viewMode === "categories" && !selectedCategory && (
@@ -452,32 +452,35 @@ const TasksPageContent: React.FC = () => {
                     <span className="hidden sm:inline">New Category</span>
                   </Button>
                 )}
-                <button
-                  className="flex items-center text-sm text-gray-500"
-                  onClick={() => setShowCompleted((v) => !v)}
-                >
-                  <div
-                    className={`w-4 h-4 rounded mr-2 border ${
-                      showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
-                    } flex items-center justify-center`}
+                {/* Only show "Show completed" when NOT in category overview */}
+                {!(viewMode === "categories" && !selectedCategory) && (
+                  <button
+                    className="flex items-center text-sm text-gray-500"
+                    onClick={() => setShowCompleted((v) => !v)}
                   >
-                    {showCompleted && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-white"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  Show completed
-                </button>
+                    <div
+                      className={`w-4 h-4 rounded mr-2 border ${
+                        showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
+                      } flex items-center justify-center`}
+                    >
+                      {showCompleted && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 text-white"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    Show completed
+                  </button>
+                )}
               </div>
             </div>
 
@@ -529,14 +532,14 @@ const TasksPageContent: React.FC = () => {
           <TabsContent value="lists" className="mt-4">
             <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
             
-            {/* Toggle Show Completed and Add List Category Button */}
+            {/* Header with conditional Show Completed toggle */}
             <div className="flex justify-between items-center my-4">
               <h2 className="text-lg font-semibold text-gray-800">
                 {viewMode === "categories"
                   ? selectedCategory
                     ? listCategories.find((c) => c.id === selectedCategory)?.name + " Lists"
                     : "All List Categories"
-                  : "List Timeline"}
+                  : "Recent Lists"}
               </h2>
               <div className="flex items-center gap-2">
                 {viewMode === "categories" && !selectedCategory && (
@@ -550,32 +553,35 @@ const TasksPageContent: React.FC = () => {
                     <span className="hidden sm:inline">New Category</span>
                   </Button>
                 )}
-                <button
-                  className="flex items-center text-sm text-gray-500"
-                  onClick={() => setShowCompleted((v) => !v)}
-                >
-                  <div
-                    className={`w-4 h-4 rounded mr-2 border ${
-                      showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
-                    } flex items-center justify-center`}
+                {/* Only show "Show completed" when NOT in category overview */}
+                {!(viewMode === "categories" && !selectedCategory) && (
+                  <button
+                    className="flex items-center text-sm text-gray-500"
+                    onClick={() => setShowCompleted((v) => !v)}
                   >
-                    {showCompleted && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-4 w-4 text-white"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
-                  </div>
-                  Show completed
-                </button>
+                    <div
+                      className={`w-4 h-4 rounded mr-2 border ${
+                        showCompleted ? "bg-purple-500 border-purple-500" : "border-gray-400"
+                      } flex items-center justify-center`}
+                    >
+                      {showCompleted && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 text-white"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
+                    </div>
+                    Show completed
+                  </button>
+                )}
               </div>
             </div>
 

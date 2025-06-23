@@ -1,6 +1,6 @@
 
 import React from "react";
-import { ListTodo, Calendar } from "lucide-react";
+import { ListTodo, Clock } from "lucide-react";
 
 interface TasksViewToggleProps {
   viewMode: "categories" | "timeline";
@@ -28,8 +28,8 @@ const TasksViewToggle: React.FC<TasksViewToggleProps> = ({ viewMode, setViewMode
       }`}
       onClick={() => setViewMode("timeline")}
     >
-      <Calendar size={18} />
-      <span>Timeline</span>
+      <Clock size={18} />
+      <span>Recents</span>
     </button>
   </div>
 );
