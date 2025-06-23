@@ -81,17 +81,19 @@ const mapMemoToTask = (memo: Memo) => {
   };
 };
 
-// Enhanced Task Item Component with visual completion feedback
+// Enhanced Task Item Component with minimal completion tracking
 const EnhancedTaskItem: React.FC<{
   task: any;
   getCategoryColor: (id: string) => string;
   priorityColors: { [key: string]: string };
+  completedTaskIds: number[];
   onToggleComplete: (id: number) => void;
-  isCompleted: boolean;
-}> = ({ task, getCategoryColor, priorityColors, onToggleComplete, isCompleted }) => {
+}> = ({ task, getCategoryColor, priorityColors, completedTaskIds, onToggleComplete }) => {
   const categoryColor = getCategoryColor(task.category);
-  
-  const handleToggle = () => {
+  const isCompleted = completedTaskIds.includes(task.id);
+
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling
     onToggleComplete(task.id);
   };
 
@@ -103,7 +105,7 @@ const EnhancedTaskItem: React.FC<{
       style={{ borderColor: categoryColor }}
     >
       <div className="flex items-start gap-3 mb-3">
-        {/* Completion Button */}
+        {/* Simple Completion Button */}
         <button
           onClick={handleToggle}
           className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 border-2 ${
@@ -117,29 +119,25 @@ const EnhancedTaskItem: React.FC<{
         </button>
 
         <div className="flex-1">
-          {/* Task Title */}
+          {/* Task Title with completion styling */}
           <h3 className={`font-bold text-gray-800 mb-1 text-sm leading-tight transition-all duration-200 ${
             isCompleted ? 'line-through text-gray-500' : ''
           }`}>
             {task.title}
+            {isCompleted && (
+              <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full ml-2">
+                ✓ Completed
+              </span>
+            )}
           </h3>
           
-          {/* Task Description */}
+          {/* Task Description with completion styling */}
           {task.description && task.description !== task.title && (
             <p className={`text-sm leading-relaxed transition-all duration-200 ${
               isCompleted ? 'line-through text-gray-400' : 'text-gray-600'
             }`}>
               {task.description}
             </p>
-          )}
-
-          {/* Completed Label */}
-          {isCompleted && (
-            <div className="flex items-center gap-1 mt-2">
-              <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
-                ✓ Completed
-              </span>
-            </div>
           )}
         </div>
         
@@ -178,7 +176,9 @@ const TasksPageContent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
-  const [completedTasks, setCompletedTasks] = useState<Set<number>>(new Set());
+  
+  // Simple completion tracking - minimal state management
+  const [completedTaskIds, setCompletedTaskIds] = useState<number[]>([]);
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
@@ -188,15 +188,16 @@ const TasksPageContent: React.FC = () => {
     .filter(memo => memo.type === 'task')
     .map(mapMemoToTask);
 
-  const handleToggleComplete = (taskId: number) => {
-    setCompletedTasks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(taskId)) {
-        newSet.delete(taskId);
+  // Simple toggle function
+  const toggleTaskCompletion = (taskId: number) => {
+    setCompletedTaskIds(prev => {
+      if (prev.includes(taskId)) {
+        // Remove from completed list
+        return prev.filter(id => id !== taskId);
       } else {
-        newSet.add(taskId);
+        // Add to completed list
+        return [...prev, taskId];
       }
-      return newSet;
     });
   };
 
@@ -219,10 +220,11 @@ const TasksPageContent: React.FC = () => {
     return acc;
   }, {} as { [key: string]: string });
 
-  // Filter and sort logic
+  // Simple filtering - don't hide tasks based on completion, just filter by category and show/hide completed
   let filteredTasks = tasks.filter((task) => {
-    const isCompleted = completedTasks.has(task.id);
-    // Filter by completion status based on showCompleted toggle
+    const isCompleted = completedTaskIds.includes(task.id);
+    
+    // Only filter by showCompleted toggle if it's turned off
     if (!showCompleted && isCompleted) return false;
     
     if (viewMode === "categories" && selectedCategory) {
@@ -235,8 +237,8 @@ const TasksPageContent: React.FC = () => {
   const duePriority = { today: 0, tomorrow: 1, "this week": 2, "next week": 3, "next month": 4 };
   const priorityOrder = { high: 0, medium: 1, low: 2 };
   filteredTasks = [...filteredTasks].sort((a, b) => {
-    const aCompleted = completedTasks.has(a.id);
-    const bCompleted = completedTasks.has(b.id);
+    const aCompleted = completedTaskIds.includes(a.id);
+    const bCompleted = completedTaskIds.includes(b.id);
     if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
     if (duePriority[a.due] !== duePriority[b.due]) return duePriority[a.due] - duePriority[b.due];
     return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -250,7 +252,7 @@ const TasksPageContent: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
       <TasksHeader 
-        taskCount={tasks.filter((t) => !completedTasks.has(t.id)).length} 
+        taskCount={tasks.filter((t) => !completedTaskIds.includes(t.id)).length} 
         selectedCategory={selectedCategory}
         categoryNames={categoryNames}
         onBackClick={handleBackClick}
@@ -315,7 +317,7 @@ const TasksPageContent: React.FC = () => {
                 id={cat.id}
                 name={cat.name}
                 color={cat.color}
-                count={tasks.filter((t) => t.category === cat.id && !completedTasks.has(t.id)).length}
+                count={tasks.filter((t) => t.category === cat.id && !completedTaskIds.includes(t.id)).length}
                 total={tasks.filter((t) => t.category === cat.id).length}
                 onSelect={handleCategorySelect}
                 onCreateTask={handleCreateTaskForCategory}
@@ -324,7 +326,7 @@ const TasksPageContent: React.FC = () => {
             ))}
           </div>
         )}
-        {/* Enhanced Task list with visual completion feedback */}
+        {/* Task list with minimal completion tracking */}
         <div className="space-y-3">
           {filteredTasks.map((task) => (
             <EnhancedTaskItem
@@ -332,8 +334,8 @@ const TasksPageContent: React.FC = () => {
               task={task}
               getCategoryColor={getCategoryColor}
               priorityColors={priorityColors}
-              onToggleComplete={handleToggleComplete}
-              isCompleted={completedTasks.has(task.id)}
+              completedTaskIds={completedTaskIds}
+              onToggleComplete={toggleTaskCompletion}
             />
           ))}
           {filteredTasks.length === 0 && (
