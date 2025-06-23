@@ -87,7 +87,8 @@ const EnhancedTaskItem: React.FC<{
   getCategoryColor: (id: string) => string;
   priorityColors: { [key: string]: string };
   onToggleComplete: (id: number) => void;
-}> = ({ task, getCategoryColor, priorityColors, onToggleComplete }) => {
+  isCompleted: boolean;
+}> = ({ task, getCategoryColor, priorityColors, onToggleComplete, isCompleted }) => {
   const categoryColor = getCategoryColor(task.category);
   
   const handleToggle = () => {
@@ -97,7 +98,7 @@ const EnhancedTaskItem: React.FC<{
   return (
     <div 
       className={`bg-white rounded-xl p-4 shadow-sm border-l-4 transition-all duration-200 ${
-        task.completed ? 'opacity-60 bg-gray-50' : 'hover:shadow-md'
+        isCompleted ? 'opacity-60 bg-gray-50' : 'hover:shadow-md'
       }`}
       style={{ borderColor: categoryColor }}
     >
@@ -106,19 +107,19 @@ const EnhancedTaskItem: React.FC<{
         <button
           onClick={handleToggle}
           className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer hover:scale-110 border-2 ${
-            task.completed 
+            isCompleted 
               ? 'bg-green-500 border-green-500 shadow-md' 
               : 'bg-white hover:bg-gray-50 border-gray-300 hover:border-green-400'
           }`}
-          aria-label={task.completed ? "Mark as incomplete" : "Complete task"}
+          aria-label={isCompleted ? "Mark as incomplete" : "Complete task"}
         >
-          {task.completed && <Check size={18} className="text-white font-bold" />}
+          {isCompleted && <Check size={18} className="text-white font-bold" />}
         </button>
 
         <div className="flex-1">
           {/* Task Title */}
           <h3 className={`font-bold text-gray-800 mb-1 text-sm leading-tight transition-all duration-200 ${
-            task.completed ? 'line-through text-gray-500' : ''
+            isCompleted ? 'line-through text-gray-500' : ''
           }`}>
             {task.title}
           </h3>
@@ -126,14 +127,14 @@ const EnhancedTaskItem: React.FC<{
           {/* Task Description */}
           {task.description && task.description !== task.title && (
             <p className={`text-sm leading-relaxed transition-all duration-200 ${
-              task.completed ? 'line-through text-gray-400' : 'text-gray-600'
+              isCompleted ? 'line-through text-gray-400' : 'text-gray-600'
             }`}>
               {task.description}
             </p>
           )}
 
           {/* Completed Label */}
-          {task.completed && (
+          {isCompleted && (
             <div className="flex items-center gap-1 mt-2">
               <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
                 ✓ Completed
@@ -145,7 +146,7 @@ const EnhancedTaskItem: React.FC<{
         {/* Priority indicator */}
         <div
           className={`w-3 h-3 rounded-full ${priorityColors[task.priority]} flex-shrink-0 mt-1 ${
-            task.completed ? 'opacity-50' : ''
+            isCompleted ? 'opacity-50' : ''
           }`}
           title="Priority indicator"
         />
@@ -158,12 +159,12 @@ const EnhancedTaskItem: React.FC<{
             className="w-2 h-2 rounded-full" 
             style={{ backgroundColor: categoryColor }}
           ></div>
-          <span className={task.completed ? 'line-through' : ''}>{task.category}</span>
+          <span className={isCompleted ? 'line-through' : ''}>{task.category}</span>
           {task.hasAudio && (
             <span className="text-blue-500">🎵</span>
           )}
         </div>
-        <span className={`${task.completed ? 'line-through' : ''}`}>Due {task.due}</span>
+        <span className={`${isCompleted ? 'line-through' : ''}`}>Due {task.due}</span>
       </div>
     </div>
   );
@@ -177,6 +178,7 @@ const TasksPageContent: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
+  const [completedTasks, setCompletedTasks] = useState<Set<number>>(new Set());
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
@@ -186,14 +188,16 @@ const TasksPageContent: React.FC = () => {
     .filter(memo => memo.type === 'task')
     .map(mapMemoToTask);
 
-  // Handle task completion toggle - update the actual memo
-  const handleToggleComplete = async (taskId: number) => {
-    const memo = memos.find(m => Number(m.id) === taskId && m.type === 'task');
-    if (memo) {
-      await updateMemo(memo.id, {
-        completed: !memo.completed
-      });
-    }
+  const handleToggleComplete = (taskId: number) => {
+    setCompletedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
   };
 
   const handleCategorySelect = (categoryId: string) => {
@@ -217,8 +221,9 @@ const TasksPageContent: React.FC = () => {
 
   // Filter and sort logic
   let filteredTasks = tasks.filter((task) => {
+    const isCompleted = completedTasks.has(task.id);
     // Filter by completion status based on showCompleted toggle
-    if (!showCompleted && task.completed) return false;
+    if (!showCompleted && isCompleted) return false;
     
     if (viewMode === "categories" && selectedCategory) {
       return task.category === selectedCategory;
@@ -230,7 +235,9 @@ const TasksPageContent: React.FC = () => {
   const duePriority = { today: 0, tomorrow: 1, "this week": 2, "next week": 3, "next month": 4 };
   const priorityOrder = { high: 0, medium: 1, low: 2 };
   filteredTasks = [...filteredTasks].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    const aCompleted = completedTasks.has(a.id);
+    const bCompleted = completedTasks.has(b.id);
+    if (aCompleted !== bCompleted) return aCompleted ? 1 : -1;
     if (duePriority[a.due] !== duePriority[b.due]) return duePriority[a.due] - duePriority[b.due];
     return priorityOrder[a.priority] - priorityOrder[b.priority];
   });
@@ -243,7 +250,7 @@ const TasksPageContent: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
       <TasksHeader 
-        taskCount={tasks.filter((t) => !t.completed).length} 
+        taskCount={tasks.filter((t) => !completedTasks.has(t.id)).length} 
         selectedCategory={selectedCategory}
         categoryNames={categoryNames}
         onBackClick={handleBackClick}
@@ -308,7 +315,7 @@ const TasksPageContent: React.FC = () => {
                 id={cat.id}
                 name={cat.name}
                 color={cat.color}
-                count={tasks.filter((t) => t.category === cat.id && !t.completed).length}
+                count={tasks.filter((t) => t.category === cat.id && !completedTasks.has(t.id)).length}
                 total={tasks.filter((t) => t.category === cat.id).length}
                 onSelect={handleCategorySelect}
                 onCreateTask={handleCreateTaskForCategory}
@@ -326,6 +333,7 @@ const TasksPageContent: React.FC = () => {
               getCategoryColor={getCategoryColor}
               priorityColors={priorityColors}
               onToggleComplete={handleToggleComplete}
+              isCompleted={completedTasks.has(task.id)}
             />
           ))}
           {filteredTasks.length === 0 && (
