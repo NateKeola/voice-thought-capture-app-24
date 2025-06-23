@@ -22,8 +22,13 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Remove contact tags from display text
-  const displayText = memo.text.replace(/\[Contact: [^\]]+\]/g, '').trim();
+  // Remove contact tags and metadata from display text
+  const displayText = memo.text
+    .replace(/\[Contact: [^\]]+\]/g, '')
+    .replace(/\[category:\s*\w+\]/gi, '')
+    .replace(/\[priority:\s*\w+\]/gi, '')
+    .replace(/\[due:\s*[\w\s]+\]/gi, '')
+    .trim();
 
   const handleSave = async () => {
     await onSave(editedText, editedType);

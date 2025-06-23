@@ -14,11 +14,16 @@ interface MemoCardProps {
 const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const { text, type, createdAt, audioUrl, title } = memo;
   
-  // Remove contact tags from display text
-  const displayText = text.replace(/\[Contact: [^\]]+\]/g, '').trim();
+  // Remove contact tags and metadata from display text
+  const displayText = text
+    .replace(/\[Contact: [^\]]+\]/g, '')
+    .replace(/\[category:\s*\w+\]/gi, '')
+    .replace(/\[priority:\s*\w+\]/gi, '')
+    .replace(/\[due:\s*[\w\s]+\]/gi, '')
+    .trim();
   
   // Generate title if not already present using the new TitleGenerationService
-  const memoTitle = title || TitleGenerationService.generateTitle(text, type);
+  const memoTitle = title || TitleGenerationService.generateTitle(displayText, type);
   
   const getTypeConfig = (type: string) => {
     switch (type) {

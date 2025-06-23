@@ -4,6 +4,7 @@ import TaskItemHeader from "./TaskItemHeader";
 import TaskItemFooter from "./TaskItemFooter";
 import TaskEditDialog from "./TaskEditDialog";
 import TaskDeleteDialog from "./TaskDeleteDialog";
+import { TitleGenerationService } from "@/services/titleGeneration";
 
 interface TaskItemProps {
   task: any;
@@ -23,6 +24,19 @@ const TaskItem: React.FC<TaskItemProps> = ({
   
   const categoryColor = getCategoryColor(task.category);
   
+  // Clean the description text and generate a proper title
+  const cleanDescription = task.description
+    .replace(/\[Contact: [^\]]+\]/g, '')
+    .replace(/\[category:\s*\w+\]/gi, '')
+    .replace(/\[priority:\s*\w+\]/gi, '')
+    .replace(/\[due:\s*[\w\s]+\]/gi, '')
+    .trim();
+  
+  // Generate a proper title if the current title looks like raw text
+  const displayTitle = task.title && task.title.length < 50 
+    ? task.title 
+    : TitleGenerationService.generateTitle(task.title + ' ' + cleanDescription, 'task');
+  
   const handleEdit = () => {
     setIsEditDialogOpen(true);
   };
@@ -40,8 +54,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
         style={{ borderColor: categoryColor }}
       >
         <TaskItemHeader 
-          title={task.title}
-          description={task.description}
+          title={displayTitle}
+          description={cleanDescription}
           completed={task.completed}
           categoryColor={categoryColor}
           priorityColor={priorityColors[task.priority]}

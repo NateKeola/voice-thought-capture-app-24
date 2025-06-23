@@ -14,6 +14,7 @@ import { FolderPlus } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
+import TitleGenerationService from "@/services/TitleGenerationService";
 
 const priorityColors = {
   high: "bg-red-500",
@@ -44,21 +45,27 @@ const mapMemoToTask = (memo: Memo) => {
     if (match && match[1]) due = match[1].toLowerCase();
   }
   
-  // Clean the text to remove metadata tags if present
+  // Clean the text to remove metadata tags and contact tags
   let cleanText = memo.text
+    .replace(/\[Contact: [^\]]+\]/g, '')
     .replace(/\[category:\s*\w+\]/gi, '')
     .replace(/\[priority:\s*\w+\]/gi, '')
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Split into title and description if possible
-  let title = cleanText;
-  let description = "";
+  // Use the generated title if available, otherwise generate one
+  let title = memo.title || TitleGenerationService.generateTitle(cleanText, 'task');
+  let description = cleanText;
   
-  const firstPeriod = cleanText.indexOf('. ');
-  if (firstPeriod > 0 && firstPeriod < 50) {
-    title = cleanText.substring(0, firstPeriod + 1);
-    description = cleanText.substring(firstPeriod + 1).trim();
+  // If the title is too long or looks like raw text, regenerate it
+  if (title.length > 50 || title === cleanText) {
+    title = TitleGenerationService.generateTitle(cleanText, 'task');
+    description = cleanText;
+  }
+  
+  // If description is the same as title, clear it to avoid duplication
+  if (description === title) {
+    description = "";
   }
 
   return {
