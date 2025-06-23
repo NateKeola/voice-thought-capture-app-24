@@ -25,8 +25,8 @@ const MEMO_TYPE_COLORS = {
 
 const extractRelationshipMemos = (memos, relationshipId) => {
   return memos.filter(memo => {
-    return memo.text.includes(`[Contact: ${relationshipId}]`) ||
-           memo.text.toLowerCase().includes(relationshipId.toLowerCase());
+    // More precise filtering - check for exact contact tag match
+    return memo.text.includes(`[Contact: ${relationshipId}]`);
   }).map(memo => {
     let type = memo.type;
     if (type === 'idea') type = 'should';
@@ -120,21 +120,28 @@ const RelationshipsPage = () => {
     if (!selectedProfile) return;
     
     try {
-      const fullMemoText = `[Contact: ${selectedProfile.id}] ${newMemoText}`;
+      // Ensure the contact tag is added correctly
+      const fullMemoText = `[Contact: ${selectedProfile.id}] ${newMemoText.trim()}`;
       
-      await createMemo({
+      const newMemo = await createMemo({
         text: fullMemoText,
         type: 'note',
         audioUrl: null
       });
       
-      setNewMemoText('');
-      setShowAddMemoModal(false);
-      setIsRecordingMode(false);
-      toast({
-        title: "Memo added",
-        description: `Your memo for ${selectedProfile.first_name} ${selectedProfile.last_name} has been saved.`,
-      });
+      if (newMemo) {
+        setNewMemoText('');
+        setShowAddMemoModal(false);
+        setIsRecordingMode(false);
+        
+        // Force a refresh of memos to show the new one immediately
+        await refreshMemos();
+        
+        toast({
+          title: "Memo added",
+          description: `Your memo for ${selectedProfile.first_name} ${selectedProfile.last_name} has been saved.`,
+        });
+      }
     } catch (error) {
       console.error('Error adding relationship memo:', error);
       toast({
@@ -188,13 +195,36 @@ const RelationshipsPage = () => {
     }
   };
 
-  const handleMemoCreated = (memoId) => {
-    setShowAddMemoModal(false);
-    setIsRecordingMode(false);
-    toast({
-      title: "Voice memo added",
-      description: `Your voice memo for ${selectedProfile?.first_name} ${selectedProfile?.last_name} has been saved.`,
-    });
+  const handleMemoCreated = async (memoId) => {
+    if (!selectedProfile) return;
+    
+    try {
+      // Find the newly created memo and add the contact tag
+      const memo = memos.find(m => m.id === memoId);
+      if (memo && !memo.text.includes(`[Contact: ${selectedProfile.id}]`)) {
+        // Update the memo to include the contact tag
+        await updateMemo(memoId, {
+          text: `[Contact: ${selectedProfile.id}] ${memo.text}`
+        });
+      }
+      
+      // Refresh memos to show the updated state
+      await refreshMemos();
+      
+      setShowAddMemoModal(false);
+      setIsRecordingMode(false);
+      toast({
+        title: "Voice memo added",
+        description: `Your voice memo for ${selectedProfile?.first_name} ${selectedProfile?.last_name} has been saved.`,
+      });
+    } catch (error) {
+      console.error('Error linking voice memo:', error);
+      toast({
+        title: "Error linking memo",
+        description: "There was a problem linking the voice memo.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getTypeColor = (type) => REL_TYPE_COLORS[type.toLowerCase()] || REL_TYPE_COLORS.default;
@@ -240,7 +270,7 @@ const RelationshipsPage = () => {
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <svg className="h-5 w-5 text-orange-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zm1-12a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
               </svg>
             </div>
             <input

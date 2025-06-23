@@ -18,12 +18,11 @@ export const useRelationshipMemos = (relationshipId?: string) => {
       return;
     }
 
-    // In a real implementation, we would filter by relationship ID in the metadata
-    // This is a simplified approach - it would be better to add a relationship_id column
-    // to the memos table for a proper implementation
-    const filteredMemos = memos.filter(memo => 
-      memo.text.toLowerCase().includes(relationshipId.toLowerCase())
-    );
+    // Filter memos that contain the contact tag for this relationship
+    const filteredMemos = memos.filter(memo => {
+      // Check if memo contains the contact tag with this relationship ID
+      return memo.text.includes(`[Contact: ${relationshipId}]`);
+    });
     
     setRelationshipMemos(filteredMemos);
   }, [memos, relationshipId]);
@@ -35,14 +34,16 @@ export const useRelationshipMemos = (relationshipId?: string) => {
   ) => {
     if (!relationshipId) return null;
     
-    // In a real implementation, we would store the relationship ID in the memo metadata
+    // Add the contact tag at the beginning of the memo text
     const memoText = `[Contact: ${relationshipId}] ${text}`;
     
-    return await createMemo({
+    const newMemo = await createMemo({
       text: memoText,
       type: type,
       audioUrl: null
     });
+
+    return newMemo;
   };
 
   return {
