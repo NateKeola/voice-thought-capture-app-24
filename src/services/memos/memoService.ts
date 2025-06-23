@@ -1,6 +1,7 @@
+
 import { Memo, MemoType } from '@/types';
 import { isAuthenticated, getUserId } from '@/utils/authUtils';
-import { generateEnhancedTitle } from '@/services/titleGeneration';
+import { TitleGenerationService } from '@/services/titleGeneration';
 import {
   saveLocalMemo,
   getAllLocalMemos,
@@ -18,10 +19,10 @@ import {
 
 // Save a new memo
 export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Memo> => {
-  // Generate title if not provided
+  // Generate title if not provided using the new service
   const memoWithTitle = {
     ...memo,
-    title: memo.title || generateEnhancedTitle(memo.text, memo.type)
+    title: memo.title || TitleGenerationService.generateTitle(memo.text, memo.type)
   };
   
   // Check if user is logged in
