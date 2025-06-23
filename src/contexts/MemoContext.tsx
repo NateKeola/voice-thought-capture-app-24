@@ -14,9 +14,6 @@ interface MemoContextType {
   updateMemo: (id: string, updates: Partial<Omit<Memo, 'id' | 'createdAt'>>) => Promise<Memo | null>;
   deleteMemo: (id: string) => Promise<boolean>;
   filterMemos: (filter: MemoType | 'all') => Memo[];
-  toggleTaskCompletion: (id: string) => Promise<boolean>;
-  markTaskCompleted: (id: string) => Promise<boolean>;
-  markTaskIncomplete: (id: string) => Promise<boolean>;
 }
 
 const MemoContext = createContext<MemoContextType | undefined>(undefined);
@@ -122,11 +119,6 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setMemos(prevMemos => prevMemos.filter(memo => memo.id !== id));
       }
       
-      toast({
-        title: "Memo deleted",
-        description: "The memo has been deleted successfully.",
-      });
-      
       return success;
     } catch (err) {
       console.error('Error deleting memo:', err);
@@ -135,71 +127,6 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         description: "There was a problem deleting your memo.",
         variant: "destructive"
       });
-      return false;
-    }
-  };
-
-  const toggleTaskCompletion = async (id: string) => {
-    try {
-      const memo = memos.find(m => m.id === id);
-      if (!memo) {
-        throw new Error('Memo not found');
-      }
-      
-      const newCompletedStatus = !memo.completed;
-      const updatedMemo = await updateMemoItem(id, { completed: newCompletedStatus });
-      
-      if (updatedMemo) {
-        toast({
-          title: newCompletedStatus ? "Task completed!" : "Task marked incomplete",
-          description: newCompletedStatus 
-            ? "Great job! Task has been marked as complete." 
-            : "Task has been marked as incomplete.",
-        });
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error('Error toggling task completion:', err);
-      toast({
-        title: "Error",
-        description: "Failed to update task completion status.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  const markTaskCompleted = async (id: string) => {
-    try {
-      const updatedMemo = await updateMemoItem(id, { completed: true });
-      if (updatedMemo) {
-        toast({
-          title: "Task completed!",
-          description: "Great job! Task has been marked as complete.",
-        });
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error('Error marking task as completed:', err);
-      return false;
-    }
-  };
-
-  const markTaskIncomplete = async (id: string) => {
-    try {
-      const updatedMemo = await updateMemoItem(id, { completed: false });
-      if (updatedMemo) {
-        toast({
-          title: "Task marked incomplete",
-          description: "Task has been marked as incomplete.",
-        });
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error('Error marking task as incomplete:', err);
       return false;
     }
   };
@@ -283,10 +210,7 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     createMemo,
     updateMemo: updateMemoItem,
     deleteMemo: deleteMemoItem,
-    filterMemos,
-    toggleTaskCompletion,
-    markTaskCompleted,
-    markTaskIncomplete
+    filterMemos
   };
 
   return <MemoContext.Provider value={value}>{children}</MemoContext.Provider>;
