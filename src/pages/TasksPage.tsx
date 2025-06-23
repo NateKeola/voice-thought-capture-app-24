@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -332,6 +333,26 @@ const TasksPageContent: React.FC = () => {
     openTaskDialog(categoryId);
   };
 
+  // Context-aware category creation handlers
+  const handleOpenCategoryDialog = () => {
+    if (personalTab === "tasks") {
+      openCategoryDialog();
+    } else {
+      openListCategoryDialog();
+    }
+  };
+
+  // Context-aware create task/list handlers
+  const handleCreateForCategory = (categoryId: string) => {
+    if (personalTab === "tasks") {
+      handleCreateTaskForCategory(categoryId);
+    } else {
+      // TODO: Implement list creation when lists functionality is added
+      console.log("Create list for category:", categoryId);
+      toast.info("List creation coming soon!");
+    }
+  };
+
   // If search is active, show search results
   if (isSearchActive) {
     return (
@@ -416,7 +437,7 @@ const TasksPageContent: React.FC = () => {
                 {viewMode === "categories"
                   ? selectedCategory
                     ? categories.find((c) => c.id === selectedCategory)?.name + " Tasks"
-                    : "All Categories"
+                    : "All Task Categories"
                   : "Task Timeline"}
               </h2>
               <div className="flex items-center gap-2">
@@ -425,7 +446,7 @@ const TasksPageContent: React.FC = () => {
                     variant="outline" 
                     size="sm" 
                     className="flex items-center gap-1" 
-                    onClick={openCategoryDialog}
+                    onClick={handleOpenCategoryDialog}
                   >
                     <FolderPlus size={16} />
                     <span className="hidden sm:inline">New Category</span>
@@ -460,7 +481,7 @@ const TasksPageContent: React.FC = () => {
               </div>
             </div>
 
-            {/* Categories - Show count only, no tasks */}
+            {/* Task Categories - Show count only, no tasks */}
             {viewMode === "categories" && !selectedCategory && (
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {categories.map((cat) => (
@@ -472,28 +493,8 @@ const TasksPageContent: React.FC = () => {
                     count={tasks.filter((t) => t.category === cat.id && !completedTaskIds.includes(t.id)).length}
                     total={tasks.filter((t) => t.category === cat.id).length}
                     onSelect={handleCategorySelect}
-                    onCreateTask={handleCreateTaskForCategory}
+                    onCreateTask={handleCreateForCategory}
                     onDeleteCategory={handleDeleteCategory}
-                    selected={selectedCategory === cat.id}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* List Categories - Independent from task categories */}
-            {viewMode === "categories" && !selectedCategory && (
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                {listCategories.map((cat) => (
-                  <TaskCategoryCard
-                    key={cat.id}
-                    id={cat.id}
-                    name={cat.name}
-                    color={cat.color}
-                    count={0} // TODO: Replace with actual list count when lists are implemented
-                    total={0} // TODO: Replace with actual list total when lists are implemented
-                    onSelect={handleCategorySelect}
-                    onCreateTask={handleCreateTaskForCategory}
-                    onDeleteCategory={handleDeleteListCategory}
                     selected={selectedCategory === cat.id}
                   />
                 ))}
@@ -543,7 +544,7 @@ const TasksPageContent: React.FC = () => {
                     variant="outline" 
                     size="sm" 
                     className="flex items-center gap-1" 
-                    onClick={openListCategoryDialog}
+                    onClick={handleOpenCategoryDialog}
                   >
                     <FolderPlus size={16} />
                     <span className="hidden sm:inline">New Category</span>
@@ -577,6 +578,26 @@ const TasksPageContent: React.FC = () => {
                 </button>
               </div>
             </div>
+
+            {/* List Categories - Independent from task categories */}
+            {viewMode === "categories" && !selectedCategory && (
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                {listCategories.map((cat) => (
+                  <TaskCategoryCard
+                    key={cat.id}
+                    id={cat.id}
+                    name={cat.name}
+                    color={cat.color}
+                    count={0} // TODO: Replace with actual list count when lists are implemented
+                    total={0} // TODO: Replace with actual list total when lists are implemented
+                    onSelect={handleCategorySelect}
+                    onCreateTask={handleCreateForCategory}
+                    onDeleteCategory={handleDeleteListCategory}
+                    selected={selectedCategory === cat.id}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Lists placeholder - TODO: Implement lists functionality */}
             {!(viewMode === "categories" && !selectedCategory) && (
