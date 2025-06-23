@@ -39,7 +39,8 @@ const extractRelationshipMemos = (memos, relationshipId) => {
     if (diffDays === 1) dateStr = 'Yesterday';
     else if (diffDays > 1) dateStr = `${diffDays} days ago`;
     
-    let text = memo.text.replace(`[Contact: ${relationshipId}]`, '').trim();
+    // Remove all contact tags for display, not just the current one
+    let text = memo.text.replace(/\[Contact: [^\]]+\]/g, '').trim();
     
     return {
       id: memo.id,
@@ -67,16 +68,12 @@ const RelationshipsPage = () => {
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const isLoading = authLoading || profilesLoading;
 
-  // Get recent memos (last 10) that aren't already linked to relationships
+  // Get recent memos (last 10) that aren't already linked to the current relationship
   const getRecentMemos = () => {
-    const relationshipMemoIds = new Set();
-    profiles.forEach(profile => {
-      const relationshipMemos = extractRelationshipMemos(memos, profile.id);
-      relationshipMemos.forEach(memo => relationshipMemoIds.add(memo.id));
-    });
+    if (!selectedProfile) return [];
     
     return memos
-      .filter(memo => !relationshipMemoIds.has(memo.id))
+      .filter(memo => !memo.text.includes(`[Contact: ${selectedProfile.id}]`))
       .slice(0, 10)
       .map(memo => ({
         id: memo.id,
@@ -155,6 +152,17 @@ const RelationshipsPage = () => {
       const memo = memos.find(m => m.id === memoId);
       if (!memo) return;
       
+      // Check if this memo is already linked to this relationship
+      if (memo.text.includes(`[Contact: ${selectedProfile.id}]`)) {
+        toast({
+          title: "Already linked",
+          description: `This memo is already linked to ${selectedProfile.first_name} ${selectedProfile.last_name}.`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Append the contact tag instead of replacing the text
       const updatedText = `[Contact: ${selectedProfile.id}] ${memo.text}`;
       
       // Update the memo to link it to the relationship
