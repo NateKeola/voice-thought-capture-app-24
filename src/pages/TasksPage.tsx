@@ -355,27 +355,29 @@ const TasksPageContent: React.FC = () => {
             ))}
           </div>
         )}
-        {/* Task list always shown in timeline section */}
-        <div className="space-y-3">
-          {filteredTasks.map((task) => {
-            console.log('Task being rendered:', task.id, task.title); // Debug log
-            return (
-              <EnhancedTaskItem
-                key={task.id}
-                task={task}
-                getCategoryColor={getCategoryColor}
-                priorityColors={priorityColors}
-                completedTaskIds={completedTaskIds}
-                onToggleComplete={toggleTaskCompletion}
-              />
-            );
-          })}
-          {filteredTasks.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <p>No tasks found.</p>
-            </div>
-          )}
-        </div>
+        {/* Task list - only show when NOT in category overview */}
+        {!(viewMode === "categories" && !selectedCategory) && (
+          <div className="space-y-3">
+            {filteredTasks.map((task) => {
+              console.log('Task being rendered:', task.id, task.title); // Debug log
+              return (
+                <EnhancedTaskItem
+                  key={task.id}
+                  task={task}
+                  getCategoryColor={getCategoryColor}
+                  priorityColors={priorityColors}
+                  completedTaskIds={completedTaskIds}
+                  onToggleComplete={toggleTaskCompletion}
+                />
+              );
+            })}
+            {filteredTasks.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                <p>No tasks found.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <TasksFAB />
       <BottomNavBar activeTab={activeTab} onTabChange={setActiveTab} />
