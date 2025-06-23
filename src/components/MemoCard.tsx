@@ -13,6 +13,9 @@ interface MemoCardProps {
 const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const { text, type, createdAt, audioUrl } = memo;
   
+  // Remove contact tags from display text
+  const displayText = text.replace(/\[Contact: [^\]]+\]/g, '').trim();
+  
   const getTypeConfig = (type: string) => {
     switch (type) {
       case 'note':
@@ -62,7 +65,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
-            <p className="text-base text-foreground line-clamp-3">{text}</p>
+            <p className="text-base text-foreground line-clamp-3">{displayText}</p>
           </div>
         </div>
       </CardContent>

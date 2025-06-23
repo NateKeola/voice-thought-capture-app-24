@@ -22,6 +22,9 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Remove contact tags from display text
+  const displayText = memo.text.replace(/\[Contact: [^\]]+\]/g, '').trim();
+
   const handleSave = async () => {
     await onSave(editedText, editedType);
     setIsEditing(false);
@@ -79,7 +82,7 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
           ) : (
             <div>
               <div className="bg-orange-50 p-4 rounded-md mb-4 text-base">
-                {memo.text}
+                {displayText}
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
