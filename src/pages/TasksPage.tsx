@@ -67,8 +67,12 @@ const mapMemoToTask = (memo: Memo) => {
     description = "";
   }
 
+  // FIX: Use string ID instead of converting to number to avoid NaN
+  const taskId = memo.id; // Keep as string instead of Number(memo.id)
+  console.log('Mapping memo to task:', { memoId: memo.id, taskId, title }); // Debug log
+
   return {
-    id: Number(memo.id), // Convert to number to match expected interface
+    id: taskId, // Use string ID to avoid NaN issues
     title: title,
     description: description,
     completed: memo.completed || false,
@@ -85,8 +89,8 @@ const EnhancedTaskItem: React.FC<{
   task: any;
   getCategoryColor: (id: string) => string;
   priorityColors: { [key: string]: string };
-  completedTaskIds: number[];
-  onToggleComplete: (id: number) => void;
+  completedTaskIds: string[]; // Changed from number[] to string[]
+  onToggleComplete: (id: string) => void; // Changed from number to string
 }> = ({ task, getCategoryColor, priorityColors, completedTaskIds, onToggleComplete }) => {
   const categoryColor = getCategoryColor(task.category);
   const isCompleted = completedTaskIds.includes(task.id);
@@ -177,8 +181,8 @@ const TasksPageContent: React.FC = () => {
   const [showCompleted, setShowCompleted] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
   
-  // SINGLE completion tracking state
-  const [completedTaskIds, setCompletedTaskIds] = useState<number[]>([]);
+  // SINGLE completion tracking state - Changed to string[] for UUID support
+  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>([]);
   
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
@@ -188,8 +192,11 @@ const TasksPageContent: React.FC = () => {
     .filter(memo => memo.type === 'task')
     .map(mapMemoToTask);
 
-  // SINGLE toggle function - EXACT CODE AS REQUESTED
-  const toggleTaskCompletion = (taskId: number) => {
+  console.log('Current completed IDs:', completedTaskIds); // Debug log
+
+  // SINGLE toggle function - Updated for string IDs
+  const toggleTaskCompletion = (taskId: string) => {
+    console.log('Task ID being passed:', taskId); // Debug log
     console.log('Toggling task:', taskId); // Debug log
     setCompletedTaskIds(prev => {
       if (prev.includes(taskId)) {
@@ -325,7 +332,7 @@ const TasksPageContent: React.FC = () => {
         {/* Task list with single completion tracking */}
         <div className="space-y-3">
           {filteredTasks.map((task) => {
-            console.log('Rendering task with ID:', task.id, 'Type:', typeof task.id); // Debug log
+            console.log('Task being rendered:', task.id, task.title); // Debug log
             return (
               <EnhancedTaskItem
                 key={task.id}
