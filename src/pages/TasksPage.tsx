@@ -93,6 +93,7 @@ const EnhancedTaskItem: React.FC<{
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent event bubbling
+    console.log('Button clicked for task ID:', task.id, 'Type:', typeof task.id); // Debug log
     onToggleComplete(task.id);
   };
 
@@ -187,14 +188,15 @@ const TasksPageContent: React.FC = () => {
     .filter(memo => memo.type === 'task')
     .map(mapMemoToTask);
 
-  // SINGLE toggle function
+  // SINGLE toggle function - EXACT CODE AS REQUESTED
   const toggleTaskCompletion = (taskId: number) => {
+    console.log('Toggling task:', taskId); // Debug log
     setCompletedTaskIds(prev => {
       if (prev.includes(taskId)) {
-        // Remove from completed list
+        // Task is completed, mark as incomplete
         return prev.filter(id => id !== taskId);
       } else {
-        // Add to completed list
+        // Task is not completed, mark as completed
         return [...prev, taskId];
       }
     });
@@ -322,16 +324,19 @@ const TasksPageContent: React.FC = () => {
         )}
         {/* Task list with single completion tracking */}
         <div className="space-y-3">
-          {filteredTasks.map((task) => (
-            <EnhancedTaskItem
-              key={task.id}
-              task={task}
-              getCategoryColor={getCategoryColor}
-              priorityColors={priorityColors}
-              completedTaskIds={completedTaskIds}
-              onToggleComplete={toggleTaskCompletion}
-            />
-          ))}
+          {filteredTasks.map((task) => {
+            console.log('Rendering task with ID:', task.id, 'Type:', typeof task.id); // Debug log
+            return (
+              <EnhancedTaskItem
+                key={task.id}
+                task={task}
+                getCategoryColor={getCategoryColor}
+                priorityColors={priorityColors}
+                completedTaskIds={completedTaskIds}
+                onToggleComplete={toggleTaskCompletion}
+              />
+            );
+          })}
           {filteredTasks.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <p>No tasks found.</p>
