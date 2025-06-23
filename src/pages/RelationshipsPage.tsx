@@ -63,7 +63,7 @@ const RelationshipsPage = () => {
   const [newMemoText, setNewMemoText] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [globalTab, setGlobalTab] = useState('relationships');
-  const { memos, createMemo } = useMemos();
+  const { memos, createMemo, updateMemo, refreshMemos } = useMemos();
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const isLoading = authLoading || profilesLoading;
 
@@ -158,17 +158,18 @@ const RelationshipsPage = () => {
       const updatedText = `[Contact: ${selectedProfile.id}] ${memo.text}`;
       
       // Update the memo to link it to the relationship
-      await fetch('/api/memos/' + memoId, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: updatedText })
-      });
+      const updatedMemo = await updateMemo(memoId, { text: updatedText });
       
-      setShowLinkMemoModal(false);
-      toast({
-        title: "Memo linked",
-        description: `Memo linked to ${selectedProfile.first_name} ${selectedProfile.last_name}.`,
-      });
+      if (updatedMemo) {
+        // Refresh memos to get the updated state
+        await refreshMemos();
+        
+        setShowLinkMemoModal(false);
+        toast({
+          title: "Memo linked",
+          description: `Memo linked to ${selectedProfile.first_name} ${selectedProfile.last_name}.`,
+        });
+      }
     } catch (error) {
       console.error('Error linking memo:', error);
       toast({
@@ -361,7 +362,7 @@ const RelationshipsPage = () => {
                 <div className="flex-1 p-4 overflow-y-auto">
                   <div className="space-y-4">
                     {extractRelationshipMemos(memos, selectedProfile.id).map((memo, idx) => (
-                      <div key={idx} className="p-3 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
+                      <div key={memo.id || idx} className="p-3 rounded-xl border border-gray-100 hover:shadow-md transition-shadow">
                         <div className="flex">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${getMemoTypeColor(memo.type)}`}>
                             {getMemoTypeIcon(memo.type)}
