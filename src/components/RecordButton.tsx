@@ -1,314 +1,178 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState } from 'react';
+import { Mic, MicOff, Play, Pause, Square } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Loader2, Save, Trash2 } from "lucide-react";
-import { AudioRecorderService } from "@/services/AudioRecorder";
-import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
-import { PersonDetectionService, DetectedPerson } from "@/services/PersonDetectionService";
-import { saveMemo } from "@/services/MemoStorage";
-import { useToast } from "@/components/ui/use-toast";
-import RecordingButton from "@/components/home/RecordingButton";
-import PersonConfirmationDialog from "./PersonConfirmationDialog";
+import { AudioRecorder } from '@/services/AudioRecorder';
+import { useMemos } from '@/contexts/MemoContext';
+import { detectMemoType } from '@/services/SpeechToText';
+import { TitleGenerationService } from '@/services/titleGeneration';
+import { PersonDetectionService, DetectedPerson } from '@/services/PersonDetectionService';
 
 interface RecordButtonProps {
   onMemoCreated?: (memoId: string) => void;
   onLiveTranscription?: (text: string) => void;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
 }
 
-const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTranscription }) => {
+const RecordButton: React.FC<RecordButtonProps> = ({ 
+  onMemoCreated, 
+  onLiveTranscription,
+  size = 'lg',
+  className = ''
+}) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [audioRecorder, setAudioRecorder] = useState<AudioRecorder | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
+  const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>([]);
+  const [pendingMemoData, setPendingMemoData] = useState<any>(null);
+
+  const { createMemo } = useMemos();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [recognizedText, setRecognizedText] = useState('');
-  const [recordingComplete, setRecordingComplete] = useState(false);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [showPersonDialog, setShowPersonDialog] = useState(false);
-  const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
-  const [pendingMemoData, setPendingMemoData] = useState<any>(null);
-  
-  // Recording state
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [formattedDuration, setFormattedDuration] = useState('0:00');
-  
-  const audioServiceRef = useRef<AudioRecorderService | null>(null);
-  const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
-  const durationInterval = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    // Initialize audio service
-    audioServiceRef.current = new AudioRecorderService();
-    
-    return () => {
-      // Cleanup
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-      }
-      if (durationInterval.current) {
-        clearInterval(durationInterval.current);
-      }
-      audioServiceRef.current?.destroy();
-    };
-  }, []);
-
-  const updateRecordingState = () => {
-    if (audioServiceRef.current) {
-      setIsRecording(audioServiceRef.current.getIsRecording());
-      setIsPaused(audioServiceRef.current.getIsPaused());
-      setRecordingDuration(audioServiceRef.current.getRecordingDuration());
-      setFormattedDuration(audioServiceRef.current.getFormattedDuration());
-    }
-  };
-
-  const handleToggleRecording = async () => {
-    if (isRecording) {
-      try {
-        setIsProcessing(true);
-        
-        // Stop live transcription
-        if (speechRecognitionRef.current) {
-          speechRecognitionRef.current.stop();
-          speechRecognitionRef.current = null;
-        }
-        
-        // Stop duration tracking
-        if (durationInterval.current) {
-          clearInterval(durationInterval.current);
-          durationInterval.current = null;
-        }
-        
-        // Stop audio recording
-        const blob = await audioServiceRef.current?.stopRecording();
-        setAudioBlob(blob);
-        updateRecordingState();
-        
-        // Use Whisper for final, high-quality transcription
-        if (blob && audioServiceRef.current) {
-          try {
-            console.log('Getting high-quality transcription with Whisper...');
-            const result = await audioServiceRef.current.transcribeAudio(blob);
-            
-            if (result.transcription.trim()) {
-              setRecognizedText(result.transcription);
-              
-              if (onLiveTranscription) {
-                onLiveTranscription(result.transcription);
-              }
-              
-              toast({
-                title: "Recording complete",
-                description: "High-quality transcription ready"
-              });
-            } else {
-              toast({
-                title: "Recording complete",
-                description: "No speech detected in recording",
-                variant: "destructive"
-              });
-            }
-          } catch (transcriptionError) {
-            console.error('Whisper transcription failed:', transcriptionError);
-            
-            // Fallback to live transcription if Whisper fails
-            if (recognizedText.trim()) {
-              toast({
-                title: "Recording complete",
-                description: "Using live transcription (Whisper unavailable)"
-              });
-            } else {
-              toast({
-                title: "Transcription failed",
-                description: "Could not transcribe the audio. Please try again.",
-                variant: "destructive"
-              });
-            }
-          }
-        }
-        
-        setRecordingComplete(true);
-        setIsProcessing(false);
-      } catch (error) {
-        console.error('Error processing recording:', error);
-        toast({
-          title: "Error saving memo",
-          description: "There was a problem processing your recording.",
-          variant: "destructive"
-        });
-        setIsProcessing(false);
-      }
-    } else {
-      setRecordingComplete(false);
-      setRecognizedText('');
-      setAudioBlob(null);
-      
-      await audioServiceRef.current?.startRecording();
-      updateRecordingState();
-      
-      // Start duration tracking
-      durationInterval.current = setInterval(() => {
-        updateRecordingState();
-      }, 1000);
-      
-      // Start live transcription for real-time feedback
-      try {
-        speechRecognitionRef.current = startLiveTranscription(
-          (interimText) => {
-            if (onLiveTranscription) {
-              onLiveTranscription(interimText);
-            }
-          },
-          (result: TranscriptionResult) => {
-            const newText = result.text.trim();
-            setRecognizedText(prev => `${prev} ${newText}`.trim());
-            
-            if (onLiveTranscription) {
-              onLiveTranscription(`${recognizedText} ${newText}`.trim());
-            }
-          },
-          (error) => {
-            console.error('Live speech recognition error:', error);
-            // Don't show error toast for live transcription since Whisper is the fallback
-          }
-        );
-      } catch (error) {
-        console.error('Failed to start live speech recognition:', error);
-        // Continue without live transcription, Whisper will handle it at the end
-      }
-    }
-  };
-
-  const handlePauseResume = () => {
-    if (isPaused) {
-      audioServiceRef.current?.resumeRecording();
-      updateRecordingState();
-      
-      // Restart duration tracking
-      durationInterval.current = setInterval(() => {
-        updateRecordingState();
-      }, 1000);
-      
-      try {
-        speechRecognitionRef.current = startLiveTranscription(
-          (interimText) => {
-            if (onLiveTranscription) {
-              onLiveTranscription(interimText);
-            }
-          },
-          (result: TranscriptionResult) => {
-            const newText = result.text.trim();
-            setRecognizedText(prev => `${prev} ${newText}`.trim());
-            
-            if (onLiveTranscription) {
-              onLiveTranscription(`${recognizedText} ${newText}`.trim());
-            }
-          },
-          (error) => {
-            console.error('Speech recognition error:', error);
-          }
-        );
-      } catch (error) {
-        console.error('Failed to restart speech recognition:', error);
-      }
-    } else {
-      audioServiceRef.current?.pauseRecording();
-      updateRecordingState();
-      
-      // Stop duration tracking
-      if (durationInterval.current) {
-        clearInterval(durationInterval.current);
-        durationInterval.current = null;
-      }
-      
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-        speechRecognitionRef.current = null;
-      }
-    }
-  };
-
-  const handleSaveMemo = async () => {
+  const startRecording = async () => {
     try {
+      const recorder = new AudioRecorder({
+        onTranscriptionUpdate: onLiveTranscription || (() => {}),
+        onTranscriptionComplete: handleTranscriptionComplete,
+        onError: (error) => {
+          console.error('Recording error:', error);
+          toast({
+            title: "Recording Error",
+            description: "There was an issue with the recording. Please try again.",
+            variant: "destructive"
+          });
+          setIsRecording(false);
+          setIsProcessing(false);
+        }
+      });
+
+      await recorder.startRecording();
+      setAudioRecorder(recorder);
+      setIsRecording(true);
+      
+      toast({
+        title: "Recording started",
+        description: "Speak clearly into your microphone"
+      });
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      toast({
+        title: "Recording Failed",
+        description: "Could not access microphone. Please check permissions.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopRecording = async () => {
+    if (audioRecorder) {
+      setIsRecording(false);
       setIsProcessing(true);
       
-      const memoText = recognizedText || "Empty memo";
-      const memoType = detectMemoType(memoText);
-      const audioUrl = audioBlob ? URL.createObjectURL(audioBlob) : undefined;
+      toast({
+        title: "Processing...",
+        description: "Converting speech to text"
+      });
       
-      // Detect people mentioned in the text
-      const people = PersonDetectionService.detectPeople(memoText);
+      await audioRecorder.stopRecording();
+    }
+  };
+
+  const handleTranscriptionComplete = async (transcript: string, audioUrl?: string) => {
+    setIsProcessing(false);
+    setAudioRecorder(null);
+
+    if (!transcript || transcript.trim().length === 0) {
+      toast({
+        title: "No speech detected",
+        description: "Please try recording again",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Detect memo type and generate title
+      const memoType = detectMemoType(transcript);
+      const generatedTitle = TitleGenerationService.generateTitle(transcript, memoType);
+      
+      // Detect people mentioned in the transcript
+      const people = PersonDetectionService.detectPeople(transcript);
       
       if (people.length > 0) {
-        // Show confirmation dialog for detected people
+        // Show save dialog with detected people
         setDetectedPeople(people);
+        setSelectedPeople(people.filter(p => p.confidence > 0.8));
         setPendingMemoData({
-          text: memoText,
+          text: transcript,
           type: memoType,
-          audioUrl: audioUrl
+          audioUrl: audioUrl || null,
+          title: generatedTitle
         });
-        setShowPersonDialog(true);
-        setIsProcessing(false);
+        setShowSaveDialog(true);
       } else {
         // No people detected, create memo normally
         await createMemoDirectly({
-          text: memoText,
+          text: transcript,
           type: memoType,
-          audioUrl: audioUrl
+          audioUrl: audioUrl || null,
+          title: generatedTitle
         });
       }
     } catch (error) {
-      console.error('Error saving memo:', error);
+      console.error('Error processing recording:', error);
       toast({
-        title: "Error saving memo",
-        description: "There was a problem saving your recording.",
+        title: "Processing Error",
+        description: "There was an error processing your recording.",
         variant: "destructive"
       });
-      setIsProcessing(false);
     }
   };
 
   const createMemoDirectly = async (memoData: any) => {
     try {
-      const memo = await saveMemo(memoData);
+      const memo = await createMemo(memoData);
       
-      toast({
-        title: "Memo saved!",
-        description: `Your ${memoData.type} has been saved.`
-      });
-      
-      navigate(`/memo/${memo.id}`);
-      
-      if (onMemoCreated) {
-        onMemoCreated(memo.id);
+      if (memo) {
+        toast({
+          title: "Voice memo saved!",
+          description: `Your ${memoData.type} has been saved.`
+        });
+
+        // Navigate to the memo detail page
+        navigate(`/memo/${memo.id}`);
+        
+        // Notify parent component
+        if (onMemoCreated) {
+          onMemoCreated(memo.id);
+        }
       }
-      
-      if (onLiveTranscription) {
-        onLiveTranscription('');
-      }
-      
-      setRecognizedText('');
-      setRecordingComplete(false);
-      setAudioBlob(null);
-      setIsProcessing(false);
     } catch (error) {
       console.error('Error saving memo:', error);
       toast({
         title: "Error saving memo",
-        description: "There was a problem saving your recording.",
+        description: "There was a problem saving your memo.",
         variant: "destructive"
       });
-      setIsProcessing(false);
     }
   };
 
-  const handlePersonConfirmation = async (confirmedPeople: DetectedPerson[]) => {
+  const handleSaveMemo = async () => {
     if (!pendingMemoData) return;
 
     try {
-      // Add contact tags to the memo text
+      // Add contact tags to the memo text for selected people
       const enhancedText = PersonDetectionService.addContactTags(
         pendingMemoData.text, 
-        confirmedPeople
+        selectedPeople
       );
 
       // Create memo with enhanced text
@@ -318,15 +182,17 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       });
 
       // Show success message with contact info
-      if (confirmedPeople.length > 0) {
+      if (selectedPeople.length > 0) {
         toast({
-          title: "Memo saved with contacts!",
-          description: `Added ${confirmedPeople.length} contact${confirmedPeople.length !== 1 ? 's' : ''} to your memo.`
+          title: "Voice memo saved with contacts!",
+          description: `Added ${selectedPeople.length} contact${selectedPeople.length !== 1 ? 's' : ''} to your memo.`
         });
       }
 
       // Reset state
+      setShowSaveDialog(false);
       setDetectedPeople([]);
+      setSelectedPeople([]);
       setPendingMemoData(null);
     } catch (error) {
       console.error('Error saving memo with contacts:', error);
@@ -338,138 +204,168 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
     }
   };
 
-  const handlePersonSkip = async () => {
-    if (!pendingMemoData) return;
+  const handleAddToRelationships = () => {
+    if (!pendingMemoData || selectedPeople.length === 0) return;
 
-    // Create memo without contact tags
-    await createMemoDirectly(pendingMemoData);
+    // First save the memo with contact tags
+    const enhancedText = PersonDetectionService.addContactTags(
+      pendingMemoData.text, 
+      selectedPeople
+    );
+
+    // Create the memo
+    createMemoDirectly({
+      ...pendingMemoData,
+      text: enhancedText
+    });
+
+    // Store selected people in session storage for the relationships page
+    const peopleForRelationships = selectedPeople.map(person => ({
+      firstName: person.name.split(' ')[0] || person.name,
+      lastName: person.name.split(' ').slice(1).join(' ') || '',
+      type: person.relationship === 'colleague' || person.relationship === 'manager' || person.relationship === 'client' || person.relationship === 'teammate' ? 'work' : 'personal',
+      relationshipDescription: `Mentioned in memo: "${person.context.substring(0, 100)}${person.context.length > 100 ? '...' : ''}"`
+    }));
+
+    sessionStorage.setItem('pendingRelationships', JSON.stringify(peopleForRelationships));
+    
+    // Navigate to relationships page
+    navigate('/relationships');
     
     // Reset state
+    setShowSaveDialog(false);
     setDetectedPeople([]);
+    setSelectedPeople([]);
     setPendingMemoData(null);
   };
 
-  const handleCancel = () => {
-    setRecordingComplete(false);
-    setRecognizedText('');
-    setAudioBlob(null);
-    
-    audioServiceRef.current?.cancelRecording();
-    updateRecordingState();
-    
-    if (onLiveTranscription) {
-      onLiveTranscription('');
+  const handlePersonToggle = (person: DetectedPerson, checked: boolean) => {
+    if (checked) {
+      setSelectedPeople(prev => [...prev, person]);
+    } else {
+      setSelectedPeople(prev => prev.filter(p => p.name !== person.name));
     }
-    
-    toast({
-      title: "Recording discarded",
-      description: "Your recording has been discarded."
-    });
   };
 
-  const renderRecordingControls = () => {
-    if (recordingComplete) {
-      return (
-        <div className="flex flex-col items-center gap-4">
-          <div className="text-center text-gray-700 mb-2">
-            <p>Recording Complete</p>
-            <p className="text-sm text-gray-500">{recognizedText.substring(0, 50)}{recognizedText.length > 50 ? '...' : ''}</p>
-          </div>
-          <div className="flex gap-3 justify-center">
-            <Button
-              onClick={handleCancel}
-              variant="outline"
-              className="rounded-full h-12 px-4 border-gray-300"
-              disabled={isProcessing}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Discard
-            </Button>
-            <Button
-              onClick={handleSaveMemo}
-              disabled={isProcessing}
-              className="rounded-full h-12 px-6 bg-orange-500 hover:bg-orange-600"
-            >
-              {isProcessing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Save className="h-4 w-4 mr-2" />
-              )}
-              Save Memo
-            </Button>
-          </div>
-        </div>
-      );
+  const getButtonSize = () => {
+    switch (size) {
+      case 'sm': return 'w-12 h-12';
+      case 'md': return 'w-16 h-16';
+      case 'lg': return 'w-20 h-20';
+      default: return 'w-20 h-20';
     }
+  };
 
-    if (isRecording) {
-      return (
-        <div className="flex flex-col items-center gap-4">
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black text-white px-3 py-1 rounded-full text-sm">
-            {formattedDuration}
-          </div>
-          <div className="relative">
-            {!isPaused && (
-              <div className="recording-animation pointer-events-none absolute -inset-8 rounded-full z-0"></div>
-            )}
-            <div className="relative z-10">
-              <RecordingButton 
-                onStartRecording={handleToggleRecording}
-                onPauseResumeRecording={handlePauseResume}
-                isRecording={isRecording}
-                isPaused={isPaused}
-              />
-            </div>
-          </div>
-          <Button
-            onClick={handleToggleRecording}
-            disabled={isProcessing}
-            className="rounded-full h-12 px-6 bg-red-500 hover:bg-red-600 relative z-10"
-          >
-            {isProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <>Stop</>
-            )}
-          </Button>
-          {recognizedText && (
-            <div className="flex justify-center w-full mt-4">
-              <Button
-                onClick={handleSaveMemo}
-                disabled={isProcessing}
-                className="rounded-full px-6 bg-orange-500 hover:bg-orange-600"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save Memo
-              </Button>
-            </div>
-          )}
-        </div>
-      );
+  const getIconSize = () => {
+    switch (size) {
+      case 'sm': return 'h-5 w-5';
+      case 'md': return 'h-7 w-7';
+      case 'lg': return 'h-8 w-8';
+      default: return 'h-8 w-8';
     }
-
-    return (
-      <RecordingButton 
-        onStartRecording={handleToggleRecording} 
-        isRecording={false}
-        isPaused={false}
-      />
-    );
   };
 
   return (
     <>
-      <div className="relative flex flex-col items-center">
-        {renderRecordingControls()}
-      </div>
+      <Button
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={isProcessing}
+        className={`${getButtonSize()} rounded-full ${className} ${
+          isRecording 
+            ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
+            : isProcessing
+            ? 'bg-gray-400 cursor-not-allowed'
+            : 'bg-orange-500 hover:bg-orange-600'
+        } text-white shadow-lg transition-all duration-200`}
+        variant="default"
+      >
+        {isProcessing ? (
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+        ) : isRecording ? (
+          <Square className={getIconSize()} />
+        ) : (
+          <Mic className={getIconSize()} />
+        )}
+      </Button>
 
-      <PersonConfirmationDialog
-        open={showPersonDialog}
-        detectedPeople={detectedPeople}
-        onConfirm={handlePersonConfirmation}
-        onSkip={handlePersonSkip}
-        onClose={() => setShowPersonDialog(false)}
-      />
+      {/* Save Memo Dialog with Person Detection */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 mx-4 max-h-96">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-bold text-gray-800 text-lg">Save Voice Memo</h3>
+              <button
+                className="text-gray-500"
+                onClick={() => setShowSaveDialog(false)}
+                aria-label="Close"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-gray-600 text-sm mb-3">
+                I detected these people in your voice memo:
+              </p>
+              
+              <div className="space-y-3 max-h-48 overflow-y-auto">
+                {detectedPeople.map((person, index) => (
+                  <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50">
+                    <Checkbox
+                      checked={selectedPeople.some(p => p.name === person.name)}
+                      onCheckedChange={(checked) => 
+                        handlePersonToggle(person, checked as boolean)
+                      }
+                      className="mt-1"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium">{person.name}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {Math.round(person.confidence * 100)}%
+                        </Badge>
+                      </div>
+                      
+                      {person.relationship && (
+                        <div className="text-sm text-blue-600 mb-1">
+                          {person.relationship}
+                        </div>
+                      )}
+                      
+                      <div className="text-xs text-gray-500 line-clamp-2">
+                        "{person.context}"
+                      </div>
+                      
+                      <Badge variant="outline" className="text-xs mt-1">
+                        {person.mentionType}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="flex flex-col space-y-2">
+              <Button
+                onClick={handleAddToRelationships}
+                className="w-full bg-blue-500 hover:bg-blue-600"
+                disabled={selectedPeople.length === 0}
+              >
+                Save & Add {selectedPeople.length} to Relationships
+              </Button>
+              <Button
+                onClick={handleSaveMemo}
+                variant="outline"
+                className="w-full"
+              >
+                Save Memo Only
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
