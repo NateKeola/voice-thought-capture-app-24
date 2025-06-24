@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Save, Trash2 } from "lucide-react";
 import { AudioRecorderService } from "@/services/AudioRecorder";
 import { startLiveTranscription, detectMemoType, TranscriptionResult } from "@/services/SpeechToText";
+import { PersonDetectionService, DetectedPerson } from "@/services/PersonDetectionService";
 import { saveMemo } from "@/services/MemoStorage";
 import { useToast } from "@/components/ui/use-toast";
 import RecordingButton from "@/components/home/RecordingButton";
+import PersonConfirmationDialog from "./PersonConfirmationDialog";
 
 interface RecordButtonProps {
   onMemoCreated?: (memoId: string) => void;
@@ -20,6 +22,9 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   const [recognizedText, setRecognizedText] = useState('');
   const [recordingComplete, setRecordingComplete] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [showPersonDialog, setShowPersonDialog] = useState(false);
+  const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
+  const [pendingMemoData, setPendingMemoData] = useState<any>(null);
   
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -227,20 +232,48 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       setIsProcessing(true);
       
       const memoText = recognizedText || "Empty memo";
-      
       const memoType = detectMemoType(memoText);
-      
       const audioUrl = audioBlob ? URL.createObjectURL(audioBlob) : undefined;
       
-      const memo = await saveMemo({
-        text: memoText,
-        type: memoType,
-        audioUrl: audioUrl
+      // Detect people mentioned in the text
+      const people = PersonDetectionService.detectPeople(memoText);
+      
+      if (people.length > 0) {
+        // Show confirmation dialog for detected people
+        setDetectedPeople(people);
+        setPendingMemoData({
+          text: memoText,
+          type: memoType,
+          audioUrl: audioUrl
+        });
+        setShowPersonDialog(true);
+        setIsProcessing(false);
+      } else {
+        // No people detected, create memo normally
+        await createMemoDirectly({
+          text: memoText,
+          type: memoType,
+          audioUrl: audioUrl
+        });
+      }
+    } catch (error) {
+      console.error('Error saving memo:', error);
+      toast({
+        title: "Error saving memo",
+        description: "There was a problem saving your recording.",
+        variant: "destructive"
       });
+      setIsProcessing(false);
+    }
+  };
+
+  const createMemoDirectly = async (memoData: any) => {
+    try {
+      const memo = await saveMemo(memoData);
       
       toast({
         title: "Memo saved!",
-        description: `Your ${memoType} has been saved.`
+        description: `Your ${memoData.type} has been saved.`
       });
       
       navigate(`/memo/${memo.id}`);
@@ -256,7 +289,7 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
       setRecognizedText('');
       setRecordingComplete(false);
       setAudioBlob(null);
-      
+      setIsProcessing(false);
     } catch (error) {
       console.error('Error saving memo:', error);
       toast({
@@ -264,9 +297,56 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
         description: "There was a problem saving your recording.",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handlePersonConfirmation = async (confirmedPeople: DetectedPerson[]) => {
+    if (!pendingMemoData) return;
+
+    try {
+      // Add contact tags to the memo text
+      const enhancedText = PersonDetectionService.addContactTags(
+        pendingMemoData.text, 
+        confirmedPeople
+      );
+
+      // Create memo with enhanced text
+      await createMemoDirectly({
+        ...pendingMemoData,
+        text: enhancedText
+      });
+
+      // Show success message with contact info
+      if (confirmedPeople.length > 0) {
+        toast({
+          title: "Memo saved with contacts!",
+          description: `Added ${confirmedPeople.length} contact${confirmedPeople.length !== 1 ? 's' : ''} to your memo.`
+        });
+      }
+
+      // Reset state
+      setDetectedPeople([]);
+      setPendingMemoData(null);
+    } catch (error) {
+      console.error('Error saving memo with contacts:', error);
+      toast({
+        title: "Error saving memo",
+        description: "There was a problem saving your memo with contacts.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePersonSkip = async () => {
+    if (!pendingMemoData) return;
+
+    // Create memo without contact tags
+    await createMemoDirectly(pendingMemoData);
+    
+    // Reset state
+    setDetectedPeople([]);
+    setPendingMemoData(null);
   };
 
   const handleCancel = () => {
@@ -378,9 +458,19 @@ const RecordButton: React.FC<RecordButtonProps> = ({ onMemoCreated, onLiveTransc
   };
 
   return (
-    <div className="relative flex flex-col items-center">
-      {renderRecordingControls()}
-    </div>
+    <>
+      <div className="relative flex flex-col items-center">
+        {renderRecordingControls()}
+      </div>
+
+      <PersonConfirmationDialog
+        open={showPersonDialog}
+        detectedPeople={detectedPeople}
+        onConfirm={handlePersonConfirmation}
+        onSkip={handlePersonSkip}
+        onClose={() => setShowPersonDialog(false)}
+      />
+    </>
   );
 };
 
