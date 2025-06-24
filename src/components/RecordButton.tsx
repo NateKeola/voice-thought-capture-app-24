@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { AudioRecorder } from '@/services/AudioRecorder';
+import { useAudioRecorder } from '@/services/AudioRecorder';
 import { useMemos } from '@/contexts/MemoContext';
 import { detectMemoType } from '@/services/SpeechToText';
 import { TitleGenerationService } from '@/services/titleGeneration';

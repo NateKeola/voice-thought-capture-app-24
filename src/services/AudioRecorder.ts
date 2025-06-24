@@ -7,6 +7,9 @@ export interface AudioRecorderConfig {
   echoCancellation?: boolean;
   noiseSuppression?: boolean;
   autoGainControl?: boolean;
+  onTranscriptionUpdate?: (text: string) => void;
+  onTranscriptionComplete?: (transcript: string, audioUrl?: string) => void;
+  onError?: (error: Error) => void;
 }
 
 export interface TranscriptionResult {
@@ -15,7 +18,7 @@ export interface TranscriptionResult {
   duration?: number;
 }
 
-export class AudioRecorderService {
+export class AudioRecorder {
   private mediaRecorder: MediaRecorder | null = null;
   private audioChunks: Blob[] = [];
   private stream: MediaStream | null = null;
@@ -86,6 +89,18 @@ export class AudioRecorderService {
         }
       };
       
+      this.mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        try {
+          const result = await this.transcribeAudio(audioBlob);
+          this.config.onTranscriptionComplete?.(result.transcription, audioUrl);
+        } catch (error) {
+          this.config.onError?.(error as Error);
+        }
+      };
+      
       this.mediaRecorder.start();
       this.isRecording = true;
       this.isPaused = false;
@@ -99,31 +114,19 @@ export class AudioRecorderService {
       console.log('Recording started successfully');
     } catch (error) {
       console.error('Error starting recording:', error);
+      this.config.onError?.(error as Error);
       throw error;
     }
   }
 
-  public stopRecording(): Promise<Blob | null> {
-    return new Promise((resolve) => {
-      if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
-        resolve(null);
-        return;
-      }
+  public async stopRecording(): Promise<void> {
+    if (!this.mediaRecorder || this.mediaRecorder.state === 'inactive') {
+      return;
+    }
 
-      console.log('Stopping audio recording...');
-      
-      this.mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
-        
-        // Cleanup
-        this.cleanup();
-        
-        console.log('Recording stopped, audio blob created');
-        resolve(audioBlob);
-      };
-      
-      this.mediaRecorder.stop();
-    });
+    console.log('Stopping audio recording...');
+    this.mediaRecorder.stop();
+    this.cleanup();
   }
 
   public pauseRecording(): void {
@@ -206,6 +209,9 @@ export class AudioRecorderService {
     this.recordingDuration = 0;
   }
 }
+
+// Legacy service class for backward compatibility
+export class AudioRecorderService extends AudioRecorder {}
 
 // For backward compatibility, export a hook that uses the service
 export const useAudioRecorder = () => {
