@@ -81,8 +81,7 @@ const RelationshipsPage = () => {
           setPrefilledRelationshipData(firstPerson);
           setShowAddModal(true);
           
-          // Clear from session storage
-          sessionStorage.removeItem('pendingRelationships');
+          // Don't clear from session storage yet - wait until after memo is saved
           
           toast({
             title: "Detected contacts ready",
@@ -144,7 +143,13 @@ const RelationshipsPage = () => {
             setPrefilledRelationshipData(remainingRelationships[0]);
             setShowAddModal(true);
           } else {
+            // All relationships processed, clear session storage
             sessionStorage.removeItem('pendingRelationships');
+            
+            toast({
+              title: "All contacts added!",
+              description: "Your memo has been saved and all detected contacts have been added to your relationships."
+            });
           }
         } catch (error) {
           console.error('Error processing remaining relationships:', error);

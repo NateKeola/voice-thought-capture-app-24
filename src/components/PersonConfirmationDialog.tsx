@@ -46,6 +46,9 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
   };
 
   const handleAddToRelationships = () => {
+    // First save the memo with contact tags
+    onConfirm(selectedPeople);
+    
     // Store selected people in session storage for the relationships page
     const peopleForRelationships = selectedPeople.map(person => ({
       firstName: person.name.split(' ')[0] || person.name,
