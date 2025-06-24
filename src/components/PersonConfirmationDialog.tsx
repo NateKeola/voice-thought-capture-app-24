@@ -13,6 +13,7 @@ interface PersonConfirmationDialogProps {
   onConfirm: (confirmedPeople: DetectedPerson[]) => void;
   onSkip: () => void;
   onClose: () => void;
+  onSaveAndAddToRelationships?: (confirmedPeople: DetectedPerson[]) => void;
 }
 
 const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
@@ -20,7 +21,8 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
   detectedPeople,
   onConfirm,
   onSkip,
-  onClose
+  onClose,
+  onSaveAndAddToRelationships
 }) => {
   const navigate = useNavigate();
   const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>(
@@ -46,21 +48,26 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
   };
 
   const handleAddToRelationships = () => {
-    // First save the memo with contact tags
-    onConfirm(selectedPeople);
-    
-    // Store selected people in session storage for the relationships page
-    const peopleForRelationships = selectedPeople.map(person => ({
-      firstName: person.name.split(' ')[0] || person.name,
-      lastName: person.name.split(' ').slice(1).join(' ') || '',
-      type: person.relationship === 'colleague' || person.relationship === 'manager' || person.relationship === 'client' || person.relationship === 'teammate' ? 'work' : 'personal',
-      relationshipDescription: `Mentioned in memo: "${person.context.substring(0, 100)}${person.context.length > 100 ? '...' : ''}"`
-    }));
+    if (onSaveAndAddToRelationships) {
+      // Save memo with contact tags and navigate to relationships
+      onSaveAndAddToRelationships(selectedPeople);
+    } else {
+      // Fallback to old behavior
+      onConfirm(selectedPeople);
+      
+      // Store selected people in session storage for the relationships page
+      const peopleForRelationships = selectedPeople.map(person => ({
+        firstName: person.name.split(' ')[0] || person.name,
+        lastName: person.name.split(' ').slice(1).join(' ') || '',
+        type: person.relationship === 'colleague' || person.relationship === 'manager' || person.relationship === 'client' || person.relationship === 'teammate' ? 'work' : 'personal',
+        relationshipDescription: `Mentioned in memo: "${person.context.substring(0, 100)}${person.context.length > 100 ? '...' : ''}"`
+      }));
 
-    sessionStorage.setItem('pendingRelationships', JSON.stringify(peopleForRelationships));
-    
-    // Navigate to relationships page
-    navigate('/relationships');
+      sessionStorage.setItem('pendingRelationships', JSON.stringify(peopleForRelationships));
+      
+      // Navigate to relationships page
+      navigate('/relationships');
+    }
     onClose();
   };
 
@@ -118,7 +125,7 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
               className="w-full bg-blue-500 hover:bg-blue-600"
               disabled={selectedPeople.length === 0}
             >
-              Add {selectedPeople.length} to Relationships
+              Save & Add {selectedPeople.length} to Relationships
             </Button>
             <div className="flex space-x-3">
               <Button
@@ -127,7 +134,7 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
                 className="flex-1"
                 disabled={selectedPeople.length === 0}
               >
-                Tag in Memo Only
+                Save Memo Only
               </Button>
               <Button
                 variant="outline"

@@ -109,6 +109,67 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
     }
   };
 
+  const handleSaveAndAddToRelationships = async (confirmedPeople: DetectedPerson[]) => {
+    if (!pendingMemoData) return;
+
+    try {
+      // Add contact tags to the memo text
+      const enhancedText = PersonDetectionService.addContactTags(
+        pendingMemoData.text, 
+        confirmedPeople
+      );
+
+      // Create memo with enhanced text
+      const memo = await createMemo({
+        ...pendingMemoData,
+        text: enhancedText
+      });
+
+      if (!memo) {
+        throw new Error('Failed to create memo');
+      }
+
+      // Show success message
+      toast({
+        title: "Memo saved!",
+        description: `Your memo has been saved and will be linked to ${confirmedPeople.length} contact${confirmedPeople.length !== 1 ? 's' : ''}.`
+      });
+
+      // Store selected people in session storage for the relationships page
+      const peopleForRelationships = confirmedPeople.map(person => ({
+        firstName: person.name.split(' ')[0] || person.name,
+        lastName: person.name.split(' ').slice(1).join(' ') || '',
+        type: person.relationship === 'colleague' || person.relationship === 'manager' || person.relationship === 'client' || person.relationship === 'teammate' ? 'work' : 'personal',
+        relationshipDescription: `Mentioned in memo: "${person.context.substring(0, 100)}${person.context.length > 100 ? '...' : ''}"`
+      }));
+
+      sessionStorage.setItem('pendingRelationships', JSON.stringify(peopleForRelationships));
+      
+      // Clear the input
+      setText('');
+      
+      // Navigate to relationships page
+      navigate('/relationships');
+      
+      // Reset state
+      setDetectedPeople([]);
+      setPendingMemoData(null);
+      
+      // Notify parent component
+      if (onMemoCreated) {
+        onMemoCreated(memo.id);
+      }
+      
+    } catch (error) {
+      console.error('Error saving memo with relationships:', error);
+      toast({
+        title: "Error saving memo",
+        description: "There was a problem saving your memo with relationships.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handlePersonConfirmation = async (confirmedPeople: DetectedPerson[]) => {
     if (!pendingMemoData) return;
 
@@ -185,6 +246,7 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
         onConfirm={handlePersonConfirmation}
         onSkip={handlePersonSkip}
         onClose={() => setShowPersonDialog(false)}
+        onSaveAndAddToRelationships={handleSaveAndAddToRelationships}
       />
     </>
   );
