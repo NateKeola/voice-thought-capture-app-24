@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { useNavigate } from 'react-router-dom';
 
 interface PersonConfirmationDialogProps {
   open: boolean;
@@ -21,6 +22,7 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
   onSkip,
   onClose
 }) => {
+  const navigate = useNavigate();
   const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>(
     detectedPeople.filter(p => p.confidence > 0.8)
   );
@@ -43,6 +45,22 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
     onClose();
   };
 
+  const handleAddToRelationships = () => {
+    // Store selected people in session storage for the relationships page
+    const peopleForRelationships = selectedPeople.map(person => ({
+      firstName: person.name.split(' ')[0] || person.name,
+      lastName: person.name.split(' ').slice(1).join(' ') || '',
+      type: person.relationship === 'colleague' || person.relationship === 'manager' || person.relationship === 'client' || person.relationship === 'teammate' ? 'work' : 'personal',
+      relationshipDescription: `Mentioned in memo: "${person.context.substring(0, 100)}${person.context.length > 100 ? '...' : ''}"`
+    }));
+
+    sessionStorage.setItem('pendingRelationships', JSON.stringify(peopleForRelationships));
+    
+    // Navigate to relationships page
+    navigate('/relationships');
+    onClose();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -52,7 +70,7 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
         
         <div className="space-y-4">
           <p className="text-gray-600 text-sm">
-            I detected these people in your memo. Select which ones to add to your contacts:
+            I detected these people in your memo. Choose how to handle them:
           </p>
           
           <div className="space-y-3 max-h-60 overflow-y-auto">
@@ -91,20 +109,31 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
             ))}
           </div>
           
-          <div className="flex space-x-3 pt-4">
+          <div className="flex flex-col space-y-2 pt-4">
             <Button
-              variant="outline"
-              onClick={handleSkip}
-              className="flex-1"
+              onClick={handleAddToRelationships}
+              className="w-full bg-blue-500 hover:bg-blue-600"
+              disabled={selectedPeople.length === 0}
             >
-              Skip
+              Add {selectedPeople.length} to Relationships
             </Button>
-            <Button
-              onClick={handleConfirm}
-              className="flex-1 bg-orange-500 hover:bg-orange-600"
-            >
-              Add {selectedPeople.length} Contact{selectedPeople.length !== 1 ? 's' : ''}
-            </Button>
+            <div className="flex space-x-3">
+              <Button
+                variant="outline"
+                onClick={handleConfirm}
+                className="flex-1"
+                disabled={selectedPeople.length === 0}
+              >
+                Tag in Memo Only
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleSkip}
+                className="flex-1"
+              >
+                Skip
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

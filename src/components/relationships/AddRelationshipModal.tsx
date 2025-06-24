@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,22 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
       }));
     }
   }, [prefilledData, isOpen]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        firstName: '',
+        lastName: '',
+        types: [],
+        relationshipDescription: '',
+        email: '',
+        phone: '',
+        notes: ''
+      });
+      setStep(1);
+    }
+  }, [isOpen]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -91,17 +108,13 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
       phone: formData.phone || null,
       notes: combinedNotes || null
     });
-    onClose();
-    setStep(1);
-    setFormData({
-      firstName: '',
-      lastName: '',
-      types: [],
-      relationshipDescription: '',
-      email: '',
-      phone: '',
-      notes: ''
-    });
+  };
+
+  const getModalTitle = () => {
+    if (prefilledData) {
+      return 'Add Detected Contact';
+    }
+    return step === 1 ? 'Create New Relationship' : 'Additional Details';
   };
 
   return (
@@ -109,8 +122,13 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
       <DialogContent className="max-w-md p-0 overflow-hidden">
         <div className="bg-orange-500 px-6 py-4">
           <h2 className="text-white font-bold text-lg">
-            {step === 1 ? 'Create New Relationship' : 'Additional Details'}
+            {getModalTitle()}
           </h2>
+          {prefilledData && (
+            <p className="text-orange-100 text-sm mt-1">
+              Detected from your memo
+            </p>
+          )}
         </div>
         
         {step === 1 ? (
@@ -121,17 +139,21 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
             />
             
             <div className="space-y-4">
-              <ContactSearchInput
-                searchTerm={searchTerm}
-                isSearching={isSearching}
-                onSearchChange={setSearchTerm}
-              />
+              {!prefilledData && (
+                <>
+                  <ContactSearchInput
+                    searchTerm={searchTerm}
+                    isSearching={isSearching}
+                    onSearchChange={setSearchTerm}
+                  />
 
-              <ContactSelectionCards
-                searchResults={searchResults}
-                selectedContact={selectedContact}
-                onContactSelect={handleContactSelect}
-              />
+                  <ContactSelectionCards
+                    searchResults={searchResults}
+                    selectedContact={selectedContact}
+                    onContactSelect={handleContactSelect}
+                  />
+                </>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -144,6 +166,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                     value={formData.firstName}
                     onChange={handleChange}
                     required
+                    className={prefilledData ? "bg-blue-50 border-blue-200" : ""}
                   />
                 </div>
                 <div>
@@ -156,6 +179,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                     value={formData.lastName}
                     onChange={handleChange}
                     required
+                    className={prefilledData ? "bg-blue-50 border-blue-200" : ""}
                   />
                 </div>
               </div>
@@ -176,7 +200,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                   onChange={handleChange}
                   rows={3}
                   placeholder="Describe your relationship and how it connects to your life..."
-                  className="resize-none"
+                  className={`resize-none ${prefilledData ? "bg-blue-50 border-blue-200" : ""}`}
                 />
               </div>
               

@@ -66,7 +66,35 @@ const RelationshipsPage = () => {
   const [globalTab, setGlobalTab] = useState('relationships');
   const { memos, createMemo, updateMemo, refreshMemos } = useMemos();
   const [isRecordingMode, setIsRecordingMode] = useState(false);
+  const [prefilledRelationshipData, setPrefilledRelationshipData] = useState(null);
   const isLoading = authLoading || profilesLoading;
+
+  // Check for pending relationships from person detection on component mount
+  useEffect(() => {
+    const pendingRelationshipsData = sessionStorage.getItem('pendingRelationships');
+    if (pendingRelationshipsData) {
+      try {
+        const pendingRelationships = JSON.parse(pendingRelationshipsData);
+        if (pendingRelationships.length > 0) {
+          // Auto-open modal with first detected person
+          const firstPerson = pendingRelationships[0];
+          setPrefilledRelationshipData(firstPerson);
+          setShowAddModal(true);
+          
+          // Clear from session storage
+          sessionStorage.removeItem('pendingRelationships');
+          
+          toast({
+            title: "Detected contacts ready",
+            description: `Ready to add ${pendingRelationships.length} contact${pendingRelationships.length !== 1 ? 's' : ''} from your memo.`
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing pending relationships:', error);
+        sessionStorage.removeItem('pendingRelationships');
+      }
+    }
+  }, [toast]);
 
   // Get recent memos (last 10) that aren't already linked to the current relationship
   const getRecentMemos = () => {
@@ -93,12 +121,36 @@ const RelationshipsPage = () => {
 
   const handleCloseModal = () => {
     setShowAddModal(false);
+    setPrefilledRelationshipData(null);
   };
 
   const handleCreateProfile = async (profileData) => {
     try {
       await createProfile.mutateAsync(profileData);
       setShowAddModal(false);
+      setPrefilledRelationshipData(null);
+      
+      // Check if there are more pending relationships to add
+      const pendingRelationshipsData = sessionStorage.getItem('pendingRelationships');
+      if (pendingRelationshipsData) {
+        try {
+          const pendingRelationships = JSON.parse(pendingRelationshipsData);
+          if (pendingRelationships.length > 1) {
+            // Remove the first one we just processed and set up the next
+            const remainingRelationships = pendingRelationships.slice(1);
+            sessionStorage.setItem('pendingRelationships', JSON.stringify(remainingRelationships));
+            
+            // Set up next relationship
+            setPrefilledRelationshipData(remainingRelationships[0]);
+            setShowAddModal(true);
+          } else {
+            sessionStorage.removeItem('pendingRelationships');
+          }
+        } catch (error) {
+          console.error('Error processing remaining relationships:', error);
+          sessionStorage.removeItem('pendingRelationships');
+        }
+      }
     } catch (error) {
       console.error('Error creating profile:', error);
     }
@@ -235,7 +287,7 @@ const RelationshipsPage = () => {
       case 'task':
         return (
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
           </svg>
         );
       case 'should':
@@ -570,6 +622,7 @@ const RelationshipsPage = () => {
         isOpen={showAddModal}
         onClose={handleCloseModal}
         onSubmit={handleCreateProfile}
+        prefilledData={prefilledRelationshipData}
       />
       
       <BottomNavBar
