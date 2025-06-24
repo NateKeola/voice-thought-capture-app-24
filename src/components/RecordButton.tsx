@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff, Play, Pause, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
@@ -26,37 +26,61 @@ const RecordButton: React.FC<RecordButtonProps> = ({
   className = ''
 }) => {
   const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [audioRecorder, setAudioRecorder] = useState<AudioRecorder | null>(null);
+  const [duration, setDuration] = useState(0);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
   const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>([]);
   const [pendingMemoData, setPendingMemoData] = useState<any>(null);
-
+  
+  const audioRecorderRef = useRef<AudioRecorder | null>(null);
   const { createMemo } = useMemos();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Initialize the audio recorder
+  useEffect(() => {
+    audioRecorderRef.current = new AudioRecorder({
+      onTranscriptionUpdate: onLiveTranscription || (() => {}),
+      onTranscriptionComplete: handleTranscriptionComplete,
+      onError: (error) => {
+        console.error('Recording error:', error);
+        toast({
+          title: "Recording Error",
+          description: "There was an issue with the recording. Please try again.",
+          variant: "destructive"
+        });
+        setIsRecording(false);
+        setIsPaused(false);
+        setIsProcessing(false);
+      }
+    });
+
+    return () => {
+      audioRecorderRef.current?.destroy();
+    };
+  }, [onLiveTranscription]);
+
+  // Update duration and states periodically
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRecording) {
+      interval = setInterval(() => {
+        if (audioRecorderRef.current) {
+          setDuration(audioRecorderRef.current.getRecordingDuration());
+          setIsPaused(audioRecorderRef.current.getIsPaused());
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording]);
+
   const startRecording = async () => {
     try {
-      const recorder = new AudioRecorder({
-        onTranscriptionUpdate: onLiveTranscription || (() => {}),
-        onTranscriptionComplete: handleTranscriptionComplete,
-        onError: (error) => {
-          console.error('Recording error:', error);
-          toast({
-            title: "Recording Error",
-            description: "There was an issue with the recording. Please try again.",
-            variant: "destructive"
-          });
-          setIsRecording(false);
-          setIsProcessing(false);
-        }
-      });
-
-      await recorder.startRecording();
-      setAudioRecorder(recorder);
+      await audioRecorderRef.current?.startRecording();
       setIsRecording(true);
+      setIsPaused(false);
       
       toast({
         title: "Recording started",
@@ -73,8 +97,9 @@ const RecordButton: React.FC<RecordButtonProps> = ({
   };
 
   const stopRecording = async () => {
-    if (audioRecorder) {
+    if (audioRecorderRef.current) {
       setIsRecording(false);
+      setIsPaused(false);
       setIsProcessing(true);
       
       toast({
@@ -82,13 +107,22 @@ const RecordButton: React.FC<RecordButtonProps> = ({
         description: "Converting speech to text"
       });
       
-      await audioRecorder.stopRecording();
+      await audioRecorderRef.current.stopRecording();
     }
+  };
+
+  const pauseRecording = () => {
+    audioRecorderRef.current?.pauseRecording();
+    setIsPaused(true);
+  };
+
+  const resumeRecording = () => {
+    audioRecorderRef.current?.resumeRecording();
+    setIsPaused(false);
   };
 
   const handleTranscriptionComplete = async (transcript: string, audioUrl?: string) => {
     setIsProcessing(false);
-    setAudioRecorder(null);
 
     if (!transcript || transcript.trim().length === 0) {
       toast({
@@ -265,28 +299,58 @@ const RecordButton: React.FC<RecordButtonProps> = ({
     }
   };
 
+  const handleMainButtonClick = () => {
+    if (isRecording) {
+      if (isPaused) {
+        resumeRecording();
+      } else {
+        pauseRecording();
+      }
+    } else {
+      startRecording();
+    }
+  };
+
   return (
     <>
-      <Button
-        onClick={isRecording ? stopRecording : startRecording}
-        disabled={isProcessing}
-        className={`${getButtonSize()} rounded-full ${className} ${
-          isRecording 
-            ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
-            : isProcessing
-            ? 'bg-gray-400 cursor-not-allowed'
-            : 'bg-orange-500 hover:bg-orange-600'
-        } text-white shadow-lg transition-all duration-200`}
-        variant="default"
-      >
-        {isProcessing ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-        ) : isRecording ? (
-          <Square className={getIconSize()} />
-        ) : (
-          <Mic className={getIconSize()} />
+      <div className="flex flex-col items-center gap-2">
+        <Button
+          onClick={handleMainButtonClick}
+          disabled={isProcessing}
+          className={`${getButtonSize()} rounded-full ${className} ${
+            isRecording 
+              ? (isPaused ? 'bg-green-500 hover:bg-green-600' : 'bg-yellow-500 hover:bg-yellow-600')
+              : isProcessing
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-orange-500 hover:bg-orange-600'
+          } text-white shadow-lg transition-all duration-200`}
+          variant="default"
+        >
+          {isProcessing ? (
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+          ) : isRecording ? (
+            isPaused ? <Play className={getIconSize()} /> : <Pause className={getIconSize()} />
+          ) : (
+            <Mic className={getIconSize()} />
+          )}
+        </Button>
+
+        {isRecording && (
+          <Button
+            onClick={stopRecording}
+            className="bg-red-500 hover:bg-red-600 text-white rounded-full w-12 h-12"
+            variant="default"
+          >
+            <Square className="h-5 w-5" />
+          </Button>
         )}
-      </Button>
+
+        {duration > 0 && (
+          <div className="text-sm text-gray-600">
+            {Math.floor(duration / 60)}:{(duration % 60).toString().padStart(2, '0')}
+          </div>
+        )}
+      </div>
 
       {/* Save Memo Dialog with Person Detection */}
       {showSaveDialog && (
