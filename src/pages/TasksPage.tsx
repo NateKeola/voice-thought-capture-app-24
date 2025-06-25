@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -7,7 +8,6 @@ import TasksFAB from "@/components/tasks/TasksFAB";
 import BottomNavBar from "@/components/BottomNavBar";
 import TaskDialog from "@/components/tasks/TaskDialog";
 import CategoryDialog from "@/components/tasks/CategoryDialog";
-import SearchBar from "@/components/home/SearchBar";
 import SearchResults from "@/components/home/SearchResults";
 import { TaskDialogProvider, useTaskDialog } from "@/hooks/useTaskDialog";
 import { CategoryProvider, useCategories } from "@/contexts/CategoryContext";
@@ -293,6 +293,36 @@ const TasksPageContent: React.FC = () => {
     setSearchResults(itemResults);
   };
 
+  // Search functionality integrated into header
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      setIsSearchActive(false);
+      return;
+    }
+
+    const searchResults = memos.filter(memo => {
+      const searchTerm = searchQuery.toLowerCase();
+      const memoText = memo.text.toLowerCase();
+      const memoType = memo.type.toLowerCase();
+      
+      // Filter by current tab type
+      if (personalTab === "tasks" && memo.type !== 'task') return false;
+      if (personalTab === "notes" && memo.type !== 'note') return false;
+      
+      // Remove contact tags for search
+      const cleanMemoText = memoText.replace(/\[contact: [^\]]+\]/g, '').trim();
+      
+      return cleanMemoText.includes(searchTerm) || 
+             memoType.includes(searchTerm);
+    });
+
+    const itemType = personalTab === "tasks" ? 'task' : 'note';
+    const itemResults = searchResults.map(memo => mapMemoToItem(memo, itemType, categories, listCategories));
+    setSearchResults(itemResults);
+    setIsSearchActive(searchResults.length > 0 || searchQuery.trim().length > 0);
+  }, [searchQuery, memos, personalTab, categories, listCategories]);
+
   const handleClearSearch = () => {
     setSearchQuery("");
     setSearchResults([]);
@@ -424,18 +454,10 @@ const TasksPageContent: React.FC = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           isSearchActive={isSearchActive}
-        />
-        
-        <SearchBar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          memos={memos}
-          onSearchResults={handleSearchResults}
-          isSearchActive={isSearchActive}
-          onSearchActiveChange={setIsSearchActive}
+          onClearSearch={handleClearSearch}
         />
 
-        <div className="container mx-auto max-w-md px-4">
+        <div className="container mx-auto max-w-md px-4 pt-4">
           <SearchResults
             searchQuery={searchQuery}
             searchResults={searchResults.map(item => ({
@@ -468,15 +490,7 @@ const TasksPageContent: React.FC = () => {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         isSearchActive={isSearchActive}
-      />
-
-      <SearchBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        memos={memos}
-        onSearchResults={handleSearchResults}
-        isSearchActive={isSearchActive}
-        onSearchActiveChange={setIsSearchActive}
+        onClearSearch={handleClearSearch}
       />
 
       <div className="container mx-auto max-w-md px-4 pt-4 pb-4">

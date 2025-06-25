@@ -1,7 +1,7 @@
 
 import React from "react";
 import ProfileIconButton from "@/components/ProfileIconButton";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, X } from "lucide-react";
 
 interface TasksHeaderProps {
   taskCount: number;
@@ -11,6 +11,7 @@ interface TasksHeaderProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   isSearchActive?: boolean;
+  onClearSearch?: () => void;
 }
 
 const TasksHeader: React.FC<TasksHeaderProps> = ({ 
@@ -20,7 +21,8 @@ const TasksHeader: React.FC<TasksHeaderProps> = ({
   onBackClick,
   searchQuery = "",
   onSearchChange,
-  isSearchActive = false
+  isSearchActive = false,
+  onClearSearch
 }) => (
   <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 pt-12 pb-8 px-6 rounded-b-3xl relative overflow-hidden">
     <div className="absolute top-0 left-0 right-0 bottom-0 opacity-20 pointer-events-none">
@@ -52,11 +54,24 @@ const TasksHeader: React.FC<TasksHeaderProps> = ({
     </div>
     
     <div className="relative z-10 mt-2 bg-white bg-opacity-20 rounded-lg overflow-hidden">
-      <input 
-        type="text" 
-        placeholder="Search tasks..." 
-        className="w-full py-2.5 px-4 bg-transparent placeholder-white placeholder-opacity-70 text-white outline-none text-sm"
-      />
+      <div className="flex items-center">
+        <Search className="h-5 w-5 ml-3 text-white opacity-70" />
+        <input 
+          type="text" 
+          placeholder="Search your memos and connections..." 
+          className="flex-1 py-2.5 px-2 bg-transparent placeholder-white placeholder-opacity-70 text-white outline-none text-sm"
+          value={searchQuery}
+          onChange={(e) => onSearchChange?.(e.target.value)}
+        />
+        {searchQuery && onClearSearch && (
+          <button 
+            onClick={onClearSearch}
+            className="mr-2 p-1 rounded-full hover:bg-white/20"
+          >
+            <X className="h-5 w-5 text-white opacity-70" />
+          </button>
+        )}
+      </div>
     </div>
   </div>
 );
