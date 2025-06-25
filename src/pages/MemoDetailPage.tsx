@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit, Trash2, Save, Volume2 } from 'lucide-react';
+import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useMemos } from '@/contexts/MemoContext';
 import MemoLoading from '@/components/memo/MemoLoading';
@@ -16,10 +17,10 @@ const MemoDetailPage: React.FC = () => {
   const { toast } = useToast();
   const { memos, updateMemo, deleteMemo, isLoading } = useMemos();
   
-  const [isEditing, setIsEditing] = useState(false);
   const [editedText, setEditedText] = useState('');
   const [editedTitle, setEditedTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const memo = memos.find(m => m.id === id);
   
@@ -27,8 +28,16 @@ const MemoDetailPage: React.FC = () => {
     if (memo) {
       setEditedText(memo.text);
       setEditedTitle(memo.title || '');
+      setHasUnsavedChanges(false);
     }
   }, [memo]);
+
+  useEffect(() => {
+    if (memo) {
+      const hasChanges = editedText !== memo.text || editedTitle !== (memo.title || '');
+      setHasUnsavedChanges(hasChanges);
+    }
+  }, [editedText, editedTitle, memo]);
 
   if (isLoading) {
     return <MemoLoading />;
@@ -37,10 +46,6 @@ const MemoDetailPage: React.FC = () => {
   if (!memo) {
     return <MemoError message="Memo not found" />;
   }
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
 
   const handleSave = async () => {
     if (!editedText.trim()) {
@@ -59,7 +64,7 @@ const MemoDetailPage: React.FC = () => {
         title: editedTitle
       });
       
-      setIsEditing(false);
+      setHasUnsavedChanges(false);
       toast({
         title: "Memo updated!",
         description: "Your changes have been saved successfully."
@@ -74,12 +79,6 @@ const MemoDetailPage: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleCancel = () => {
-    setEditedText(memo.text);
-    setEditedTitle(memo.title || '');
-    setIsEditing(false);
   };
 
   const handleDelete = async () => {
@@ -157,7 +156,7 @@ const MemoDetailPage: React.FC = () => {
             </button>
             <div>
               <h1 className="text-2xl font-bold text-white">
-                {isEditing ? 'Edit Memo' : 'Memo Details'}
+                Edit Memo
               </h1>
               <p className="text-purple-100 text-sm mt-1">
                 {formatDate(memo.createdAt)}
@@ -184,84 +183,50 @@ const MemoDetailPage: React.FC = () => {
 
       {/* Content */}
       <div className="container mx-auto max-w-2xl px-4 pt-6 flex-1">
-        {isEditing ? (
-          <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Title (optional)
-              </label>
-              <input
-                type="text"
-                value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
-                placeholder="Enter memo title..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Content
-              </label>
-              <Textarea
-                value={editedText}
-                onChange={(e) => setEditedText(e.target.value)}
-                placeholder="Enter your memo content..."
-                className="w-full min-h-[200px] border-gray-300 focus:ring-purple-500 focus:border-transparent resize-none"
-              />
-            </div>
-            
-            <div className="flex gap-3 pt-4">
-              <Button
-                onClick={handleCancel}
-                variant="outline"
-                className="flex-1 rounded-full"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-full"
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
+        <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Title
+            </label>
+            <Input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              placeholder="Enter memo title..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
           </div>
-        ) : (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            {memo.title && (
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                {memo.title}
-              </h2>
-            )}
-            
-            <div className="prose max-w-none mb-6">
-              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {memo.text}
-              </p>
-            </div>
-            
-            <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
-              <Button
-                onClick={handleEdit}
-                variant="outline"
-                className="flex items-center gap-2 rounded-full"
-              >
-                <Edit size={16} />
-                Edit
-              </Button>
-              <Button
-                onClick={handleDelete}
-                variant="outline"
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full"
-              >
-                <Trash2 size={16} />
-                Delete
-              </Button>
-            </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Content
+            </label>
+            <Textarea
+              value={editedText}
+              onChange={(e) => setEditedText(e.target.value)}
+              placeholder="Enter your memo content..."
+              className="w-full min-h-[200px] border-gray-300 focus:ring-purple-500 focus:border-transparent resize-none"
+            />
           </div>
-        )}
+          
+          <div className="flex gap-3 pt-4">
+            <Button
+              onClick={handleDelete}
+              variant="outline"
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full"
+            >
+              <Trash2 size={16} />
+              Delete
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || !hasUnsavedChanges}
+              className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-full disabled:opacity-50"
+            >
+              {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'Saved'}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Circular Save Memo FAB */}
