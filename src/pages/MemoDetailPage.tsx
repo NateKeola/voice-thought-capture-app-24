@@ -8,7 +8,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { useMemos } from '@/contexts/MemoContext';
 import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
-import MemoContent from '@/components/memo/MemoContent';
 import BottomNavBar from '@/components/BottomNavBar';
 
 const MemoDetailPage: React.FC = () => {
@@ -216,14 +215,14 @@ const MemoDetailPage: React.FC = () => {
               <Button
                 onClick={handleCancel}
                 variant="outline"
-                className="flex-1"
+                className="flex-1 rounded-full"
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
                 disabled={isSaving}
-                className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+                className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-full"
               >
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
@@ -237,13 +236,17 @@ const MemoDetailPage: React.FC = () => {
               </h2>
             )}
             
-            <MemoContent memo={memo} />
+            <div className="prose max-w-none mb-6">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {memo.text}
+              </p>
+            </div>
             
             <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
               <Button
                 onClick={handleEdit}
                 variant="outline"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 rounded-full"
               >
                 <Edit size={16} />
                 Edit
@@ -251,7 +254,7 @@ const MemoDetailPage: React.FC = () => {
               <Button
                 onClick={handleDelete}
                 variant="outline"
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-full"
               >
                 <Trash2 size={16} />
                 Delete
