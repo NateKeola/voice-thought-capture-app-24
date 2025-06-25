@@ -10,9 +10,9 @@ import { useRef, useState } from "react";
 
 interface MemoContentProps {
   memo: Memo;
-  onSave: (text: string, type: MemoType) => Promise<void>;
-  onDelete: () => Promise<void>;
-  onBack: () => void;
+  onSave?: (text: string, type: MemoType) => Promise<void>;
+  onDelete?: () => Promise<void>;
+  onBack?: () => void;
 }
 
 const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
@@ -31,8 +31,10 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
     .trim();
 
   const handleSave = async () => {
-    await onSave(editedText, editedType);
-    setIsEditing(false);
+    if (onSave) {
+      await onSave(editedText, editedType);
+      setIsEditing(false);
+    }
   };
 
   const handlePlayAudio = () => {
@@ -46,14 +48,27 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
     }
   };
 
+  // If no action props are provided, just display the content
+  if (!onSave && !onDelete && !onBack) {
+    return (
+      <div className="prose max-w-none">
+        <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+          {displayText}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="container max-w-md mx-auto py-6 px-4">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={onBack} className="p-0">
-          <ArrowLeft className="h-5 w-5 mr-2" />
-          Back to home
-        </Button>
-      </div>
+      {onBack && (
+        <div className="mb-6">
+          <Button variant="ghost" onClick={onBack} className="p-0">
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back to home
+          </Button>
+        </div>
+      )}
 
       <Card className="border-orange-200">
         <CardHeader className="bg-orange-50 rounded-t-lg">
@@ -112,25 +127,31 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-between bg-orange-50 rounded-b-lg">
-          {isEditing ? (
-            <>
-              <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-              <Button onClick={handleSave} className="bg-orange-500 hover:bg-orange-600">
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="destructive" onClick={onDelete}>
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-              <Button onClick={() => setIsEditing(true)} className="bg-orange-500 hover:bg-orange-600">Edit</Button>
-            </>
-          )}
-        </CardFooter>
+        {(onSave || onDelete) && (
+          <CardFooter className="flex justify-between bg-orange-50 rounded-b-lg">
+            {isEditing ? (
+              <>
+                <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                <Button onClick={handleSave} className="bg-orange-500 hover:bg-orange-600">
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+              </>
+            ) : (
+              <>
+                {onDelete && (
+                  <Button variant="destructive" onClick={onDelete}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                )}
+                {onSave && (
+                  <Button onClick={() => setIsEditing(true)} className="bg-orange-500 hover:bg-orange-600">Edit</Button>
+                )}
+              </>
+            )}
+          </CardFooter>
+        )}
       </Card>
     </div>
   );
