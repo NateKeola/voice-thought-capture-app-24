@@ -1,72 +1,70 @@
 
-// I'll assume this file exists but wasn't provided in the code snippets
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getMemoById } from '@/services/MemoStorage';
-import MemoContent from '@/components/memo/MemoContent';
+import { ArrowLeft, Edit, Trash2, Save, Volume2 } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { useMemos } from '@/contexts/MemoContext';
 import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
-import { Memo, MemoType } from '@/types';
-import { useToast } from '@/components/ui/use-toast';
-import { useMemos } from '@/contexts/MemoContext';
+import MemoContent from '@/components/memo/MemoContent';
+import BottomNavBar from '@/components/BottomNavBar';
 
-const MemoDetailPage = () => {
+const MemoDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [memo, setMemo] = useState<Memo | null>(null);
+  const { memos, updateMemo, deleteMemo, isLoading } = useMemos();
   
-  // Use our memo context
-  const { updateMemo: updateMemoContext, deleteMemo: deleteMemoContext } = useMemos();
-
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedText, setEditedText] = useState('');
+  const [editedTitle, setEditedTitle] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const memo = memos.find(m => m.id === id);
+  
   useEffect(() => {
-    const fetchMemo = async () => {
-      if (!id) {
-        setError('Memo ID not provided');
-        setIsLoading(false);
-        return;
-      }
+    if (memo) {
+      setEditedText(memo.text);
+      setEditedTitle(memo.title || '');
+    }
+  }, [memo]);
 
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        const memoData = await getMemoById(id);
-        if (!memoData) {
-          setError('Memo not found');
-        } else {
-          setMemo(memoData);
-        }
-      } catch (error) {
-        console.error('Error fetching memo details:', error);
-        setError('Failed to load memo details');
-        toast({
-          title: "Error loading memo",
-          description: "There was a problem loading this memo.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  if (isLoading) {
+    return <MemoLoading />;
+  }
 
-    fetchMemo();
-  }, [id, toast]);
+  if (!memo) {
+    return <MemoError message="Memo not found" />;
+  }
 
-  const handleSaveMemo = async (text: string, type: MemoType) => {
-    if (!id || !memo) return;
-    
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!editedText.trim()) {
+      toast({
+        title: "Cannot save empty memo",
+        description: "Please enter some text for your memo",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      const updatedMemo = await updateMemoContext(id, { text, type });
-      if (updatedMemo) {
-        setMemo(updatedMemo);
-        toast({
-          title: "Memo updated",
-          description: "Your changes have been saved."
-        });
-      }
+      await updateMemo(memo.id, {
+        text: editedText,
+        title: editedTitle
+      });
+      
+      setIsEditing(false);
+      toast({
+        title: "Memo updated!",
+        description: "Your changes have been saved successfully."
+      });
     } catch (error) {
       console.error('Error updating memo:', error);
       toast({
@@ -74,46 +72,211 @@ const MemoDetailPage = () => {
         description: "There was a problem saving your changes.",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDeleteMemo = async () => {
-    if (!id) return;
-    
-    try {
-      const success = await deleteMemoContext(id);
-      if (success) {
+  const handleCancel = () => {
+    setEditedText(memo.text);
+    setEditedTitle(memo.title || '');
+    setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Are you sure you want to delete this memo?')) {
+      try {
+        await deleteMemo(memo.id);
         toast({
           title: "Memo deleted",
-          description: "The memo has been deleted."
+          description: "Your memo has been deleted successfully."
         });
-        navigate(-1);
+        navigate('/');
+      } catch (error) {
+        console.error('Error deleting memo:', error);
+        toast({
+          title: "Error deleting memo",
+          description: "There was a problem deleting your memo.",
+          variant: "destructive"
+        });
       }
-    } catch (error) {
-      console.error('Error deleting memo:', error);
-      toast({
-        title: "Error deleting memo",
-        description: "There was a problem deleting the memo.",
-        variant: "destructive"
+    }
+  };
+
+  const handlePlayAudio = () => {
+    if (memo.audioUrl) {
+      const audio = new Audio(memo.audioUrl);
+      audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        toast({
+          title: "Cannot play audio",
+          description: "There was a problem playing the audio.",
+          variant: "destructive"
+        });
       });
     }
   };
 
-  if (isLoading) {
-    return <MemoLoading />;
-  }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  if (error || !memo) {
-    return <MemoError message={error || 'Unknown error'} onBack={() => navigate(-1)} />;
-  }
+  const getMemoTypeColor = (type: string) => {
+    switch (type) {
+      case 'task': return 'bg-blue-100 text-blue-800';
+      case 'note': return 'bg-green-100 text-green-800';
+      case 'idea': return 'bg-purple-100 text-purple-800';
+      case 'reminder': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
-    <MemoContent
-      memo={memo}
-      onSave={handleSaveMemo}
-      onDelete={handleDeleteMemo}
-      onBack={() => navigate(-1)}
-    />
+    <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
+      {/* Header with gradient background matching personal tab */}
+      <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 pt-12 pb-8 px-6 rounded-b-3xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 bottom-0 opacity-20 pointer-events-none">
+          <div className="absolute top-10 left-10 w-48 h-48 bg-white rounded-full filter blur-3xl"></div>
+          <div className="absolute top-5 right-10 w-32 h-32 bg-pink-300 rounded-full filter blur-3xl"></div>
+          <div className="absolute bottom-0 left-1/3 w-40 h-40 bg-purple-300 rounded-full filter blur-3xl"></div>
+        </div>
+        
+        <div className="flex justify-between items-center relative z-10 mb-4">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate(-1)}
+              className="bg-white/20 rounded-full p-1.5 hover:bg-white/30 transition-colors duration-200"
+              aria-label="Go back"
+            >
+              <ArrowLeft size={20} className="text-white" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-white">
+                {isEditing ? 'Edit Memo' : 'Memo Details'}
+              </h1>
+              <p className="text-purple-100 text-sm mt-1">
+                {formatDate(memo.createdAt)}
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getMemoTypeColor(memo.type)}`}>
+              {memo.type}
+            </span>
+            {memo.audioUrl && (
+              <button
+                onClick={handlePlayAudio}
+                className="bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors duration-200"
+                aria-label="Play audio"
+              >
+                <Volume2 size={16} className="text-white" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="container mx-auto max-w-2xl px-4 pt-6 flex-1">
+        {isEditing ? (
+          <div className="bg-white rounded-xl p-6 shadow-sm space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title (optional)
+              </label>
+              <input
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                placeholder="Enter memo title..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Content
+              </label>
+              <Textarea
+                value={editedText}
+                onChange={(e) => setEditedText(e.target.value)}
+                placeholder="Enter your memo content..."
+                className="w-full min-h-[200px] border-gray-300 focus:ring-purple-500 focus:border-transparent resize-none"
+              />
+            </div>
+            
+            <div className="flex gap-3 pt-4">
+              <Button
+                onClick={handleCancel}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+              >
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            {memo.title && (
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                {memo.title}
+              </h2>
+            )}
+            
+            <MemoContent memo={memo} />
+            
+            <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
+              <Button
+                onClick={handleEdit}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Edit size={16} />
+                Edit
+              </Button>
+              <Button
+                onClick={handleDelete}
+                variant="outline"
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 size={16} />
+                Delete
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Circular Save Memo FAB */}
+      {!isLoading && (
+        <div className="fixed bottom-20 right-6 z-20">
+          <button
+            onClick={() => navigate('/')}
+            className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200"
+            aria-label="Create New Memo"
+          >
+            <Save size={24} className="text-white" />
+          </button>
+          <div className="w-full h-full absolute top-0 left-0 bg-indigo-500 rounded-full blur-xl opacity-30 -z-10 scale-75"></div>
+        </div>
+      )}
+
+      <BottomNavBar activeTab="home" onTabChange={() => {}} />
+    </div>
   );
 };
 
