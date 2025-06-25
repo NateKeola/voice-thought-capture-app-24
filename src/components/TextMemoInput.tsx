@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
 import PersonConfirmationDialog from './PersonConfirmationDialog';
+import MemoEditScreen from './memo/MemoEditScreen';
+import { MemoType } from '@/types';
 
 interface TextMemoInputProps {
   onMemoCreated?: (memoId: string) => void;
@@ -18,6 +19,7 @@ interface TextMemoInputProps {
 
 const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialText = '' }) => {
   const [text, setText] = useState(initialText);
+  const [showEditScreen, setShowEditScreen] = useState(false);
   const [showPersonDialog, setShowPersonDialog] = useState(false);
   const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
   const [pendingMemoData, setPendingMemoData] = useState<any>(null);
@@ -39,34 +41,35 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
       return;
     }
 
+    // Show edit screen first
+    setShowEditScreen(true);
+  };
+
+  const handleEditSave = async (memoData: { text: string; type: MemoType; title?: string }) => {
     try {
-      // Detect the memo type
-      const memoType = detectMemoType(text);
-      
       // Detect people mentioned in the text
-      const people = PersonDetectionService.detectPeople(text);
-      
-      // Generate title for the memo using the new service
-      const generatedTitle = TitleGenerationService.generateTitle(text, memoType);
+      const people = PersonDetectionService.detectPeople(memoData.text);
       
       if (people.length > 0) {
         // Show confirmation dialog for detected people
         setDetectedPeople(people);
         setPendingMemoData({
-          text: text,
-          type: memoType,
+          text: memoData.text,
+          type: memoData.type,
           audioUrl: null,
-          title: generatedTitle
+          title: memoData.title
         });
+        setShowEditScreen(false);
         setShowPersonDialog(true);
       } else {
         // No people detected, create memo normally
         await createMemoDirectly({
-          text: text,
-          type: memoType,
+          text: memoData.text,
+          type: memoData.type,
           audioUrl: null,
-          title: generatedTitle
+          title: memoData.title
         });
+        setShowEditScreen(false);
       }
     } catch (error) {
       console.error('Error processing memo:', error);
@@ -76,6 +79,10 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
         variant: "destructive"
       });
     }
+  };
+
+  const handleEditCancel = () => {
+    setShowEditScreen(false);
   };
 
   const createMemoDirectly = async (memoData: any) => {
@@ -218,6 +225,21 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
     setPendingMemoData(null);
   };
 
+  if (showEditScreen) {
+    return (
+      <MemoEditScreen
+        initialMemo={{
+          text,
+          type: detectMemoType(text),
+          title: TitleGenerationService.generateTitle(text, detectMemoType(text))
+        }}
+        onSave={handleEditSave}
+        onCancel={handleEditCancel}
+        isCreating={true}
+      />
+    );
+  }
+
   return (
     <>
       <div className="bg-white rounded-lg shadow p-3 mb-20">
@@ -235,7 +257,7 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
             size="sm"
           >
             <Send className="mr-2 h-4 w-4" />
-            Save Memo
+            Create Memo
           </Button>
         </div>
       </div>

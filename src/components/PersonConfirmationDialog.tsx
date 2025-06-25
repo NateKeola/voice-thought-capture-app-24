@@ -1,19 +1,25 @@
 
 import React, { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { DetectedPerson } from '@/services/PersonDetectionService';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
+import PersonProposalCard from './memo/PersonProposalCard';
+import { Users, UserPlus } from 'lucide-react';
 
 interface PersonConfirmationDialogProps {
   open: boolean;
   detectedPeople: DetectedPerson[];
-  onConfirm: (confirmedPeople: DetectedPerson[]) => void;
+  onConfirm: (selectedPeople: DetectedPerson[]) => void;
   onSkip: () => void;
   onClose: () => void;
-  onSaveAndAddToRelationships?: (confirmedPeople: DetectedPerson[]) => void;
+  onSaveAndAddToRelationships?: (selectedPeople: DetectedPerson[]) => void;
 }
 
 const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
@@ -24,128 +30,87 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
   onClose,
   onSaveAndAddToRelationships
 }) => {
-  const navigate = useNavigate();
-  const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>(
-    detectedPeople.filter(p => p.confidence > 0.8)
-  );
+  const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>([]);
 
-  const handlePersonToggle = (person: DetectedPerson, checked: boolean) => {
-    if (checked) {
-      setSelectedPeople(prev => [...prev, person]);
-    } else {
-      setSelectedPeople(prev => prev.filter(p => p.name !== person.name));
-    }
+  const handlePersonToggle = (person: DetectedPerson) => {
+    setSelectedPeople(prev => {
+      const isSelected = prev.some(p => p.name === person.name);
+      if (isSelected) {
+        return prev.filter(p => p.name !== person.name);
+      } else {
+        return [...prev, person];
+      }
+    });
   };
 
   const handleConfirm = () => {
     onConfirm(selectedPeople);
-    onClose();
+    setSelectedPeople([]);
   };
 
   const handleSkip = () => {
     onSkip();
-    onClose();
+    setSelectedPeople([]);
   };
 
-  const handleAddToRelationships = () => {
+  const handleSaveAndAdd = () => {
     if (onSaveAndAddToRelationships) {
-      // Save memo with contact tags and navigate to relationships
       onSaveAndAddToRelationships(selectedPeople);
-    } else {
-      // Fallback to old behavior
-      onConfirm(selectedPeople);
-      
-      // Store selected people in session storage for the relationships page
-      const peopleForRelationships = selectedPeople.map(person => ({
-        firstName: person.name.split(' ')[0] || person.name,
-        lastName: person.name.split(' ').slice(1).join(' ') || '',
-        type: person.relationship === 'colleague' || person.relationship === 'manager' || person.relationship === 'client' || person.relationship === 'teammate' ? 'work' : 'personal',
-        relationshipDescription: `Mentioned in memo: "${person.context.substring(0, 100)}${person.context.length > 100 ? '...' : ''}"`
-      }));
-
-      sessionStorage.setItem('pendingRelationships', JSON.stringify(peopleForRelationships));
-      
-      // Navigate to relationships page
-      navigate('/relationships');
     }
-    onClose();
+    setSelectedPeople([]);
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>People Mentioned</DialogTitle>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2 text-lg">
+            <Users className="h-5 w-5 text-blue-600" />
+            People Detected in Your Memo
+          </DialogTitle>
+          <DialogDescription>
+            We found {detectedPeople.length} person{detectedPeople.length !== 1 ? 's' : ''} mentioned in your memo. 
+            Select which ones you'd like to tag:
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4">
-          <p className="text-gray-600 text-sm">
-            I detected these people in your memo. Choose how to handle them:
-          </p>
-          
-          <div className="space-y-3 max-h-60 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto py-4">
+          <div className="space-y-3">
             {detectedPeople.map((person, index) => (
-              <div key={index} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-                <Checkbox
-                  checked={selectedPeople.some(p => p.name === person.name)}
-                  onCheckedChange={(checked) => 
-                    handlePersonToggle(person, checked as boolean)
-                  }
-                  className="mt-1"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium">{person.name}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {Math.round(person.confidence * 100)}%
-                    </Badge>
-                  </div>
-                  
-                  {person.relationship && (
-                    <div className="text-sm text-blue-600 mb-1">
-                      {person.relationship}
-                    </div>
-                  )}
-                  
-                  <div className="text-xs text-gray-500 line-clamp-2">
-                    "{person.context}"
-                  </div>
-                  
-                  <Badge variant="outline" className="text-xs mt-1">
-                    {person.mentionType}
-                  </Badge>
-                </div>
-              </div>
+              <PersonProposalCard
+                key={`${person.name}-${index}`}
+                person={person}
+                isSelected={selectedPeople.some(p => p.name === person.name)}
+                onToggle={handlePersonToggle}
+              />
             ))}
           </div>
-          
-          <div className="flex flex-col space-y-2 pt-4">
-            <Button
-              onClick={handleAddToRelationships}
-              className="w-full bg-blue-500 hover:bg-blue-600"
-              disabled={selectedPeople.length === 0}
-            >
-              Save & Add {selectedPeople.length} to Relationships
-            </Button>
-            <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                onClick={handleConfirm}
-                className="flex-1"
-                disabled={selectedPeople.length === 0}
-              >
-                Save Memo Only
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleSkip}
-                className="flex-1"
-              >
-                Skip
-              </Button>
-            </div>
-          </div>
         </div>
+
+        <DialogFooter className="flex-shrink-0 flex gap-2 pt-4 border-t">
+          <Button variant="outline" onClick={handleSkip}>
+            Skip & Save Memo
+          </Button>
+          
+          <Button 
+            onClick={handleConfirm}
+            disabled={selectedPeople.length === 0}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Save with {selectedPeople.length} Contact{selectedPeople.length !== 1 ? 's' : ''}
+          </Button>
+
+          {onSaveAndAddToRelationships && (
+            <Button 
+              onClick={handleSaveAndAdd}
+              disabled={selectedPeople.length === 0}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add to Relationships
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
