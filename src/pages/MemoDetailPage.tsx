@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -7,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useMemos } from '@/contexts/MemoContext';
+import { TitleGenerationService } from '@/services/titleGeneration';
+import { detectMemoType } from '@/services/SpeechToText';
 import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
 import BottomNavBar from '@/components/BottomNavBar';
@@ -27,7 +28,9 @@ const MemoDetailPage: React.FC = () => {
   useEffect(() => {
     if (memo) {
       setEditedText(memo.text);
-      setEditedTitle(memo.title || '');
+      // Generate suggested title if memo doesn't have one or has a generic one
+      const suggestedTitle = memo.title || TitleGenerationService.generateTitle(memo.text, memo.type);
+      setEditedTitle(suggestedTitle);
       setHasUnsavedChanges(false);
     }
   }, [memo]);
@@ -59,18 +62,20 @@ const MemoDetailPage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      await updateMemo(memo.id, {
-        text: editedText,
-        title: editedTitle
-      });
+      // Only update if there are actual changes
+      if (hasUnsavedChanges) {
+        await updateMemo(memo.id, {
+          text: editedText,
+          title: editedTitle
+        });
+        
+        toast({
+          title: "Memo updated!",
+          description: "Your changes have been saved successfully."
+        });
+      }
       
-      setHasUnsavedChanges(false);
-      toast({
-        title: "Memo updated!",
-        description: "Your changes have been saved successfully."
-      });
-      
-      // Navigate back to home after saving
+      // Always navigate back to home
       navigate('/home');
     } catch (error) {
       console.error('Error updating memo:', error);
@@ -223,10 +228,10 @@ const MemoDetailPage: React.FC = () => {
             </Button>
             <Button
               onClick={handleSave}
-              disabled={isSaving || !hasUnsavedChanges}
-              className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-full disabled:opacity-50"
+              disabled={isSaving}
+              className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 rounded-full"
             >
-              {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'Saved'}
+              {isSaving ? 'Saving...' : hasUnsavedChanges ? 'Save & Return Home' : 'Return Home'}
             </Button>
           </div>
         </div>
