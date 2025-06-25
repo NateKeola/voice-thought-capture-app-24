@@ -8,8 +8,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
-import MemoEditScreen from './memo/MemoEditScreen';
-import { MemoType } from '@/types';
 
 interface TextMemoInputProps {
   onMemoCreated?: (memoId: string) => void;
@@ -18,7 +16,6 @@ interface TextMemoInputProps {
 
 const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialText = '' }) => {
   const [text, setText] = useState(initialText);
-  const [showEditScreen, setShowEditScreen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { createMemo } = useMemos();
@@ -37,26 +34,19 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
       return;
     }
 
-    // Show edit screen directly
-    setShowEditScreen(true);
-  };
-
-  const handleEditSave = async (memoData: { text: string; type: MemoType; title?: string; linkedPeople?: any[] }) => {
     try {
+      const memoType = detectMemoType(text);
+      const generatedTitle = TitleGenerationService.generateTitle(text, memoType);
+      
       const memo = await createMemo({
-        text: memoData.text,
-        type: memoData.type,
+        text: text,
+        type: memoType,
         audioUrl: null,
-        title: memoData.title
+        title: generatedTitle
       });
 
       if (memo) {
-        toast({
-          title: "Memo saved!",
-          description: `Your ${memoData.type} has been saved.`
-        });
-
-        // Navigate to the memo details screen
+        // Navigate directly to the memo details screen
         navigate(`/memo/${memo.id}`);
         
         // Clear the input
@@ -75,28 +65,7 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
         variant: "destructive"
       });
     }
-    
-    setShowEditScreen(false);
   };
-
-  const handleEditCancel = () => {
-    setShowEditScreen(false);
-  };
-
-  if (showEditScreen) {
-    return (
-      <MemoEditScreen
-        initialMemo={{
-          text,
-          type: detectMemoType(text),
-          title: TitleGenerationService.generateTitle(text, detectMemoType(text))
-        }}
-        onSave={handleEditSave}
-        onCancel={handleEditCancel}
-        isCreating={true}
-      />
-    );
-  }
 
   return (
     <div className="bg-white rounded-lg shadow p-3 mb-20">
