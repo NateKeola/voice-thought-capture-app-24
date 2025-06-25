@@ -1,16 +1,18 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, ArrowRight, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, X, Users } from "lucide-react";
 import { Memo, MemoType } from "@/types";
+import { PersonDetectionService, DetectedPerson } from "@/services/PersonDetectionService";
+import PersonProposalCard from './PersonProposalCard';
 
 interface MemoEditScreenProps {
   initialMemo?: Partial<Memo>;
-  onSave: (memo: { text: string; type: MemoType; title?: string }) => Promise<void>;
+  onSave: (memo: { text: string; type: MemoType; title?: string; linkedPeople?: DetectedPerson[] }) => Promise<void>;
   onCancel: () => void;
   isCreating?: boolean;
 }
@@ -29,6 +31,30 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   const [text, setText] = useState(cleanText(initialMemo?.text || ''));
   const [title, setTitle] = useState(initialMemo?.title || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
+  const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>([]);
+
+  // Detect people when text changes
+  useEffect(() => {
+    if (text.trim()) {
+      const people = PersonDetectionService.detectPeople(text);
+      setDetectedPeople(people);
+    } else {
+      setDetectedPeople([]);
+      setSelectedPeople([]);
+    }
+  }, [text]);
+
+  const handlePersonToggle = (person: DetectedPerson) => {
+    setSelectedPeople(prev => {
+      const isSelected = prev.some(p => p.name === person.name);
+      if (isSelected) {
+        return prev.filter(p => p.name !== person.name);
+      } else {
+        return [...prev, person];
+      }
+    });
+  };
 
   const handleSave = async () => {
     if (!text.trim()) return;
@@ -38,7 +64,8 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
       await onSave({ 
         text, 
         type: initialMemo?.type || 'note', 
-        title: title.trim() || undefined 
+        title: title.trim() || undefined,
+        linkedPeople: selectedPeople
       });
     } finally {
       setIsSaving(false);
@@ -95,6 +122,33 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
                 className="mt-1 min-h-[200px] resize-none border-blue-100 focus-visible:ring-orange-500"
               />
             </div>
+
+            {/* People Detection Section */}
+            {detectedPeople.length > 0 && (
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4 text-blue-600" />
+                  <Label className="text-sm font-medium text-gray-700">
+                    Link People ({detectedPeople.length} detected)
+                  </Label>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {detectedPeople.map((person, index) => (
+                    <PersonProposalCard
+                      key={`${person.name}-${index}`}
+                      person={person}
+                      isSelected={selectedPeople.some(p => p.name === person.name)}
+                      onToggle={handlePersonToggle}
+                    />
+                  ))}
+                </div>
+                {selectedPeople.length > 0 && (
+                  <p className="text-sm text-blue-600 mt-2">
+                    {selectedPeople.length} person{selectedPeople.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
 
           <CardFooter className="flex justify-between bg-gray-50 rounded-b-lg">

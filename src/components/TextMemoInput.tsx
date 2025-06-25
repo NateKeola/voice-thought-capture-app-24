@@ -45,32 +45,26 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
     setShowEditScreen(true);
   };
 
-  const handleEditSave = async (memoData: { text: string; type: MemoType; title?: string }) => {
+  const handleEditSave = async (memoData: { text: string; type: MemoType; title?: string; linkedPeople?: DetectedPerson[] }) => {
     try {
-      // Detect people mentioned in the text
-      const people = PersonDetectionService.detectPeople(memoData.text);
-      
-      if (people.length > 0) {
-        // Show confirmation dialog for detected people
-        setDetectedPeople(people);
-        setPendingMemoData({
-          text: memoData.text,
-          type: memoData.type,
-          audioUrl: null,
-          title: memoData.title
-        });
-        setShowEditScreen(false);
-        setShowPersonDialog(true);
-      } else {
-        // No people detected, create memo normally
-        await createMemoDirectly({
-          text: memoData.text,
-          type: memoData.type,
-          audioUrl: null,
-          title: memoData.title
-        });
-        setShowEditScreen(false);
+      let finalMemoData = {
+        text: memoData.text,
+        type: memoData.type,
+        audioUrl: null,
+        title: memoData.title
+      };
+
+      // If people were linked in the edit screen, add contact tags
+      if (memoData.linkedPeople && memoData.linkedPeople.length > 0) {
+        finalMemoData.text = PersonDetectionService.addContactTags(
+          memoData.text, 
+          memoData.linkedPeople
+        );
       }
+
+      // Create memo directly
+      await createMemoDirectly(finalMemoData);
+      setShowEditScreen(false);
     } catch (error) {
       console.error('Error processing memo:', error);
       toast({
