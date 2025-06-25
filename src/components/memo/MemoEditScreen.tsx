@@ -2,11 +2,8 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, Save, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { Memo, MemoType } from "@/types";
 
 interface MemoEditScreenProps {
@@ -23,8 +20,6 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   isCreating = false
 }) => {
   const [text, setText] = useState(initialMemo?.text || '');
-  const [type, setType] = useState<MemoType>(initialMemo?.type || 'note');
-  const [title, setTitle] = useState(initialMemo?.title || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -32,7 +27,12 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
     
     setIsSaving(true);
     try {
-      await onSave({ text, type, title: title.trim() || undefined });
+      // Use default values for type and title when creating
+      await onSave({ 
+        text, 
+        type: initialMemo?.type || 'note', 
+        title: initialMemo?.title || undefined 
+      });
     } finally {
       setIsSaving(false);
     }
@@ -64,45 +64,12 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
           
           <CardContent className="p-6 space-y-4">
             <div>
-              <Label htmlFor="title" className="text-sm font-medium text-gray-700">
-                Title (optional)
-              </Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter memo title..."
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="type" className="text-sm font-medium text-gray-700">
-                Memo Type
-              </Label>
-              <Select value={type} onValueChange={(value: MemoType) => setType(value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="note">Note</SelectItem>
-                  <SelectItem value="task">Task</SelectItem>
-                  <SelectItem value="idea">Idea</SelectItem>
-                  <SelectItem value="reminder">Reminder</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="content" className="text-sm font-medium text-gray-700">
-                Content
-              </Label>
               <Textarea
                 id="content"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Enter your memo content..."
-                className="mt-1 min-h-[200px] resize-none"
+                className="mt-1 min-h-[200px] resize-none border-blue-100 focus-visible:ring-orange-500"
               />
             </div>
           </CardContent>
@@ -115,10 +82,10 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
             <Button 
               onClick={handleSave} 
               disabled={!text.trim() || isSaving}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-orange-500 hover:bg-orange-600"
             >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save Memo'}
+              <ArrowRight className="h-4 w-4 mr-2" />
+              {isSaving ? 'Processing...' : 'Continue'}
             </Button>
           </CardFooter>
         </Card>
