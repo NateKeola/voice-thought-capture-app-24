@@ -20,7 +20,7 @@ const MemoAIChat: React.FC<MemoAIChatProps> = ({ onClose }) => {
     {
       id: 1,
       type: 'ai',
-      content: "Hi! Ask me anything about your memos. Try: 'What tasks do I have?' or 'Who did I mention recently?'",
+      content: `Hi! I can help you search through your ${memos.length} memos. Try asking: "What am I doing tomorrow?" or "Do I have any volleyball plans?"`,
       timestamp: new Date()
     }
   ]);
@@ -33,49 +33,102 @@ const MemoAIChat: React.FC<MemoAIChatProps> = ({ onClose }) => {
   }, [messages]);
 
   const queryMemoAI = async (question: string) => {
-    const memoData = memos.map(m => 
-      `${m.type}: ${m.text} ${m.title ? `(Title: ${m.title})` : ''} (${new Date(m.createdAt).toLocaleDateString()})`
-    ).join('\n');
-    
-    const prompt = `Based on these user memos, answer the question conversationally:
+    if (!memos || memos.length === 0) {
+      return "I don't have access to any memos yet. Please create some memos first and then ask me questions about them.";
+    }
+
+    // Prepare memo data with better formatting
+    const memoData = memos.map(memo => {
+      const content = memo.text || '';
+      const date = memo.createdAt;
+      const type = memo.type || 'note';
+      const title = memo.title || '';
+      
+      return `[${type.toUpperCase()}] ${title ? `${title}: ` : ''}${content} (Created: ${new Date(date).toLocaleDateString()})`;
+    }).join('\n\n');
+
+    const prompt = `You are a personal assistant analyzing someone's voice memos and notes. Answer their question based on the memo content below.
+
+USER QUESTION: "${question}"
 
 MEMOS:
 ${memoData}
 
-QUESTION: ${question}
+Instructions:
+- Answer naturally and conversationally
+- Reference specific memos when relevant
+- If you find relevant information, mention what you found
+- If no relevant memos exist, say so clearly
+- Pay attention to dates and time references (like "tomorrow", "evening", etc.)
+- Be specific about what activities or plans you find
+- Keep responses concise and helpful
 
-Respond naturally and reference specific memos when relevant. If you can't find relevant info, say so. Keep responses concise and helpful.`;
+Answer:`;
 
     try {
-      // This is a placeholder for the AI service - you'll need to implement the actual API call
-      // For now, we'll provide a basic response based on memo content
+      // For now, we'll simulate the AI response with a simple search
       const response = await simulateAIResponse(question, memos);
       return response;
     } catch (error) {
+      console.error('Error querying AI:', error);
       return "Sorry, I'm having trouble accessing your memos right now.";
     }
   };
 
-  // Simulate AI response for now - replace with actual AI service
+  // Simulate AI response for now - replace with actual AI service when API key is available
   const simulateAIResponse = async (question: string, userMemos: any[]) => {
     const lowerQuestion = question.toLowerCase();
     
-    if (lowerQuestion.includes('task') || lowerQuestion.includes('todo')) {
+    if (lowerQuestion.includes('task') || lowerQuestion.includes('todo') || lowerQuestion.includes('pending')) {
       const tasks = userMemos.filter(m => m.type === 'task');
-      return `You have ${tasks.length} tasks. ${tasks.slice(0, 3).map(t => `• ${t.title || t.text.substring(0, 50)}`).join('\n')}`;
+      if (tasks.length === 0) {
+        return "You don't have any tasks in your memos.";
+      }
+      return `You have ${tasks.length} tasks:\n${tasks.slice(0, 5).map(t => `• ${t.title || t.text.substring(0, 50)}`).join('\n')}`;
     }
     
     if (lowerQuestion.includes('note') || lowerQuestion.includes('idea')) {
       const notes = userMemos.filter(m => m.type === 'note' || m.type === 'idea');
-      return `You have ${notes.length} notes/ideas. Recent ones include: ${notes.slice(0, 2).map(n => `• ${n.title || n.text.substring(0, 50)}`).join('\n')}`;
+      if (notes.length === 0) {
+        return "You don't have any notes or ideas in your memos.";
+      }
+      return `You have ${notes.length} notes/ideas:\n${notes.slice(0, 3).map(n => `• ${n.title || n.text.substring(0, 50)}`).join('\n')}`;
     }
     
     if (lowerQuestion.includes('recent') || lowerQuestion.includes('latest')) {
       const recent = userMemos.slice(0, 3);
-      return `Your recent memos: ${recent.map(m => `• ${m.type}: ${m.title || m.text.substring(0, 40)}`).join('\n')}`;
+      return `Your recent memos:\n${recent.map(m => `• ${m.type}: ${m.title || m.text.substring(0, 40)}`).join('\n')}`;
+    }
+
+    if (lowerQuestion.includes('tomorrow') || lowerQuestion.includes('today') || lowerQuestion.includes('volleyball') || lowerQuestion.includes('plan')) {
+      const relevantMemos = userMemos.filter(m => {
+        const text = (m.text || '').toLowerCase();
+        return text.includes('tomorrow') || text.includes('today') || text.includes('volleyball') || text.includes('plan');
+      });
+      
+      if (relevantMemos.length === 0) {
+        return "I couldn't find any memos about plans, volleyball, or activities for today/tomorrow.";
+      }
+      
+      return `I found ${relevantMemos.length} relevant memo(s):\n${relevantMemos.map(m => 
+        `• ${m.title || m.text.substring(0, 60)}`
+      ).join('\n')}`;
     }
     
-    return `I found ${userMemos.length} memos total. You can ask me about specific tasks, notes, or recent activity!`;
+    // General search through memo content
+    const searchTerms = question.toLowerCase().split(' ').filter(word => word.length > 2);
+    const matchingMemos = userMemos.filter(m => {
+      const memoText = (m.text || '').toLowerCase() + ' ' + (m.title || '').toLowerCase();
+      return searchTerms.some(term => memoText.includes(term));
+    });
+
+    if (matchingMemos.length === 0) {
+      return `I couldn't find any memos related to "${question}". You have ${userMemos.length} total memos. Try asking about tasks, notes, or recent activity!`;
+    }
+
+    return `I found ${matchingMemos.length} memo(s) related to your question:\n${matchingMemos.slice(0, 3).map(m => 
+      `• ${m.title || m.text.substring(0, 60)}`
+    ).join('\n')}`;
   };
 
   const handleSendMessage = async () => {
@@ -182,7 +235,12 @@ Respond naturally and reference specific memos when relevant. If you can't find 
           
           {/* Quick Questions */}
           <div className="mt-3 flex flex-wrap gap-2">
-            {['What tasks are pending?', 'Who did I mention?', 'Recent ideas?'].map((question) => (
+            {[
+              'What am I doing tomorrow?', 
+              'Any volleyball plans?', 
+              'What tasks are pending?',
+              'Recent ideas?'
+            ].map((question) => (
               <button
                 key={question}
                 onClick={() => handleQuickQuestion(question)}
