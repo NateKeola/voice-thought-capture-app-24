@@ -280,6 +280,11 @@ const TasksPageContent: React.FC = () => {
     .filter(memo => memo.type === 'note')
     .map(memo => mapMemoToItem(memo, 'note', categories, listCategories));
 
+  // FIX: Define context-aware current variables
+  const currentCategories = personalTab === "tasks" ? categories : listCategories;
+  const currentItems = personalTab === "tasks" ? tasks : notes;
+  const currentCompletedIds = personalTab === "tasks" ? completedTaskIds : completedNoteIds;
+
   // Search through current items
   const handleSearchResults = (results: any[]) => {
     const itemType = personalTab === "tasks" ? 'task' : 'note';
