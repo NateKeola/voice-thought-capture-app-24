@@ -332,6 +332,10 @@ const TasksPageContent: React.FC = () => {
     setSelectedCategory(null);
   };
 
+  const handleCategoriesViewSelected = () => {
+    setSelectedCategory(null);
+  };
+
   const handleDeleteCategory = (categoryId: string) => {
     deleteCategory(categoryId);
     toast.success("Category deleted successfully");
@@ -483,7 +487,11 @@ const TasksPageContent: React.FC = () => {
           </TabsList>
           
           <TabsContent value="tasks" className="mt-4">
-            <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+            <TasksViewToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              onCategoriesViewSelected={handleCategoriesViewSelected}
+            />
             
             <div className="flex justify-between items-center my-4">
               <h2 className="text-lg font-semibold text-gray-800">
@@ -577,7 +585,11 @@ const TasksPageContent: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="notes" className="mt-4">
-            <TasksViewToggle viewMode={viewMode} setViewMode={setViewMode} />
+            <TasksViewToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode} 
+              onCategoriesViewSelected={handleCategoriesViewSelected}
+            />
             
             <div className="flex justify-between items-center my-4">
               <h2 className="text-lg font-semibold text-gray-800">
