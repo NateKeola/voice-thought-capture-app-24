@@ -80,7 +80,7 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
               <Label htmlFor="type" className="text-sm font-medium text-gray-700">
                 Memo Type
               </Label>
-              <Select value={type} onValueChange={(value) => setType(value as MemoType)}>
+              <Select value={type} onValueChange={(value: MemoType) => setType(value)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
