@@ -1,8 +1,8 @@
-
 import React, { useState } from "react";
 import ProfileIconButton from "@/components/ProfileIconButton";
 import { ArrowLeft, Search, X, Brain } from "lucide-react";
 import MemoAIChat from "@/components/MemoAIChat";
+import { useMemos } from "@/contexts/MemoContext";
 
 interface TasksHeaderProps {
   taskCount: number;
@@ -26,6 +26,7 @@ const TasksHeader: React.FC<TasksHeaderProps> = ({
   onClearSearch
 }) => {
   const [showMemoAI, setShowMemoAI] = useState(false);
+  const { memos } = useMemos();
 
   return (
     <>
