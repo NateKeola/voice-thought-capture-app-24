@@ -69,6 +69,9 @@ const MemoDetailPage: React.FC = () => {
         title: "Memo updated!",
         description: "Your changes have been saved successfully."
       });
+      
+      // Navigate back to home after saving
+      navigate('/home');
     } catch (error) {
       console.error('Error updating memo:', error);
       toast({
@@ -89,7 +92,7 @@ const MemoDetailPage: React.FC = () => {
           title: "Memo deleted",
           description: "Your memo has been deleted successfully."
         });
-        navigate('/');
+        navigate('/home');
       } catch (error) {
         console.error('Error deleting memo:', error);
         toast({
@@ -233,9 +236,9 @@ const MemoDetailPage: React.FC = () => {
       {!isLoading && (
         <div className="fixed bottom-20 right-6 z-20">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
             className="w-14 h-14 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200"
-            aria-label="Create New Memo"
+            aria-label="Go to Home"
           >
             <Save size={24} className="text-white" />
           </button>

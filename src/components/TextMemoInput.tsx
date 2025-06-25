@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -96,8 +95,8 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
           description: `Your ${memoData.type} has been saved.`
         });
 
-        // Navigate to the memo detail page
-        navigate(`/memo/${memo.id}`);
+        // Navigate back to home screen instead of memo detail
+        navigate('/home');
         
         // Clear the input
         setText('');

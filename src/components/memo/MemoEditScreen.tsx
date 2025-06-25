@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { Memo, MemoType } from "@/types";
 
@@ -19,7 +21,13 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   onCancel,
   isCreating = false
 }) => {
-  const [text, setText] = useState(initialMemo?.text || '');
+  // Clean the text content by removing any tags like [category:appointments]
+  const cleanText = (text: string) => {
+    return text.replace(/\[[\w\s:]+\]/g, '').trim();
+  };
+
+  const [text, setText] = useState(cleanText(initialMemo?.text || ''));
+  const [title, setTitle] = useState(initialMemo?.title || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
@@ -27,11 +35,10 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
     
     setIsSaving(true);
     try {
-      // Use default values for type and title when creating
       await onSave({ 
         text, 
         type: initialMemo?.type || 'note', 
-        title: initialMemo?.title || undefined 
+        title: title.trim() || undefined 
       });
     } finally {
       setIsSaving(false);
@@ -64,6 +71,22 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
           
           <CardContent className="p-6 space-y-4">
             <div>
+              <Label htmlFor="title" className="text-sm font-medium text-gray-700">
+                Title
+              </Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter memo title..."
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="content" className="text-sm font-medium text-gray-700">
+                Content
+              </Label>
               <Textarea
                 id="content"
                 value={text}
