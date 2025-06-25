@@ -19,6 +19,7 @@ import { FolderPlus, Check } from "lucide-react";
 import { useMemos } from "@/contexts/MemoContext";
 import { Memo } from "@/types";
 import { TitleGenerationService } from "@/services/titleGeneration";
+import { detectMemoType } from "@/services/SpeechToText";
 import { toast } from "sonner";
 
 const priorityColors = {
@@ -27,8 +28,52 @@ const priorityColors = {
   low: "bg-blue-400"
 };
 
+// Smart categorization mapping for notes based on memo content
+const smartCategorizeNote = (text: string, listCategories: any[]) => {
+  const lowerText = text.toLowerCase();
+  
+  // Try to match content to existing categories first
+  for (const category of listCategories) {
+    const categoryName = category.name.toLowerCase();
+    if (lowerText.includes(categoryName)) {
+      return category.id;
+    }
+  }
+  
+  // Smart categorization based on content keywords
+  if (lowerText.includes('idea') || lowerText.includes('concept') || lowerText.includes('brainstorm') || 
+      lowerText.includes('innovation') || lowerText.includes('creative') || lowerText.includes('inspiration')) {
+    const ideasCategory = listCategories.find(cat => cat.name.toLowerCase().includes('idea'));
+    if (ideasCategory) return ideasCategory.id;
+  }
+  
+  if (lowerText.includes('meeting') || lowerText.includes('notes') || lowerText.includes('discussion') || 
+      lowerText.includes('agenda') || lowerText.includes('minutes') || lowerText.includes('takeaway')) {
+    const meetingCategory = listCategories.find(cat => cat.name.toLowerCase().includes('meeting'));
+    if (meetingCategory) return meetingCategory.id;
+  }
+  
+  if (lowerText.includes('research') || lowerText.includes('study') || lowerText.includes('learn') || 
+      lowerText.includes('article') || lowerText.includes('book') || lowerText.includes('documentation')) {
+    const researchCategory = listCategories.find(cat => cat.name.toLowerCase().includes('research') || 
+                                                            cat.name.toLowerCase().includes('learning'));
+    if (researchCategory) return researchCategory.id;
+  }
+  
+  if (lowerText.includes('project') || lowerText.includes('plan') || lowerText.includes('roadmap') || 
+      lowerText.includes('timeline') || lowerText.includes('milestone') || lowerText.includes('goal')) {
+    const projectCategory = listCategories.find(cat => cat.name.toLowerCase().includes('project') || 
+                                                       cat.name.toLowerCase().includes('planning'));
+    if (projectCategory) return projectCategory.id;
+  }
+  
+  // Default to general if no smart match found
+  const generalCategory = listCategories.find(cat => cat.name.toLowerCase().includes('general'));
+  return generalCategory ? generalCategory.id : (listCategories[0]?.id || "general");
+};
+
 // Map memo to the interface expected by the TaskList component
-const mapMemoToItem = (memo: Memo, type: 'task' | 'note') => {
+const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], listCategories: any[]) => {
   // Parse category and priority from memo text or use defaults
   let category = type === 'task' ? "personal" : "general";
   let priority = "medium";
@@ -38,6 +83,21 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note') => {
   if (memo.text.includes("[category:")) {
     const match = memo.text.match(/\[category:\s*(\w+)\]/i);
     if (match && match[1]) category = match[1].toLowerCase();
+  } else {
+    // Smart categorization if no explicit category is set
+    if (type === 'task') {
+      // Use existing smart categorization for tasks
+      const taskCategories = categories;
+      for (const cat of taskCategories) {
+        if (memo.text.toLowerCase().includes(cat.name.toLowerCase())) {
+          category = cat.id;
+          break;
+        }
+      }
+    } else {
+      // Use smart categorization for notes
+      category = smartCategorizeNote(memo.text, listCategories);
+    }
   }
   
   if (memo.text.includes("[priority:")) {
@@ -75,14 +135,6 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note') => {
 
   // Use string ID to avoid NaN issues
   const itemId = String(memo.id);
-  console.log('Mapping memo to item:', { 
-    memoId: memo.id, 
-    memoIdType: typeof memo.id,
-    itemId, 
-    itemIdType: typeof itemId,
-    title,
-    type 
-  });
 
   return {
     id: itemId,
@@ -219,28 +271,20 @@ const TasksPageContent: React.FC = () => {
   // Get memos from our unified context
   const { memos, isLoading, updateMemo } = useMemos();
   
-  // Convert memos to tasks and notes
+  // Convert memos to tasks and notes with smart categorization
   const tasks = memos
     .filter(memo => memo.type === 'task')
-    .map(memo => mapMemoToItem(memo, 'task'));
+    .map(memo => mapMemoToItem(memo, 'task', categories, listCategories));
 
   const notes = memos
     .filter(memo => memo.type === 'note')
-    .map(memo => mapMemoToItem(memo, 'note'));
-
-  // Get current items and completion state based on active tab
-  const currentItems = personalTab === "tasks" ? tasks : notes;
-  const currentCompletedIds = personalTab === "tasks" ? completedTaskIds : completedNoteIds;
-  const currentCategories = personalTab === "tasks" ? categories : listCategories;
-
-  console.log('All item IDs:', currentItems.map(t => t.id));
-  console.log('Current completed IDs:', currentCompletedIds);
+    .map(memo => mapMemoToItem(memo, 'note', categories, listCategories));
 
   // Search through current items
   const handleSearchResults = (results: any[]) => {
     const itemType = personalTab === "tasks" ? 'task' : 'note';
     const itemMemos = results.filter(memo => memo.type === itemType);
-    const itemResults = itemMemos.map(memo => mapMemoToItem(memo, itemType));
+    const itemResults = itemMemos.map(memo => mapMemoToItem(memo, itemType, categories, listCategories));
     setSearchResults(itemResults);
   };
 
