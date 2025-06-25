@@ -4,7 +4,6 @@ import TaskItemHeader from "./TaskItemHeader";
 import TaskItemFooter from "./TaskItemFooter";
 import TaskEditDialog from "./TaskEditDialog";
 import TaskDeleteDialog from "./TaskDeleteDialog";
-import { TitleGenerationService } from "@/services/titleGeneration";
 
 interface TaskItemProps {
   task: any;
@@ -24,7 +23,7 @@ const TaskItem: React.FC<TaskItemProps> = ({
   
   const categoryColor = getCategoryColor(task.category);
   
-  // Clean the description text and generate a proper title
+  // Clean the description text
   const cleanDescription = task.description
     .replace(/\[Contact: [^\]]+\]/g, '')
     .replace(/\[category:\s*\w+\]/gi, '')
@@ -32,10 +31,8 @@ const TaskItem: React.FC<TaskItemProps> = ({
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Generate a proper title if the current title looks like raw text
-  const displayTitle = task.title && task.title.length < 50 
-    ? task.title 
-    : TitleGenerationService.generateTitle(task.title + ' ' + cleanDescription, 'task');
+  // Use the task title directly (it should already be properly set from the memo)
+  const displayTitle = task.title;
   
   const handleEdit = () => {
     setIsEditDialogOpen(true);

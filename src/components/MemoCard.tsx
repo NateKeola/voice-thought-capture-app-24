@@ -22,7 +22,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Generate title if not already present using the new TitleGenerationService
+  // Use the memo's title if it exists, otherwise generate one
   const memoTitle = title || TitleGenerationService.generateTitle(displayText, type);
   
   const getTypeConfig = (type: string) => {
@@ -74,7 +74,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
-            {/* Auto-generated title in bold */}
+            {/* Use memo title directly */}
             <h3 className="font-bold text-gray-800 mb-2 text-sm leading-tight">
               {memoTitle}
             </h3>

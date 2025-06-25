@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import TasksHeader from "@/components/tasks/TasksHeader";
 import TaskCategoryCard from "@/components/tasks/TaskCategoryCard";
@@ -40,14 +39,14 @@ const smartCategorizeNote = (text: string, listCategories: any[]) => {
     }
   }
   
-  // Smart categorization based on content keywords
+  // Smart categorization based on content keywords - FIXED LOGIC
   if (lowerText.includes('idea') || lowerText.includes('concept') || lowerText.includes('brainstorm') || 
       lowerText.includes('innovation') || lowerText.includes('creative') || lowerText.includes('inspiration')) {
     const ideasCategory = listCategories.find(cat => cat.name.toLowerCase().includes('idea'));
     if (ideasCategory) return ideasCategory.id;
   }
   
-  if (lowerText.includes('meeting') || lowerText.includes('notes') || lowerText.includes('discussion') || 
+  if (lowerText.includes('meeting') || lowerText.includes('discussion') || 
       lowerText.includes('agenda') || lowerText.includes('minutes') || lowerText.includes('takeaway')) {
     const meetingCategory = listCategories.find(cat => cat.name.toLowerCase().includes('meeting'));
     if (meetingCategory) return meetingCategory.id;
@@ -118,14 +117,13 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Use the generated title if available, otherwise generate one
-  let title = memo.title || TitleGenerationService.generateTitle(cleanText, type);
+  // Use the memo's title if it exists, otherwise generate one
+  let title = memo.title;
   let description = cleanText;
   
-  // If the title is too long or looks like raw text, regenerate it
-  if (title.length > 50 || title === cleanText) {
+  // If no title exists, generate one
+  if (!title) {
     title = TitleGenerationService.generateTitle(cleanText, type);
-    description = cleanText;
   }
   
   // If description is the same as title, clear it to avoid duplication
