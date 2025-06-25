@@ -138,7 +138,7 @@ const MemoDetailPage: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 pb-24">
-      {/* Header with gradient background matching personal tab */}
+      {/* Header with gradient background */}
       <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 pt-12 pb-8 px-6 rounded-b-3xl relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 bottom-0 opacity-20 pointer-events-none">
           <div className="absolute top-10 left-10 w-48 h-48 bg-white rounded-full filter blur-3xl"></div>
