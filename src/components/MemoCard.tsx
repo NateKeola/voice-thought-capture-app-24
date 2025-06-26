@@ -16,13 +16,13 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   
   // Remove contact tags and metadata from display text
   const displayText = text
-    .replace(/\[Contact: [^\]]+\]/g, '')
+    .replace(/\[Contact:\s*[^\]]+\]/g, '')
     .replace(/\[category:\s*\w+\]/gi, '')
     .replace(/\[priority:\s*\w+\]/gi, '')
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Use the memo's title if it exists, otherwise generate one
+  // Use the memo's title if it exists, otherwise generate one from clean text
   const memoTitle = title || TitleGenerationService.generateTitle(displayText, type);
   
   const getTypeConfig = (type: string) => {
@@ -74,11 +74,9 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
-            {/* Use memo title directly */}
             <h3 className="font-bold text-gray-800 mb-2 text-sm leading-tight">
               {memoTitle}
             </h3>
-            {/* Original memo text (truncated) */}
             <p className="text-sm text-muted-foreground line-clamp-2">{displayText}</p>
           </div>
         </div>
@@ -92,7 +90,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             <span>Audio</span>
           </div>
         )}
-      </CardFooter>
+      </div>
     </Card>
   );
 };

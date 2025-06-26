@@ -24,7 +24,7 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
 
   // Remove contact tags and metadata from display text
   const displayText = memo.text
-    .replace(/\[Contact: [^\]]+\]/g, '')
+    .replace(/\[Contact:\s*[^\]]+\]/g, '')
     .replace(/\[category:\s*\w+\]/gi, '')
     .replace(/\[priority:\s*\w+\]/gi, '')
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
@@ -73,7 +73,7 @@ const MemoContent = ({ memo, onSave, onDelete, onBack }: MemoContentProps) => {
       <Card className="border-2 border-black shadow-lg">
         <CardHeader className="bg-orange-50 rounded-t-lg">
           <CardTitle className="text-orange-600">
-            {isEditing ? 'Edit Memo' : 'Memo Details'}
+            {isEditing ? 'Edit Memo' : (memo.title || 'Memo Details')}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">

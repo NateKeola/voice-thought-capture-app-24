@@ -26,9 +26,12 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   onCancel,
   isCreating = false
 }) => {
-  // Clean the text content by removing any tags like [category:appointments]
+  // Clean the text content by removing any tags like [category:appointments] and [Contact: xxx]
   const cleanText = (text: string) => {
-    return text.replace(/\[[\w\s:]+\]/g, '').trim();
+    return text
+      .replace(/\[[\w\s:]+\]/g, '')
+      .replace(/\[Contact:\s*[^\]]+\]/g, '')
+      .trim();
   };
 
   const [text, setText] = useState(cleanText(initialMemo?.text || ''));
@@ -84,7 +87,7 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
     
     setIsSaving(true);
     try {
-      // First save the memo with contact tags
+      // First save the memo with contact tags and title
       await onSave({ 
         text, 
         type: initialMemo?.type || 'note', 

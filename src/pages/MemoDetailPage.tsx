@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -27,17 +28,32 @@ const MemoDetailPage: React.FC = () => {
   
   useEffect(() => {
     if (memo) {
-      setEditedText(memo.text);
-      // Generate suggested title if memo doesn't have one or has a generic one
-      const suggestedTitle = memo.title || TitleGenerationService.generateTitle(memo.text, memo.type);
-      setEditedTitle(suggestedTitle);
+      // Clean the text for editing by removing contact tags
+      const cleanedText = memo.text
+        .replace(/\[Contact:\s*[^\]]+\]/g, '')
+        .replace(/\[category:\s*\w+\]/gi, '')
+        .replace(/\[priority:\s*\w+\]/gi, '')
+        .replace(/\[due:\s*[\w\s]+\]/gi, '')
+        .trim();
+      
+      setEditedText(cleanedText);
+      // Use the actual title from the memo if it exists
+      const currentTitle = memo.title || TitleGenerationService.generateTitle(cleanedText, memo.type);
+      setEditedTitle(currentTitle);
       setHasUnsavedChanges(false);
     }
   }, [memo]);
 
   useEffect(() => {
     if (memo) {
-      const hasChanges = editedText !== memo.text || editedTitle !== (memo.title || '');
+      const cleanedOriginalText = memo.text
+        .replace(/\[Contact:\s*[^\]]+\]/g, '')
+        .replace(/\[category:\s*\w+\]/gi, '')
+        .replace(/\[priority:\s*\w+\]/gi, '')
+        .replace(/\[due:\s*[\w\s]+\]/gi, '')
+        .trim();
+      
+      const hasChanges = editedText !== cleanedOriginalText || editedTitle !== (memo.title || '');
       setHasUnsavedChanges(hasChanges);
     }
   }, [editedText, editedTitle, memo]);
@@ -66,7 +82,7 @@ const MemoDetailPage: React.FC = () => {
       if (hasUnsavedChanges) {
         await updateMemo(memo.id, {
           text: editedText,
-          title: editedTitle
+          title: editedTitle.trim() || undefined
         });
         
         toast({
