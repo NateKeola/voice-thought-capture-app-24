@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -71,23 +70,30 @@ const MemoDetailPage: React.FC = () => {
     setIsSaving(true);
     try {
       console.log('Saving memo with title:', editedTitle.trim());
-      const updatedMemo = await updateMemo(memo.id, {
+      
+      // Prepare the update data with explicit title
+      const updateData = {
         text: editedText.trim(),
-        title: editedTitle.trim()
-      });
+        title: editedTitle.trim() || null // Ensure we send null for empty titles
+      };
+      
+      console.log('Update data being sent:', updateData);
+      
+      const updatedMemo = await updateMemo(memo.id, updateData);
       
       if (updatedMemo) {
         console.log('Memo updated successfully:', updatedMemo);
         setHasUnsavedChanges(false);
+        
         toast({
           title: "Memo updated",
           description: "Your changes have been saved successfully."
         });
         
-        // Navigate back to home page after successful save
+        // Wait a bit longer to ensure the update has propagated
         setTimeout(() => {
           navigate('/');
-        }, 1000); // Small delay to show the success toast
+        }, 1500);
       } else {
         throw new Error('Failed to update memo');
       }

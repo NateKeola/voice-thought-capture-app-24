@@ -171,6 +171,7 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             table: 'memos'
           },
           (payload) => {
+            console.log('Real-time update received:', payload);
             if (payload.eventType === 'INSERT') {
               const newMemo = {
                 id: payload.new.id,
@@ -179,8 +180,9 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 audioUrl: payload.new.audio_url,
                 createdAt: payload.new.created_at,
                 completed: payload.new.status === 'completed',
-                title: payload.new.title // Ensure title is included
+                title: payload.new.title || undefined // Handle null/empty titles properly
               };
+              console.log('Adding new memo from real-time:', newMemo);
               setMemos(current => [newMemo, ...current]);
               
               toast({
@@ -188,16 +190,22 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 description: `A new ${newMemo.type} has been added.`
               });
             } else if (payload.eventType === 'UPDATE') {
-              setMemos(current => current.map(memo => 
-                memo.id === payload.new.id ? {
-                  ...memo,
-                  text: payload.new.content,
-                  type: payload.new.category as MemoType,
-                  audioUrl: payload.new.audio_url,
-                  completed: payload.new.status === 'completed',
-                  title: payload.new.title // Ensure title updates propagate
-                } : memo
-              ));
+              console.log('Updating memo from real-time:', payload.new);
+              setMemos(current => current.map(memo => {
+                if (memo.id === payload.new.id) {
+                  const updatedMemo = {
+                    ...memo,
+                    text: payload.new.content,
+                    type: payload.new.category as MemoType,
+                    audioUrl: payload.new.audio_url,
+                    completed: payload.new.status === 'completed',
+                    title: payload.new.title || undefined // Handle null/empty titles properly
+                  };
+                  console.log('Updated memo from real-time:', updatedMemo);
+                  return updatedMemo;
+                }
+                return memo;
+              }));
               
               toast({
                 title: "Memo updated",
