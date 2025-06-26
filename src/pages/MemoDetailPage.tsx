@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useMemos } from '@/contexts/MemoContext';
-import { TitleGenerationService } from '@/services/titleGeneration';
 import { detectMemoType } from '@/services/SpeechToText';
 import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
@@ -23,13 +22,11 @@ const MemoDetailPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
-  // Just find the memo directly - no state needed
   const memo = memos.find(m => m.id === id);
 
   useEffect(() => {
     if (memo) {
       console.log('MemoDetailPage - memo found:', memo);
-      // Clean the text for editing by removing contact tags
       const cleanedText = memo.text
         .replace(/\[Contact:\s*[^\]]+\]/g, '')
         .replace(/\[category:\s*\w+\]/gi, '')
@@ -38,14 +35,7 @@ const MemoDetailPage: React.FC = () => {
         .trim();
       
       setEditedText(cleanedText);
-      // ALWAYS use the actual title from the memo if it exists and is not empty
-      // Only generate a title if there's no existing title
-      const currentTitle = (memo.title && memo.title.trim().length > 0) 
-        ? memo.title 
-        : TitleGenerationService.generateTitle(cleanedText, memo.type);
-      
-      console.log('Setting title - memo.title:', memo.title, 'final title:', currentTitle);
-      setEditedTitle(currentTitle);
+      setEditedTitle(memo.title || '');
       setHasUnsavedChanges(false);
     }
   }, [memo]);
@@ -71,10 +61,9 @@ const MemoDetailPage: React.FC = () => {
     try {
       console.log('Saving memo with title:', editedTitle.trim());
       
-      // Prepare the update data with explicit title
       const updateData = {
         text: editedText.trim(),
-        title: editedTitle.trim() || null // Ensure we send null for empty titles
+        title: editedTitle.trim() || null
       };
       
       console.log('Update data being sent:', updateData);
@@ -90,10 +79,9 @@ const MemoDetailPage: React.FC = () => {
           description: "Your changes have been saved successfully."
         });
         
-        // Wait a bit longer to ensure the update has propagated
         setTimeout(() => {
           navigate('/');
-        }, 1500);
+        }, 1000);
       } else {
         throw new Error('Failed to update memo');
       }

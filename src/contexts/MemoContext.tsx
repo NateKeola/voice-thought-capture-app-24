@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAllMemos, saveMemo, updateMemo, deleteMemo } from '@/services/MemoStorage';
@@ -70,7 +69,6 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const newMemo = await saveMemo(memoData);
       
-      // If user is not authenticated, manually update state
       if (!isAuthenticated) {
         setMemos(prevMemos => [newMemo, ...prevMemos]);
       }
@@ -93,7 +91,6 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const updatedMemo = await updateMemo(id, updates);
       console.log('Updated memo result:', updatedMemo);
       
-      // Immediately update the local state to reflect changes across the UI
       if (updatedMemo) {
         setMemos(prevMemos => {
           const newMemos = prevMemos.map(memo => {
@@ -108,7 +105,6 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         });
       }
       
-      // If user is not authenticated, ensure local state is updated
       if (!isAuthenticated && updatedMemo) {
         setMemos(prevMemos => 
           prevMemos.map(memo => memo.id === id ? { ...memo, ...updatedMemo } : memo)
@@ -131,7 +127,6 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const success = await deleteMemo(id);
       
-      // If user is not authenticated, manually update state
       if (!isAuthenticated && success) {
         setMemos(prevMemos => prevMemos.filter(memo => memo.id !== id));
       }

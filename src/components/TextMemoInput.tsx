@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { detectMemoType } from '@/services/SpeechToText';
-import { TitleGenerationService } from '@/services/titleGeneration';
 import { useToast } from '@/components/ui/use-toast';
 import { Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -36,23 +35,18 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
 
     try {
       const memoType = detectMemoType(text);
-      const generatedTitle = TitleGenerationService.generateTitle(text, memoType);
       
       const memo = await createMemo({
         text: text,
         type: memoType,
         audioUrl: null,
-        title: generatedTitle
+        title: null // No auto-generated title
       });
 
       if (memo) {
-        // Navigate directly to the memo details screen
         navigate(`/memo/${memo.id}`);
-        
-        // Clear the input
         setText('');
         
-        // Notify parent component
         if (onMemoCreated) {
           onMemoCreated(memo.id);
         }

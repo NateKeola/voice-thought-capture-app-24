@@ -1,9 +1,9 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Memo } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { FileText, CheckCircle, CircleAlert, FileAudio, Users } from "lucide-react";
-import { TitleGenerationService } from '@/services/titleGeneration';
 import { extractMemoMetadata } from '@/utils/memoMetadata';
 
 interface MemoCardProps {
@@ -18,11 +18,8 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
   
-  // ALWAYS prioritize the memo's actual title if it exists and is not empty
-  // Only generate a title if there's no existing title or if it's empty/undefined
-  const memoTitle = (title && title.trim().length > 0) 
-    ? title 
-    : TitleGenerationService.generateTitle(displayText, type);
+  // Use the memo's title or fall back to "Untitled Memo"
+  const memoTitle = title || 'Untitled Memo';
   
   console.log('MemoCard rendering - memo id:', memo.id, 'title from memo:', title, 'final title:', memoTitle);
   
