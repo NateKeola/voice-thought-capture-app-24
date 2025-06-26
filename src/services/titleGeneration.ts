@@ -58,57 +58,9 @@ export class TitleGenerationService {
       return cleanText;
     }
 
-    // Generate smart title based on content, not just truncation
-    const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0);
-    const firstSentence = sentences[0]?.trim() || cleanText;
+    // Generate smart synopsis based on content type and patterns
+    let title = this.extractSmartTitle(cleanText, type);
     
-    let title = '';
-
-    // For tasks, try to find action patterns
-    if (type === 'task') {
-      const taskPatterns = [
-        /(?:I need to|need to|remember to|don't forget to?)\s+(.+)/i,
-        /(?:should|must|have to)\s+(.+)/i,
-        /(.+?)(?:\s+(?:today|tomorrow|this week|next week))/i
-      ];
-      
-      for (const pattern of taskPatterns) {
-        const match = firstSentence.match(pattern);
-        if (match && match[1]) {
-          const extracted = match[1].trim();
-          title = extracted.length > 35 ? extracted.substring(0, 32) + '...' : extracted;
-          break;
-        }
-      }
-    }
-
-    // If no smart title generated, use meaningful words
-    if (!title) {
-      const words = firstSentence.split(/\s+/);
-      
-      // Remove common filler words from the beginning
-      const fillerWords = ['so', 'well', 'um', 'uh', 'like', 'you know', 'i think', 'maybe'];
-      let startIndex = 0;
-      while (startIndex < words.length && fillerWords.includes(words[startIndex].toLowerCase())) {
-        startIndex++;
-      }
-      
-      // Take meaningful words
-      for (let i = startIndex; i < Math.min(words.length, startIndex + 5); i++) {
-        const word = words[i];
-        if (title.length + word.length + 1 <= 40) {
-          title += (title ? ' ' : '') + word;
-        } else {
-          break;
-        }
-      }
-      
-      // Add ellipsis if we truncated
-      if (words.length > startIndex + 5 || (title.length < cleanText.length && cleanText.length > 40)) {
-        title += '...';
-      }
-    }
-
     // Ensure we have some title
     if (!title) {
       switch (type) {
@@ -127,6 +79,145 @@ export class TitleGenerationService {
     }
 
     console.log('🔍 Generated fallback title:', title);
+    return title;
+  }
+
+  /**
+   * Extract smart title based on content patterns
+   */
+  private static extractSmartTitle(text: string, type: 'task' | 'note' | 'idea'): string {
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const firstSentence = sentences[0]?.trim() || text;
+    
+    // For tasks, extract action-oriented titles
+    if (type === 'task') {
+      return this.extractTaskTitle(firstSentence);
+    }
+    
+    // For ideas, extract the core concept
+    if (type === 'idea') {
+      return this.extractIdeaTitle(firstSentence);
+    }
+    
+    // For notes, extract the main subject
+    return this.extractNoteTitle(firstSentence);
+  }
+
+  /**
+   * Extract task-oriented title
+   */
+  private static extractTaskTitle(sentence: string): string {
+    const taskPatterns = [
+      // "I need to X" -> "X"
+      /(?:I need to|need to|remember to|don't forget to?)\s+(.+)/i,
+      // "Should/must/have to X" -> "X"
+      /(?:should|must|have to)\s+(.+)/i,
+      // "X today/tomorrow" -> "X"
+      /(.+?)(?:\s+(?:today|tomorrow|this week|next week|later))/i,
+      // "Call/Email/Buy X" -> "Call/Email/Buy X"
+      /^((?:call|email|text|message|buy|get|pick up|schedule|book|meet|contact)\s+.+)/i
+    ];
+    
+    for (const pattern of taskPatterns) {
+      const match = sentence.match(pattern);
+      if (match && match[1]) {
+        const extracted = match[1].trim();
+        // Capitalize first letter and limit length
+        const title = extracted.charAt(0).toUpperCase() + extracted.slice(1);
+        return title.length > 35 ? title.substring(0, 32) + '...' : title;
+      }
+    }
+    
+    // Fallback: take meaningful words from the beginning
+    return this.extractMeaningfulWords(sentence, 4);
+  }
+
+  /**
+   * Extract idea-oriented title
+   */
+  private static extractIdeaTitle(sentence: string): string {
+    const ideaPatterns = [
+      // "What if X" -> "X"
+      /(?:what if|how about|maybe we could)\s+(.+)/i,
+      // "I think X" -> "X"
+      /(?:I think|I believe|perhaps)\s+(.+)/i,
+      // "X would be great/good/cool" -> "X"
+      /(.+?)\s+(?:would be|could be|might be)\s+(?:great|good|cool|awesome|interesting)/i
+    ];
+    
+    for (const pattern of ideaPatterns) {
+      const match = sentence.match(pattern);
+      if (match && match[1]) {
+        const extracted = match[1].trim();
+        const title = extracted.charAt(0).toUpperCase() + extracted.slice(1);
+        return title.length > 35 ? title.substring(0, 32) + '...' : title;
+      }
+    }
+    
+    // Fallback: extract key concept words
+    return this.extractMeaningfulWords(sentence, 3);
+  }
+
+  /**
+   * Extract note-oriented title
+   */
+  private static extractNoteTitle(sentence: string): string {
+    const notePatterns = [
+      // "About X" -> "X"
+      /(?:about|regarding|concerning)\s+(.+)/i,
+      // "X happened" -> "X"
+      /(.+?)\s+(?:happened|occurred|took place)/i,
+      // "Meeting with X" -> "Meeting with X"
+      /^(meeting|discussion|call|conversation)\s+(?:with|about)\s+(.+)/i
+    ];
+    
+    for (const pattern of notePatterns) {
+      const match = sentence.match(pattern);
+      if (match) {
+        const extracted = (match[2] || match[1]).trim();
+        const title = extracted.charAt(0).toUpperCase() + extracted.slice(1);
+        return title.length > 35 ? title.substring(0, 32) + '...' : title;
+      }
+    }
+    
+    // Fallback: extract subject matter
+    return this.extractMeaningfulWords(sentence, 4);
+  }
+
+  /**
+   * Extract meaningful words, skipping filler words
+   */
+  private static extractMeaningfulWords(sentence: string, maxWords: number): string {
+    const words = sentence.split(/\s+/);
+    
+    // Remove common filler words from the beginning
+    const fillerWords = ['so', 'well', 'um', 'uh', 'like', 'you know', 'i think', 'maybe', 'actually', 'basically'];
+    let startIndex = 0;
+    while (startIndex < words.length && fillerWords.includes(words[startIndex].toLowerCase())) {
+      startIndex++;
+    }
+    
+    // Take meaningful words
+    let title = '';
+    for (let i = startIndex; i < Math.min(words.length, startIndex + maxWords); i++) {
+      const word = words[i];
+      if (title.length + word.length + 1 <= 40) {
+        title += (title ? ' ' : '') + word;
+      } else {
+        break;
+      }
+    }
+    
+    // Add ellipsis if we truncated
+    if (words.length > startIndex + maxWords || (title.length < sentence.length && sentence.length > 40)) {
+      title += '...';
+    }
+    
+    // Capitalize first letter
+    if (title) {
+      title = title.charAt(0).toUpperCase() + title.slice(1);
+    }
+    
     return title;
   }
 
