@@ -1,39 +1,41 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ModeToggle } from "@/components/ModeToggle";
 import { useMemos } from '@/contexts/MemoContext';
-import { useProfiles } from '@/contexts/ProfileContext';
 import { MemoType } from '@/types';
-import { PersonDetectionService } from '@/services/PersonDetectionService';
-import { RelationshipLinkingService } from '@/services/RelationshipLinkingService';
-import PersonDetectionDialog from '@/components/relationships/PersonDetectionDialog';
 import MemoEditScreen from '@/components/memo/MemoEditScreen';
-import { ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface MemoState {
+  id: string;
+  text: string;
+  type: string;
+  audioUrl?: string;
+  createdAt: string;
+  completed?: boolean;
+  title?: string;
+}
 
 const MemoDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { memos, updateMemo, deleteMemo } = useMemos();
-  const { profiles } = useProfiles();
   const [memo, setMemo] = useState<{
     id: string;
     text: string;
     type: MemoType;
-    audioUrl: string | null;
+    audioUrl?: string;
     createdAt: string;
     completed: boolean;
     title?: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showPersonDialog, setShowPersonDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-
-  // Add state to track if this is a newly created memo
-  const [isNewMemo, setIsNewMemo] = useState(false);
 
   useEffect(() => {
     const fetchMemo = async () => {
@@ -54,37 +56,6 @@ const MemoDetailPage = () => {
         
         if (fetchedMemo) {
           setMemo(fetchedMemo);
-          
-          // Check if this memo was just created (within last 30 seconds)
-          const memoAge = Date.now() - new Date(fetchedMemo.createdAt).getTime();
-          const isRecentlyCreated = memoAge < 30000; // 30 seconds
-          setIsNewMemo(isRecentlyCreated);
-          
-          // Only detect people if this is a newly created memo
-          if (isRecentlyCreated) {
-            console.log('Detecting people for newly created memo');
-            const detectedPeople = PersonDetectionService.detectPeople(fetchedMemo.text);
-            console.log('Detected people after save:', detectedPeople);
-            
-            if (detectedPeople.length > 0) {
-              // Filter out people who already exist in contacts
-              const existingNames = profiles.map(p => 
-                `${p.first_name} ${p.last_name}`.toLowerCase().trim()
-              );
-              
-              const newPeople = detectedPeople.filter(person => {
-                const personName = person.name.toLowerCase().trim();
-                return !existingNames.includes(personName);
-              });
-              
-              console.log('New people (filtered):', newPeople);
-              
-              if (newPeople.length > 0) {
-                RelationshipLinkingService.storePendingRelationships(newPeople);
-                setShowPersonDialog(true);
-              }
-            }
-          }
         }
       } catch (err) {
         console.error('Error fetching memo:', err);
@@ -95,7 +66,7 @@ const MemoDetailPage = () => {
     };
 
     fetchMemo();
-  }, [id, profiles]);
+  }, [id, memos]);
 
   const handleSave = async (memoData: { text: string; type: MemoType; title?: string }) => {
     if (!memo) return;
@@ -136,6 +107,16 @@ const MemoDetailPage = () => {
     }
   };
 
+  const handlePlayAudio = () => {
+    if (memo?.audioUrl) {
+      const audio = new Audio(memo.audioUrl);
+      audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        toast.error("Cannot play audio - There was a problem playing the audio.");
+      });
+    }
+  };
+
   if (isLoading) {
     return <div>Loading memo...</div>;
   }
@@ -163,8 +144,16 @@ const MemoDetailPage = () => {
             </h1>
           </div>
 
-          <div>
-            <ModeToggle />
+          <div className="flex items-center gap-2">
+            {memo?.audioUrl && (
+              <button
+                onClick={handlePlayAudio}
+                className="bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors duration-200"
+                aria-label="Play audio"
+              >
+                <Volume2 size={16} className="text-white" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -198,7 +187,7 @@ const MemoDetailPage = () => {
                 onClick={() => setIsEditing(true)}
                 className="bg-yellow-50 hover:bg-yellow-100 text-yellow-600"
               >
-                <Edit className="h-4 w-4 mr-2" />
+                <Save className="h-4 w-4 mr-2" />
                 Edit
               </Button>
               <Button 
@@ -213,12 +202,6 @@ const MemoDetailPage = () => {
           </Card>
         )}
       </div>
-
-      {/* Person Detection Dialog */}
-      <PersonDetectionDialog
-        isOpen={showPersonDialog}
-        onClose={() => setShowPersonDialog(false)}
-      />
     </div>
   );
 };
