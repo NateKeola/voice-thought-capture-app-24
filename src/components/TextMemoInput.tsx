@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
+import { TitleGenerationService } from '@/services/titleGeneration';
 
 interface TextMemoInputProps {
   onMemoCreated?: (memoId: string) => void;
@@ -38,12 +39,16 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
     try {
       const memoType = detectMemoType(text);
       
-      console.log('Creating memo with auto-title generation...');
+      // Generate a proper title synopsis immediately
+      const titleType = memoType === 'idea' ? 'idea' : (memoType === 'task' ? 'task' : 'note');
+      const generatedTitle = TitleGenerationService.generateImmediateTitle(text.trim(), titleType);
+      
+      console.log('Creating memo with generated title:', generatedTitle);
       const memo = await createMemo({
         text: text.trim(),
         type: memoType,
         audioUrl: null,
-        title: undefined // Let the service generate the title
+        title: generatedTitle // Use the generated synopsis
       });
 
       if (memo) {

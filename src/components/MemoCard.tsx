@@ -19,9 +19,6 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
   
-  // Debug log the title value
-  console.log('MemoCard rendering - memo id:', memo.id, 'title:', title, 'type of title:', typeof title);
-  
   // Helper function to map MemoType to title generation type
   const getMemoTypeForTitle = (memoType: string): 'task' | 'note' | 'idea' => {
     switch (memoType) {
@@ -36,13 +33,22 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
     }
   };
   
-  // Handle undefined, null, or invalid title values
+  // Handle undefined, null, malformed, or invalid title values
   let memoTitle = '';
-  if (title && typeof title === 'string' && title !== 'undefined') {
-    memoTitle = title;
-  } else {
-    // Generate a fallback title immediately
+  
+  // Check if title is valid string
+  if (title && typeof title === 'string' && title !== 'undefined' && title.trim() !== '') {
+    // Additional check for malformed objects that got stringified
+    if (!title.includes('_type') && !title.includes('value')) {
+      memoTitle = title;
+    }
+  }
+  
+  // If no valid title, generate one immediately
+  if (!memoTitle) {
+    console.log('🔍 No valid title found, generating new one for memo:', memo.id);
     memoTitle = TitleGenerationService.generateImmediateTitle(text || '', getMemoTypeForTitle(type));
+    console.log('🔍 Generated title:', memoTitle);
   }
   
   const getTypeConfig = (type: string) => {

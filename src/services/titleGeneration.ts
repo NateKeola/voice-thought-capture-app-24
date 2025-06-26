@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Title generation service using Claude API
@@ -40,10 +39,10 @@ export class TitleGenerationService {
   }
 
   /**
-   * Generate a fallback title synchronously (SYNC)
+   * Generate a fallback title synchronously (SYNC) - This creates SYNOPSES not repetitions
    */
   static generateFallbackTitle(text: string, type: 'task' | 'note' | 'idea'): string {
-    console.log('🔍 Generating fallback title for:', { text: text?.substring(0, 50), type });
+    console.log('🔍 Creating synopsis for:', { text: text?.substring(0, 50), type });
     
     // Clean the text
     const cleanText = text
@@ -54,181 +53,219 @@ export class TitleGenerationService {
       .trim();
 
     // If text is very short, return as-is
-    if (cleanText.length <= 30) {
+    if (cleanText.length <= 25) {
       return cleanText;
     }
 
     // Generate smart synopsis based on content type and patterns
-    let title = this.extractSmartTitle(cleanText, type);
+    let synopsis = this.extractSmartSynopsis(cleanText, type);
     
     // Ensure we have some title
-    if (!title) {
+    if (!synopsis) {
       switch (type) {
         case 'task':
-          title = 'New Task';
+          synopsis = 'New Task';
           break;
         case 'note':
-          title = 'New Note';
+          synopsis = 'New Note';
           break;
         case 'idea':
-          title = 'New Idea';
+          synopsis = 'New Idea';
           break;
         default:
-          title = 'New Memo';
+          synopsis = 'New Memo';
       }
     }
 
-    console.log('🔍 Generated fallback title:', title);
-    return title;
+    console.log('🔍 Generated synopsis:', synopsis);
+    return synopsis;
   }
 
   /**
-   * Extract smart title based on content patterns
+   * Extract smart synopsis - NOT just repetition of content
    */
-  private static extractSmartTitle(text: string, type: 'task' | 'note' | 'idea'): string {
+  private static extractSmartSynopsis(text: string, type: 'task' | 'note' | 'idea'): string {
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const firstSentence = sentences[0]?.trim() || text;
     
-    // For tasks, extract action-oriented titles
+    // For tasks, extract action-oriented synopses
     if (type === 'task') {
-      return this.extractTaskTitle(firstSentence);
+      return this.extractTaskSynopsis(firstSentence);
     }
     
     // For ideas, extract the core concept
     if (type === 'idea') {
-      return this.extractIdeaTitle(firstSentence);
+      return this.extractIdeaSynopsis(firstSentence);
     }
     
     // For notes, extract the main subject
-    return this.extractNoteTitle(firstSentence);
+    return this.extractNoteSynopsis(firstSentence);
   }
 
   /**
-   * Extract task-oriented title
+   * Extract task-oriented synopsis - focus on the ACTION
    */
-  private static extractTaskTitle(sentence: string): string {
+  private static extractTaskSynopsis(sentence: string): string {
     const taskPatterns = [
-      // "I need to X" -> "X"
+      // "I need to call John" -> "Call John"
       /(?:I need to|need to|remember to|don't forget to?)\s+(.+)/i,
-      // "Should/must/have to X" -> "X"
+      // "Should call the dentist" -> "Call the dentist"  
       /(?:should|must|have to)\s+(.+)/i,
-      // "X today/tomorrow" -> "X"
-      /(.+?)(?:\s+(?:today|tomorrow|this week|next week|later))/i,
-      // "Call/Email/Buy X" -> "Call/Email/Buy X"
-      /^((?:call|email|text|message|buy|get|pick up|schedule|book|meet|contact)\s+.+)/i
+      // "Call John today" -> "Call John"
+      /(.+?)(?:\s+(?:today|tomorrow|this week|next week|later|soon))/i,
+      // "Buy groceries at store" -> "Buy groceries"
+      /^((?:call|email|text|message|buy|get|pick up|schedule|book|meet|contact|finish|complete|send|review|update|prepare|organize|plan|create|write|read)\s+[^,]+)/i
     ];
     
     for (const pattern of taskPatterns) {
       const match = sentence.match(pattern);
       if (match && match[1]) {
-        const extracted = match[1].trim();
-        // Capitalize first letter and limit length
-        const title = extracted.charAt(0).toUpperCase() + extracted.slice(1);
-        return title.length > 35 ? title.substring(0, 32) + '...' : title;
+        let extracted = match[1].trim();
+        
+        // Clean up common unnecessary words at the end
+        extracted = extracted.replace(/\s+(and|with|for|at|in|on|by|from|to)\s+.*$/i, '');
+        
+        // Capitalize first letter
+        extracted = extracted.charAt(0).toUpperCase() + extracted.slice(1);
+        
+        // Limit length
+        return extracted.length > 35 ? extracted.substring(0, 32) + '...' : extracted;
       }
     }
     
-    // Fallback: take meaningful words from the beginning
-    return this.extractMeaningfulWords(sentence, 4);
+    // Fallback: extract subject + verb if possible
+    const words = sentence.split(/\s+/);
+    const actionWords = ['call', 'email', 'buy', 'get', 'schedule', 'meet', 'finish', 'complete', 'send', 'review', 'update', 'prepare', 'organize', 'plan', 'create', 'write', 'read'];
+    
+    for (let i = 0; i < words.length; i++) {
+      if (actionWords.includes(words[i].toLowerCase())) {
+        const action = words.slice(i, Math.min(i + 3, words.length)).join(' ');
+        const capitalized = action.charAt(0).toUpperCase() + action.slice(1);
+        return capitalized.length > 35 ? capitalized.substring(0, 32) + '...' : capitalized;
+      }
+    }
+    
+    // Last resort: meaningful words from the beginning
+    return this.extractMeaningfulWords(sentence, 3);
   }
 
   /**
-   * Extract idea-oriented title
+   * Extract idea-oriented synopsis - focus on the CONCEPT
    */
-  private static extractIdeaTitle(sentence: string): string {
+  private static extractIdeaSynopsis(sentence: string): string {
     const ideaPatterns = [
-      // "What if X" -> "X"
-      /(?:what if|how about|maybe we could)\s+(.+)/i,
-      // "I think X" -> "X"
-      /(?:I think|I believe|perhaps)\s+(.+)/i,
-      // "X would be great/good/cool" -> "X"
+      // "What if we created an app" -> "App concept"
+      /(?:what if|how about|maybe we could|we should)\s+(.+)/i,
+      // "I think we need a better system" -> "Better system idea"
+      /(?:I think|I believe|perhaps|maybe)\s+(.+)/i,
+      // "New app idea for tracking" -> "App for tracking"
+      /(.+?)\s+(?:idea|concept|thought|notion)/i,
+      // "App would be great" -> "App concept"
       /(.+?)\s+(?:would be|could be|might be)\s+(?:great|good|cool|awesome|interesting)/i
     ];
     
     for (const pattern of ideaPatterns) {
       const match = sentence.match(pattern);
       if (match && match[1]) {
-        const extracted = match[1].trim();
-        const title = extracted.charAt(0).toUpperCase() + extracted.slice(1);
-        return title.length > 35 ? title.substring(0, 32) + '...' : title;
+        let extracted = match[1].trim();
+        
+        // Add "concept" or "idea" if not present
+        if (!extracted.toLowerCase().includes('idea') && !extracted.toLowerCase().includes('concept')) {
+          extracted += ' concept';
+        }
+        
+        const capitalized = extracted.charAt(0).toUpperCase() + extracted.slice(1);
+        return capitalized.length > 35 ? capitalized.substring(0, 32) + '...' : capitalized;
       }
     }
     
     // Fallback: extract key concept words
-    return this.extractMeaningfulWords(sentence, 3);
+    return this.extractMeaningfulWords(sentence, 2) + ' idea';
   }
 
   /**
-   * Extract note-oriented title
+   * Extract note-oriented synopsis - focus on the SUBJECT
    */
-  private static extractNoteTitle(sentence: string): string {
+  private static extractNoteSynopsis(sentence: string): string {
     const notePatterns = [
-      // "About X" -> "X"
+      // "Meeting about project planning" -> "Project planning meeting"
+      /(?:meeting|discussion|call|conversation)\s+(?:about|regarding|concerning)\s+(.+)/i,
+      // "About the new marketing strategy" -> "Marketing strategy"
       /(?:about|regarding|concerning)\s+(.+)/i,
-      // "X happened" -> "X"
+      // "Project update happened today" -> "Project update"
       /(.+?)\s+(?:happened|occurred|took place)/i,
-      // "Meeting with X" -> "Meeting with X"
-      /^(meeting|discussion|call|conversation)\s+(?:with|about)\s+(.+)/i
+      // "Notes from the client call" -> "Client call notes"
+      /(?:notes|summary|recap)\s+(?:from|about|on)\s+(.+)/i
     ];
     
     for (const pattern of notePatterns) {
       const match = sentence.match(pattern);
-      if (match) {
-        const extracted = (match[2] || match[1]).trim();
-        const title = extracted.charAt(0).toUpperCase() + extracted.slice(1);
-        return title.length > 35 ? title.substring(0, 32) + '...' : title;
+      if (match && match[1]) {
+        let extracted = match[1].trim();
+        
+        // Clean up
+        extracted = extracted.replace(/\s+(?:today|yesterday|this week|last week)$/i, '');
+        
+        const capitalized = extracted.charAt(0).toUpperCase() + extracted.slice(1);
+        return capitalized.length > 35 ? capitalized.substring(0, 32) + '...' : capitalized;
       }
     }
     
     // Fallback: extract subject matter
-    return this.extractMeaningfulWords(sentence, 4);
+    return this.extractMeaningfulWords(sentence, 3);
   }
 
   /**
-   * Extract meaningful words, skipping filler words
+   * Extract meaningful words, skipping filler words - creates SUMMARY not repetition
    */
   private static extractMeaningfulWords(sentence: string, maxWords: number): string {
     const words = sentence.split(/\s+/);
     
     // Remove common filler words from the beginning
-    const fillerWords = ['so', 'well', 'um', 'uh', 'like', 'you know', 'i think', 'maybe', 'actually', 'basically'];
+    const fillerWords = ['so', 'well', 'um', 'uh', 'like', 'you know', 'i think', 'maybe', 'actually', 'basically', 'just', 'really', 'very', 'quite'];
     let startIndex = 0;
     while (startIndex < words.length && fillerWords.includes(words[startIndex].toLowerCase())) {
       startIndex++;
     }
     
-    // Take meaningful words
-    let title = '';
-    for (let i = startIndex; i < Math.min(words.length, startIndex + maxWords); i++) {
-      const word = words[i];
-      if (title.length + word.length + 1 <= 40) {
-        title += (title ? ' ' : '') + word;
-      } else {
-        break;
+    // Take meaningful words but summarize, don't repeat
+    let synopsis = '';
+    const importantWords = [];
+    
+    for (let i = startIndex; i < Math.min(words.length, startIndex + maxWords + 2); i++) {
+      const word = words[i].toLowerCase();
+      // Skip articles and prepositions to create a summary
+      if (!['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'].includes(word)) {
+        importantWords.push(words[i]);
+        if (importantWords.length >= maxWords) break;
       }
     }
     
-    // Add ellipsis if we truncated
-    if (words.length > startIndex + maxWords || (title.length < sentence.length && sentence.length > 40)) {
-      title += '...';
+    synopsis = importantWords.join(' ');
+    
+    // Ensure it's not just repeating the original text
+    if (synopsis.length > sentence.length * 0.8) {
+      // Too similar to original, create a real summary
+      const keyWords = words.slice(startIndex, startIndex + 2);
+      synopsis = keyWords.join(' ') + '...';
     }
     
     // Capitalize first letter
-    if (title) {
-      title = title.charAt(0).toUpperCase() + title.slice(1);
+    if (synopsis) {
+      synopsis = synopsis.charAt(0).toUpperCase() + synopsis.slice(1);
     }
     
-    return title;
+    return synopsis || 'Summary';
   }
 
   /**
    * Generate immediate title (SYNC) - for use in components that need instant results
    */
   static generateImmediateTitle(text: string, type: 'task' | 'note' | 'idea'): string {
-    console.log('🔍 Generating immediate title for:', { text: text?.substring(0, 50), type });
-    const title = this.generateFallbackTitle(text, type);
-    console.log('🔍 Final immediate title:', title);
-    return title;
+    console.log('🔍 Generating immediate synopsis for:', { text: text?.substring(0, 50), type });
+    const synopsis = this.generateFallbackTitle(text, type);
+    console.log('🔍 Final synopsis:', synopsis);
+    return synopsis;
   }
 
   /**

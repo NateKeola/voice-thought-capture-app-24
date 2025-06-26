@@ -130,20 +130,30 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Use the memo's title if it exists and is valid, otherwise generate one SYNCHRONOUSLY
-  let title = memo.title;
+  // Handle title generation - check if memo has a valid title
+  let title = '';
   let description = cleanText;
   
-  // Check if title is invalid (undefined, null, empty string, or "undefined")
-  if (!title || title === 'undefined' || typeof title !== 'string') {
-    console.log('🔍 Invalid title detected, generating new one:', title);
+  // Check if title is valid (not undefined, null, empty, malformed object, or "undefined")
+  const isValidTitle = memo.title && 
+    typeof memo.title === 'string' && 
+    memo.title !== 'undefined' && 
+    memo.title.trim() !== '' &&
+    !memo.title.includes('_type') &&
+    !memo.title.includes('value');
+  
+  if (isValidTitle) {
+    title = memo.title;
+    console.log('🔍 Using existing valid title:', title);
+  } else {
+    // Generate a smart synopsis SYNCHRONOUSLY
+    console.log('🔍 Invalid title detected, generating synopsis for:', memo.title);
     title = TitleGenerationService.generateImmediateTitle(cleanText, getTitleType(memo.type, type));
+    console.log('🔍 Generated synopsis title:', title);
   }
   
-  console.log('🔍 Final title after processing:', title);
-  
   // If description is the same as title, clear it to avoid duplication
-  if (description === title) {
+  if (description === title || description.startsWith(title)) {
     description = "";
   }
 
@@ -162,7 +172,7 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
     hasAudio: !!memo.audioUrl
   };
 
-  console.log('🔍 Final mapped item:', { id: result.id, title: result.title });
+  console.log('🔍 Final mapped item with synopsis:', { id: result.id, title: result.title });
   return result;
 };
 
