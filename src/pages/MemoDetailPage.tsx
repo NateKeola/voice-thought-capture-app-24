@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -12,33 +11,36 @@ import { detectMemoType } from '@/services/SpeechToText';
 import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
 import BottomNavBar from '@/components/BottomNavBar';
+import { PersonDetectionService, DetectedPerson } from "@/services/PersonDetectionService";
+import PersonConfirmationDialog from '@/components/PersonConfirmationDialog';
+import { RelationshipLinkingService } from '@/services/RelationshipLinkingService';
+import { useProfiles } from '@/hooks/useProfiles';
+import { extractMemoMetadata } from '@/utils/memoMetadata';
 
 const MemoDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { memos, updateMemo, deleteMemo, isLoading } = useMemos();
+  const { createProfile } = useProfiles();
   
   const [editedText, setEditedText] = useState('');
   const [editedTitle, setEditedTitle] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showPersonDialog, setShowPersonDialog] = useState(false);
+  const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
   
   const memo = memos.find(m => m.id === id);
   
   useEffect(() => {
     if (memo) {
       // Clean the text for editing by removing contact tags
-      const cleanedText = memo.text
-        .replace(/\[Contact:\s*[^\]]+\]/g, '')
-        .replace(/\[category:\s*\w+\]/gi, '')
-        .replace(/\[priority:\s*\w+\]/gi, '')
-        .replace(/\[due:\s*[\w\s]+\]/gi, '')
-        .trim();
+      const metadata = extractMemoMetadata(memo.text);
+      setEditedText(metadata.cleanText);
       
-      setEditedText(cleanedText);
       // Use the actual title from the memo if it exists
-      const currentTitle = memo.title || TitleGenerationService.generateTitle(cleanedText, memo.type);
+      const currentTitle = memo.title || TitleGenerationService.generateTitle(metadata.cleanText, memo.type);
       setEditedTitle(currentTitle);
       setHasUnsavedChanges(false);
     }
@@ -46,14 +48,8 @@ const MemoDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (memo) {
-      const cleanedOriginalText = memo.text
-        .replace(/\[Contact:\s*[^\]]+\]/g, '')
-        .replace(/\[category:\s*\w+\]/gi, '')
-        .replace(/\[priority:\s*\w+\]/gi, '')
-        .replace(/\[due:\s*[\w\s]+\]/gi, '')
-        .trim();
-      
-      const hasChanges = editedText !== cleanedOriginalText || editedTitle !== (memo.title || '');
+      const originalMetadata = extractMemoMetadata(memo.text);
+      const hasChanges = editedText !== originalMetadata.cleanText || editedTitle !== (memo.title || '');
       setHasUnsavedChanges(hasChanges);
     }
   }, [editedText, editedTitle, memo]);
@@ -85,13 +81,24 @@ const MemoDetailPage: React.FC = () => {
           title: editedTitle.trim() || undefined
         });
         
+        // After saving, check for people detection
+        const people = PersonDetectionService.detectPeople(editedText);
+        console.log('Detected people after save:', people);
+        
+        if (people.length > 0) {
+          setDetectedPeople(people);
+          setShowPersonDialog(true);
+          setIsSaving(false);
+          return; // Don't navigate yet, wait for person confirmation
+        }
+        
         toast({
           title: "Memo updated!",
           description: "Your changes have been saved successfully."
         });
       }
       
-      // Always navigate back to home
+      // Navigate back to home
       navigate('/home');
     } catch (error) {
       console.error('Error updating memo:', error);
@@ -103,6 +110,89 @@ const MemoDetailPage: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handlePersonConfirmation = async (selectedPeople: DetectedPerson[]) => {
+    setShowPersonDialog(false);
+    
+    try {
+      // Add contact tags to the memo text
+      let finalText = editedText;
+      if (selectedPeople.length > 0) {
+        const contactTags = selectedPeople.map(person => `[Contact: ${person.name}]`).join(' ');
+        finalText = `${contactTags} ${editedText}`;
+      }
+      
+      // Update memo with contact tags
+      await updateMemo(memo.id, {
+        text: finalText,
+        title: editedTitle.trim() || undefined
+      });
+      
+      toast({
+        title: "Memo updated with contacts!",
+        description: `Added ${selectedPeople.length} contact${selectedPeople.length !== 1 ? 's' : ''} to your memo.`
+      });
+      
+      // Navigate back to home
+      navigate('/home');
+    } catch (error) {
+      console.error('Error updating memo with contacts:', error);
+      toast({
+        title: "Error updating memo",
+        description: "There was a problem saving your memo with contacts.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSaveAndAddToRelationships = async (selectedPeople: DetectedPerson[]) => {
+    setShowPersonDialog(false);
+    
+    try {
+      // Add contact tags to the memo text
+      let finalText = editedText;
+      if (selectedPeople.length > 0) {
+        const contactTags = selectedPeople.map(person => `[Contact: ${person.name}]`).join(' ');
+        finalText = `${contactTags} ${editedText}`;
+      }
+      
+      // Update memo with contact tags
+      await updateMemo(memo.id, {
+        text: finalText,
+        title: editedTitle.trim() || undefined
+      });
+
+      // Create relationships for selected people
+      for (const person of selectedPeople) {
+        try {
+          const profileData = RelationshipLinkingService.createProfileData(person);
+          await createProfile.mutateAsync(profileData);
+        } catch (error) {
+          console.error('Error creating profile for', person.name, error);
+        }
+      }
+
+      toast({
+        title: "Memo and relationships saved",
+        description: `Added ${selectedPeople.length} new relationship${selectedPeople.length !== 1 ? 's' : ''} to your contacts.`
+      });
+
+      // Navigate back to home
+      navigate('/home');
+    } catch (error) {
+      console.error('Error saving memo and relationships:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem saving your memo and relationships.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleSkipPeopleDetection = () => {
+    setShowPersonDialog(false);
+    navigate('/home');
   };
 
   const handleDelete = async () => {
@@ -266,6 +356,16 @@ const MemoDetailPage: React.FC = () => {
           <div className="w-full h-full absolute top-0 left-0 bg-indigo-500 rounded-full blur-xl opacity-30 -z-10 scale-75"></div>
         </div>
       )}
+
+      {/* Person Confirmation Dialog */}
+      <PersonConfirmationDialog
+        open={showPersonDialog}
+        detectedPeople={detectedPeople}
+        onConfirm={handlePersonConfirmation}
+        onSkip={handleSkipPeopleDetection}
+        onClose={() => setShowPersonDialog(false)}
+        onSaveAndAddToRelationships={handleSaveAndAddToRelationships}
+      />
 
       <BottomNavBar activeTab="home" onTabChange={() => {}} />
     </div>
