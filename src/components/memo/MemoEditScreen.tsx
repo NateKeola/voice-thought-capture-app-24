@@ -9,9 +9,11 @@ import { ArrowLeft, ArrowRight, X, Users } from "lucide-react";
 import { Memo, MemoType } from "@/types";
 import { PersonDetectionService, DetectedPerson } from "@/services/PersonDetectionService";
 import PersonProposalCard from './PersonProposalCard';
+import PersonConfirmationDialog from '../PersonConfirmationDialog';
 import { RelationshipLinkingService } from '@/services/RelationshipLinkingService';
 import { useProfiles } from '@/hooks/useProfiles';
 import { useToast } from '@/components/ui/use-toast';
+import { extractMemoMetadata } from '@/utils/memoMetadata';
 
 interface MemoEditScreenProps {
   initialMemo?: Partial<Memo>;
@@ -26,20 +28,17 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   onCancel,
   isCreating = false
 }) => {
-  // Clean the text content by removing any tags like [category:appointments] and [Contact: xxx]
-  const cleanText = (text: string) => {
-    return text
-      .replace(/\[[\w\s:]+\]/g, '')
-      .replace(/\[Contact:\s*[^\]]+\]/g, '')
-      .trim();
+  // Clean the text content by removing any tags for editing
+  const getEditableText = (text: string) => {
+    const metadata = extractMemoMetadata(text || '');
+    return metadata.cleanText;
   };
 
-  const [text, setText] = useState(cleanText(initialMemo?.text || ''));
+  const [text, setText] = useState(getEditableText(initialMemo?.text || ''));
   const [title, setTitle] = useState(initialMemo?.title || '');
   const [isSaving, setIsSaving] = useState(false);
   const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
-  const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>([]);
-  const [showRelationshipDialog, setShowRelationshipDialog] = useState(false);
+  const [showPersonConfirmation, setShowPersonConfirmation] = useState(false);
   
   const { createProfile } = useProfiles();
   const { toast } = useToast();
@@ -48,28 +47,27 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   useEffect(() => {
     if (text.trim()) {
       const people = PersonDetectionService.detectPeople(text);
-      console.log('Detected people:', people); // Debug log
+      console.log('Detected people:', people);
       setDetectedPeople(people);
     } else {
       setDetectedPeople([]);
-      setSelectedPeople([]);
     }
   }, [text]);
-
-  const handlePersonToggle = (person: DetectedPerson) => {
-    setSelectedPeople(prev => {
-      const isSelected = prev.some(p => p.name === person.name);
-      if (isSelected) {
-        return prev.filter(p => p.name !== person.name);
-      } else {
-        return [...prev, person];
-      }
-    });
-  };
 
   const handleSave = async () => {
     if (!text.trim()) return;
     
+    // If people are detected, show confirmation dialog
+    if (detectedPeople.length > 0) {
+      setShowPersonConfirmation(true);
+      return;
+    }
+    
+    // Save without people
+    await saveWithPeople([]);
+  };
+
+  const saveWithPeople = async (selectedPeople: DetectedPerson[]) => {
     setIsSaving(true);
     try {
       // Create the final memo text with contact tags for selected people
@@ -77,7 +75,6 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
       
       // Add contact tags for selected people
       if (selectedPeople.length > 0) {
-        // Generate unique IDs for selected people (or use existing relationship IDs if they exist)
         const contactTags = selectedPeople.map(person => `[Contact: ${person.name}]`).join(' ');
         finalText = `${contactTags} ${text}`;
       }
@@ -93,10 +90,15 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
     }
   };
 
-  const handleSaveAndAddToRelationships = async () => {
-    if (!text.trim() || selectedPeople.length === 0) return;
-    
+  const handlePersonConfirmation = (selectedPeople: DetectedPerson[]) => {
+    setShowPersonConfirmation(false);
+    saveWithPeople(selectedPeople);
+  };
+
+  const handleSaveAndAddToRelationships = async (selectedPeople: DetectedPerson[]) => {
+    setShowPersonConfirmation(false);
     setIsSaving(true);
+    
     try {
       // Create the final memo text with contact tags
       let finalText = text;
@@ -136,6 +138,11 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSkipPeopleDetection = () => {
+    setShowPersonConfirmation(false);
+    saveWithPeople([]);
   };
 
   return (
@@ -189,30 +196,19 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
               />
             </div>
 
-            {/* People Detection Section */}
+            {/* People Detection Preview */}
             {detectedPeople.length > 0 && (
               <div className="border-t pt-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Users className="h-4 w-4 text-blue-600" />
                   <Label className="text-sm font-medium text-gray-700">
-                    Link People ({detectedPeople.length} detected)
+                    People Detected ({detectedPeople.length})
                   </Label>
                 </div>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {detectedPeople.map((person, index) => (
-                    <PersonProposalCard
-                      key={`${person.name}-${index}`}
-                      person={person}
-                      isSelected={selectedPeople.some(p => p.name === person.name)}
-                      onToggle={handlePersonToggle}
-                    />
-                  ))}
+                <div className="text-sm text-blue-600">
+                  We found {detectedPeople.length} person{detectedPeople.length !== 1 ? 's' : ''} mentioned in your memo. 
+                  You'll be able to link them when you save.
                 </div>
-                {selectedPeople.length > 0 && (
-                  <p className="text-sm text-blue-600 mt-2">
-                    {selectedPeople.length} person{selectedPeople.length !== 1 ? 's' : ''} selected
-                  </p>
-                )}
               </div>
             )}
           </CardContent>
@@ -223,29 +219,26 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
               Cancel
             </Button>
             
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleSave} 
-                disabled={!text.trim() || isSaving}
-                variant="outline"
-              >
-                <ArrowRight className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save Memo'}
-              </Button>
-              
-              {selectedPeople.length > 0 && (
-                <Button 
-                  onClick={handleSaveAndAddToRelationships} 
-                  disabled={!text.trim() || isSaving}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Users className="h-4 w-4 mr-2" />
-                  {isSaving ? 'Processing...' : 'Save & Add to Relationships'}
-                </Button>
-              )}
-            </div>
+            <Button 
+              onClick={handleSave} 
+              disabled={!text.trim() || isSaving}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <ArrowRight className="h-4 w-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save Memo'}
+            </Button>
           </CardFooter>
         </Card>
+
+        {/* Person Confirmation Dialog */}
+        <PersonConfirmationDialog
+          open={showPersonConfirmation}
+          detectedPeople={detectedPeople}
+          onConfirm={handlePersonConfirmation}
+          onSkip={handleSkipPeopleDetection}
+          onClose={() => setShowPersonConfirmation(false)}
+          onSaveAndAddToRelationships={handleSaveAndAddToRelationships}
+        />
       </div>
     </div>
   );

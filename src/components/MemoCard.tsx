@@ -3,8 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Memo } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
-import { FileText, CheckCircle, CircleAlert, FileAudio } from "lucide-react";
+import { FileText, CheckCircle, CircleAlert, FileAudio, Users } from "lucide-react";
 import { TitleGenerationService } from '@/services/titleGeneration';
+import { extractMemoMetadata } from '@/utils/memoMetadata';
 
 interface MemoCardProps {
   memo: Memo;
@@ -14,13 +15,9 @@ interface MemoCardProps {
 const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const { text, type, createdAt, audioUrl, title } = memo;
   
-  // Remove contact tags and metadata from display text
-  const displayText = text
-    .replace(/\[Contact:\s*[^\]]+\]/g, '')
-    .replace(/\[category:\s*\w+\]/gi, '')
-    .replace(/\[priority:\s*\w+\]/gi, '')
-    .replace(/\[due:\s*[\w\s]+\]/gi, '')
-    .trim();
+  // Extract metadata and clean text for display
+  const metadata = extractMemoMetadata(text || '');
+  const displayText = metadata.cleanText;
   
   // Prioritize memo's actual title over generated title
   const memoTitle = title || TitleGenerationService.generateTitle(displayText, type);
@@ -84,12 +81,20 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
       
       <CardFooter className="pt-0 pb-3 px-6 flex justify-between text-xs text-muted-foreground">
         <span>{formatDistanceToNow(new Date(createdAt), { addSuffix: true })}</span>
-        {audioUrl && (
-          <div className="flex items-center gap-1">
-            <FileAudio className="h-3 w-3" />
-            <span>Audio</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {audioUrl && (
+            <div className="flex items-center gap-1">
+              <FileAudio className="h-3 w-3" />
+              <span>Audio</span>
+            </div>
+          )}
+          {metadata.contacts.length > 0 && (
+            <div className="flex items-center gap-1 text-purple-600">
+              <Users className="h-3 w-3" />
+              <span>{metadata.contacts.length}</span>
+            </div>
+          )}
+        </div>
       </CardFooter>
     </Card>
   );
