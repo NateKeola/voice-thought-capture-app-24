@@ -4,93 +4,85 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
 import { useMemos } from '@/contexts/MemoContext';
-import { MemoType } from '@/types';
-import MemoEditScreen from '@/components/memo/MemoEditScreen';
-import { toast } from 'sonner';
+import { TitleGenerationService } from '@/services/titleGeneration';
+import { detectMemoType } from '@/services/SpeechToText';
+import MemoLoading from '@/components/memo/MemoLoading';
+import MemoError from '@/components/memo/MemoError';
+import BottomNavBar from '@/components/BottomNavBar';
 
-interface MemoState {
-  id: string;
-  text: string;
-  type: string;
-  audioUrl?: string;
-  createdAt: string;
-  completed?: boolean;
-  title?: string;
-}
-
-const MemoDetailPage = () => {
+const MemoDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { memos, updateMemo, deleteMemo } = useMemos();
-  const [memo, setMemo] = useState<{
-    id: string;
-    text: string;
-    type: MemoType;
-    audioUrl?: string;
-    createdAt: string;
-    completed: boolean;
-    title?: string;
-  } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const { toast } = useToast();
+  const { memos, updateMemo, deleteMemo, isLoading } = useMemos();
+  
+  const [editedText, setEditedText] = useState('');
+  const [editedTitle, setEditedTitle] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Just find the memo directly - no state needed
+  const memo = memos.find(m => m.id === id);
 
   useEffect(() => {
-    const fetchMemo = async () => {
-      if (!id) return;
+    if (memo) {
+      // Clean the text for editing by removing contact tags
+      const cleanedText = memo.text
+        .replace(/\[Contact:\s*[^\]]+\]/g, '')
+        .replace(/\[category:\s*\w+\]/gi, '')
+        .replace(/\[priority:\s*\w+\]/gi, '')
+        .replace(/\[due:\s*[\w\s]+\]/gi, '')
+        .trim();
       
-      try {
-        setIsLoading(true);
-        setError(null);
-        const getMemo = async (id: string) => {
-          const memo = memos.find((memo) => memo.id === id);
-          if (memo) {
-            return memo;
-          } else {
-            return null;
-          }
-        };
-        const fetchedMemo = await getMemo(id);
-        
-        if (fetchedMemo) {
-          setMemo(fetchedMemo);
-        }
-      } catch (err) {
-        console.error('Error fetching memo:', err);
-        setError('Failed to load memo');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      setEditedText(cleanedText);
+      // Use the actual title from the memo if it exists
+      const currentTitle = memo.title || TitleGenerationService.generateTitle(cleanedText, memo.type);
+      setEditedTitle(currentTitle);
+      setHasUnsavedChanges(false);
+    }
+  }, [memo]);
 
-    fetchMemo();
-  }, [id, memos]);
+  const handlePlayAudio = () => {
+    if (memo?.audioUrl) {
+      const audio = new Audio(memo.audioUrl);
+      audio.play().catch(error => {
+        console.error('Error playing audio:', error);
+        toast({
+          title: "Cannot play audio",
+          description: "There was a problem playing the audio.",
+          variant: "destructive"
+        });
+      });
+    }
+  };
 
-  const handleSave = async (memoData: { text: string; type: MemoType; title?: string }) => {
-    if (!memo) return;
+  const handleSave = async () => {
+    if (!memo || !hasUnsavedChanges) return;
 
+    setIsSaving(true);
     try {
       await updateMemo(memo.id, {
-        text: memoData.text,
-        type: memoData.type,
-        title: memoData.title
+        text: editedText,
+        title: editedTitle
       });
       
-      // Optimistically update the local state
-      setMemo({
-        ...memo,
-        text: memoData.text,
-        type: memoData.type,
-        title: memoData.title
+      setHasUnsavedChanges(false);
+      toast({
+        title: "Memo updated",
+        description: "Your changes have been saved successfully."
       });
-      
-      setIsEditing(false);
-      toast.success("Memo updated successfully");
     } catch (error) {
       console.error("Error updating memo:", error);
-      toast.error("Failed to update memo");
+      toast({
+        title: "Error updating memo",
+        description: "Failed to save your changes.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -100,39 +92,42 @@ const MemoDetailPage = () => {
     try {
       await deleteMemo(memo.id);
       navigate('/');
-      toast.success("Memo deleted successfully");
+      toast({
+        title: "Memo deleted",
+        description: "Memo has been deleted successfully."
+      });
     } catch (error) {
       console.error("Error deleting memo:", error);
-      toast.error("Failed to delete memo");
-    }
-  };
-
-  const handlePlayAudio = () => {
-    if (memo?.audioUrl) {
-      const audio = new Audio(memo.audioUrl);
-      audio.play().catch(error => {
-        console.error('Error playing audio:', error);
-        toast.error("Cannot play audio - There was a problem playing the audio.");
+      toast({
+        title: "Error deleting memo",
+        description: "Failed to delete the memo.",
+        variant: "destructive"
       });
     }
   };
 
-  if (isLoading) {
-    return <div>Loading memo...</div>;
-  }
+  const handleTextChange = (value: string) => {
+    setEditedText(value);
+    setHasUnsavedChanges(true);
+  };
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  const handleTitleChange = (value: string) => {
+    setEditedTitle(value);
+    setHasUnsavedChanges(true);
+  };
+
+  if (isLoading) {
+    return <MemoLoading />;
   }
 
   if (!memo) {
-    return <div>Memo not found</div>;
+    return <MemoError message="Memo not found" />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-3xl mx-auto">
-        {/* Header with Back Button and Edit/Delete Options */}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto p-4">
+        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
@@ -140,7 +135,7 @@ const MemoDetailPage = () => {
               Back
             </Button>
             <h1 className="text-2xl font-bold text-gray-900">
-              Memo Details
+              Edit Memo
             </h1>
           </div>
 
@@ -148,7 +143,7 @@ const MemoDetailPage = () => {
             {memo?.audioUrl && (
               <button
                 onClick={handlePlayAudio}
-                className="bg-white/20 rounded-full p-2 hover:bg-white/30 transition-colors duration-200"
+                className="bg-blue-500 rounded-full p-2 hover:bg-blue-600 transition-colors duration-200"
                 aria-label="Play audio"
               >
                 <Volume2 size={16} className="text-white" />
@@ -157,51 +152,73 @@ const MemoDetailPage = () => {
           </div>
         </div>
 
-        {isEditing ? (
-          <MemoEditScreen
-            initialMemo={memo}
-            onSave={handleSave}
-            onCancel={() => setIsEditing(false)}
-          />
-        ) : (
-          <Card className="border border-gray-200 shadow-sm">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
-              <CardTitle className="text-lg text-gray-800">
-                {memo.title || 'Untitled Memo'}
-              </CardTitle>
-              <CardDescription className="text-gray-600">
-                Created on {new Date(memo.createdAt).toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="p-6">
-              <p className="text-gray-700 leading-relaxed">
-                {memo.text}
-              </p>
-            </CardContent>
-
-            {/* Edit and Delete Buttons */}
-            <div className="flex justify-end space-x-2 p-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsEditing(true)}
-                className="bg-yellow-50 hover:bg-yellow-100 text-yellow-600"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleDelete}
-                className="bg-red-50 hover:bg-red-100 text-red-600"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
+        {/* Edit Form */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="space-y-4">
+            {/* Title Input */}
+            <div>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                Title
+              </label>
+              <Input
+                id="title"
+                value={editedTitle}
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="Enter memo title..."
+                className="w-full"
+              />
             </div>
-          </Card>
-        )}
+
+            {/* Content Textarea */}
+            <div>
+              <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-2">
+                Content
+              </label>
+              <Textarea
+                id="content"
+                value={editedText}
+                onChange={(e) => handleTextChange(e.target.value)}
+                placeholder="Enter memo content..."
+                className="w-full min-h-[200px] resize-none"
+              />
+            </div>
+
+            {/* Memo Info */}
+            <div className="text-sm text-gray-500 space-y-1">
+              <p>Type: <span className="capitalize">{memo.type}</span></p>
+              <p>Created: {new Date(memo.createdAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-200">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/')}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={!hasUnsavedChanges || isSaving}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isSaving}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </div>
+        </div>
       </div>
+      <BottomNavBar />
     </div>
   );
 };
