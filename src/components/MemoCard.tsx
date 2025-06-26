@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Memo } from "@/types";
@@ -19,8 +18,13 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
   
-  // Prioritize memo's actual title over generated title
-  const memoTitle = title || TitleGenerationService.generateTitle(displayText, type);
+  // ALWAYS prioritize the memo's actual title if it exists and is not empty
+  // Only generate a title if there's no existing title or if it's empty/undefined
+  const memoTitle = (title && title.trim().length > 0) 
+    ? title 
+    : TitleGenerationService.generateTitle(displayText, type);
+  
+  console.log('MemoCard rendering - memo id:', memo.id, 'title from memo:', title, 'final title:', memoTitle);
   
   const getTypeConfig = (type: string) => {
     switch (type) {

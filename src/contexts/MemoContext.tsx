@@ -89,19 +89,29 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateMemoItem = async (id: string, updates: Partial<Omit<Memo, 'id' | 'createdAt'>>) => {
     try {
+      console.log('Updating memo with id:', id, 'updates:', updates);
       const updatedMemo = await updateMemo(id, updates);
+      console.log('Updated memo result:', updatedMemo);
       
       // Immediately update the local state to reflect changes across the UI
       if (updatedMemo) {
-        setMemos(prevMemos => 
-          prevMemos.map(memo => memo.id === id ? updatedMemo : memo)
-        );
+        setMemos(prevMemos => {
+          const newMemos = prevMemos.map(memo => {
+            if (memo.id === id) {
+              console.log('Updating memo in state:', { ...memo, ...updatedMemo });
+              return { ...memo, ...updatedMemo };
+            }
+            return memo;
+          });
+          console.log('New memos state:', newMemos);
+          return newMemos;
+        });
       }
       
       // If user is not authenticated, ensure local state is updated
       if (!isAuthenticated && updatedMemo) {
         setMemos(prevMemos => 
-          prevMemos.map(memo => memo.id === id ? updatedMemo : memo)
+          prevMemos.map(memo => memo.id === id ? { ...memo, ...updatedMemo } : memo)
         );
       }
       

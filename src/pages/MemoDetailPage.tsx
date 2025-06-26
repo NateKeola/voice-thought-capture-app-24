@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -28,6 +29,7 @@ const MemoDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (memo) {
+      console.log('MemoDetailPage - memo found:', memo);
       // Clean the text for editing by removing contact tags
       const cleanedText = memo.text
         .replace(/\[Contact:\s*[^\]]+\]/g, '')
@@ -37,8 +39,13 @@ const MemoDetailPage: React.FC = () => {
         .trim();
       
       setEditedText(cleanedText);
-      // Use the actual title from the memo if it exists
-      const currentTitle = memo.title || TitleGenerationService.generateTitle(cleanedText, memo.type);
+      // ALWAYS use the actual title from the memo if it exists and is not empty
+      // Only generate a title if there's no existing title
+      const currentTitle = (memo.title && memo.title.trim().length > 0) 
+        ? memo.title 
+        : TitleGenerationService.generateTitle(cleanedText, memo.type);
+      
+      console.log('Setting title - memo.title:', memo.title, 'final title:', currentTitle);
       setEditedTitle(currentTitle);
       setHasUnsavedChanges(false);
     }
@@ -63,12 +70,14 @@ const MemoDetailPage: React.FC = () => {
 
     setIsSaving(true);
     try {
+      console.log('Saving memo with title:', editedTitle.trim());
       const updatedMemo = await updateMemo(memo.id, {
         text: editedText.trim(),
         title: editedTitle.trim()
       });
       
       if (updatedMemo) {
+        console.log('Memo updated successfully:', updatedMemo);
         setHasUnsavedChanges(false);
         toast({
           title: "Memo updated",
@@ -124,6 +133,7 @@ const MemoDetailPage: React.FC = () => {
   };
 
   const handleTitleChange = (value: string) => {
+    console.log('Title changed to:', value);
     setEditedTitle(value);
     setHasUnsavedChanges(true);
   };
