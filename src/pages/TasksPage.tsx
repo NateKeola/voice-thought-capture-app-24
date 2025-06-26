@@ -80,6 +80,12 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
     memoText: memo.text?.substring(0, 50) 
   });
 
+  // Helper function to map memo type to title generation type
+  const getTitleType = (memoType: string, targetType: 'task' | 'note'): 'task' | 'note' | 'idea' => {
+    if (memoType === 'idea') return 'idea';
+    return targetType;
+  };
+
   // Parse category and priority from memo text or use defaults
   let category = type === 'task' ? "personal" : "general";
   let priority = "medium";
@@ -131,7 +137,7 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
   // Check if title is invalid (undefined, null, empty string, or "undefined")
   if (!title || title === 'undefined' || typeof title !== 'string') {
     console.log('🔍 Invalid title detected, generating new one:', title);
-    title = TitleGenerationService.generateImmediateTitle(cleanText, type);
+    title = TitleGenerationService.generateImmediateTitle(cleanText, getTitleType(memo.type, type));
   }
   
   console.log('🔍 Final title after processing:', title);

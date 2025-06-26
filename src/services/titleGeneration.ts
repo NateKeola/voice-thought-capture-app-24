@@ -6,15 +6,18 @@ export class TitleGenerationService {
   /**
    * Generate a title using Claude API (ASYNC)
    */
-  static async generateTitle(text: string, type: 'task' | 'note' | 'should'): Promise<string> {
+  static async generateTitle(text: string, type: 'task' | 'note' | 'idea'): Promise<string> {
     try {
       // Don't generate titles for very short text
       if (text.length < 10) {
         return this.generateFallbackTitle(text, type);
       }
 
+      // Map 'idea' to 'note' for the API call since backend expects task/note/should
+      const apiType = type === 'idea' ? 'note' : type;
+
       const { data, error } = await supabase.functions.invoke('generate-title-with-claude', {
-        body: { text: text.trim(), type: type }
+        body: { text: text.trim(), type: apiType }
       });
 
       if (error) {
@@ -39,7 +42,7 @@ export class TitleGenerationService {
   /**
    * Generate a fallback title synchronously (SYNC)
    */
-  static generateFallbackTitle(text: string, type: 'task' | 'note' | 'should'): string {
+  static generateFallbackTitle(text: string, type: 'task' | 'note' | 'idea'): string {
     console.log('🔍 Generating fallback title for:', { text: text?.substring(0, 50), type });
     
     // Clean the text
@@ -50,23 +53,60 @@ export class TitleGenerationService {
       .replace(/\[due:\s*[\w\s]+\]/gi, '')
       .trim();
 
-    // Get the first meaningful part of the text
-    const words = cleanText.split(/\s+/);
+    // If text is very short, return as-is
+    if (cleanText.length <= 30) {
+      return cleanText;
+    }
+
+    // Generate smart title based on content, not just truncation
+    const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+    const firstSentence = sentences[0]?.trim() || cleanText;
+    
     let title = '';
 
-    // Take first 4-6 words depending on length
-    for (let i = 0; i < Math.min(words.length, 6); i++) {
-      const word = words[i];
-      if (title.length + word.length + 1 <= 45) { // Leave room for type prefix if needed
-        title += (title ? ' ' : '') + word;
-      } else {
-        break;
+    // For tasks, try to find action patterns
+    if (type === 'task') {
+      const taskPatterns = [
+        /(?:I need to|need to|remember to|don't forget to?)\s+(.+)/i,
+        /(?:should|must|have to)\s+(.+)/i,
+        /(.+?)(?:\s+(?:today|tomorrow|this week|next week))/i
+      ];
+      
+      for (const pattern of taskPatterns) {
+        const match = firstSentence.match(pattern);
+        if (match && match[1]) {
+          const extracted = match[1].trim();
+          title = extracted.length > 35 ? extracted.substring(0, 32) + '...' : extracted;
+          break;
+        }
       }
     }
 
-    // Add ellipsis if we truncated
-    if (words.length > 6 || (title.length < cleanText.length && cleanText.length > 45)) {
-      title += '...';
+    // If no smart title generated, use meaningful words
+    if (!title) {
+      const words = firstSentence.split(/\s+/);
+      
+      // Remove common filler words from the beginning
+      const fillerWords = ['so', 'well', 'um', 'uh', 'like', 'you know', 'i think', 'maybe'];
+      let startIndex = 0;
+      while (startIndex < words.length && fillerWords.includes(words[startIndex].toLowerCase())) {
+        startIndex++;
+      }
+      
+      // Take meaningful words
+      for (let i = startIndex; i < Math.min(words.length, startIndex + 5); i++) {
+        const word = words[i];
+        if (title.length + word.length + 1 <= 40) {
+          title += (title ? ' ' : '') + word;
+        } else {
+          break;
+        }
+      }
+      
+      // Add ellipsis if we truncated
+      if (words.length > startIndex + 5 || (title.length < cleanText.length && cleanText.length > 40)) {
+        title += '...';
+      }
     }
 
     // Ensure we have some title
@@ -78,7 +118,7 @@ export class TitleGenerationService {
         case 'note':
           title = 'New Note';
           break;
-        case 'should':
+        case 'idea':
           title = 'New Idea';
           break;
         default:
@@ -93,7 +133,7 @@ export class TitleGenerationService {
   /**
    * Generate immediate title (SYNC) - for use in components that need instant results
    */
-  static generateImmediateTitle(text: string, type: 'task' | 'note' | 'should'): string {
+  static generateImmediateTitle(text: string, type: 'task' | 'note' | 'idea'): string {
     console.log('🔍 Generating immediate title for:', { text: text?.substring(0, 50), type });
     const title = this.generateFallbackTitle(text, type);
     console.log('🔍 Final immediate title:', title);
@@ -105,7 +145,7 @@ export class TitleGenerationService {
    */
   private static titleCache = new Map<string, string>();
   
-  static async generateTitleWithCache(text: string, type: 'task' | 'note' | 'should'): Promise<string> {
+  static async generateTitleWithCache(text: string, type: 'task' | 'note' | 'idea'): Promise<string> {
     const cacheKey = `${type}:${text.substring(0, 100)}`;
     
     if (this.titleCache.has(cacheKey)) {
