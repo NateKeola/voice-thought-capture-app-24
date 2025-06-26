@@ -22,7 +22,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Use the memo's title if it exists, otherwise generate one from clean text
+  // Prioritize memo's actual title over generated title
   const memoTitle = title || TitleGenerationService.generateTitle(displayText, type);
   
   const getTypeConfig = (type: string) => {
@@ -90,7 +90,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             <span>Audio</span>
           </div>
         )}
-      </div>
+      </CardFooter>
     </Card>
   );
 };

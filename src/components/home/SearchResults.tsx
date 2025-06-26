@@ -15,6 +15,17 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   searchResults, 
   onClearSearch 
 }) => {
+  // Clean search results to remove contact tags for display
+  const cleanSearchResults = searchResults.map(memo => ({
+    ...memo,
+    text: memo.text
+      .replace(/\[Contact:\s*[^\]]+\]/g, '')
+      .replace(/\[category:\s*\w+\]/gi, '')
+      .replace(/\[priority:\s*\w+\]/gi, '')
+      .replace(/\[due:\s*[\w\s]+\]/gi, '')
+      .trim()
+  }));
+
   return (
     <div className="w-full max-w-md mt-4">
       {/* Search Results Header */}
@@ -30,12 +41,12 @@ const SearchResults: React.FC<SearchResultsProps> = ({
           <div className="flex items-center text-gray-600">
             <Search className="h-4 w-4 mr-2" />
             <span className="text-sm font-medium">
-              {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
+              {cleanSearchResults.length} result{cleanSearchResults.length !== 1 ? 's' : ''} for "{searchQuery}"
             </span>
           </div>
         </div>
         
-        {searchResults.length === 0 ? (
+        {cleanSearchResults.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Search className="h-12 w-12 mx-auto mb-3 text-gray-300" />
             <p className="text-lg font-medium mb-1">No memos found</p>
@@ -43,7 +54,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
           </div>
         ) : (
           <div className="space-y-3">
-            <MemoList memos={searchResults} />
+            <MemoList memos={cleanSearchResults} />
           </div>
         )}
       </div>

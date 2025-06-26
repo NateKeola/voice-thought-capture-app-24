@@ -91,7 +91,14 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const updatedMemo = await updateMemo(id, updates);
       
-      // If user is not authenticated, manually update state
+      // Immediately update the local state to reflect changes across the UI
+      if (updatedMemo) {
+        setMemos(prevMemos => 
+          prevMemos.map(memo => memo.id === id ? updatedMemo : memo)
+        );
+      }
+      
+      // If user is not authenticated, ensure local state is updated
       if (!isAuthenticated && updatedMemo) {
         setMemos(prevMemos => 
           prevMemos.map(memo => memo.id === id ? updatedMemo : memo)
@@ -161,7 +168,8 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 type: payload.new.category as MemoType,
                 audioUrl: payload.new.audio_url,
                 createdAt: payload.new.created_at,
-                completed: payload.new.status === 'completed'
+                completed: payload.new.status === 'completed',
+                title: payload.new.title // Ensure title is included
               };
               setMemos(current => [newMemo, ...current]);
               
@@ -176,7 +184,8 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   text: payload.new.content,
                   type: payload.new.category as MemoType,
                   audioUrl: payload.new.audio_url,
-                  completed: payload.new.status === 'completed'
+                  completed: payload.new.status === 'completed',
+                  title: payload.new.title // Ensure title updates propagate
                 } : memo
               ));
               

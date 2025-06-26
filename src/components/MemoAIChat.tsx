@@ -32,26 +32,30 @@ const MemoAIChat: React.FC<MemoAIChatProps> = ({ onClose }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Clean memo text by removing all contact tags and metadata
+  const cleanMemoText = (text: string) => {
+    if (!text) return '';
+    return text
+      .replace(/\[Contact:\s*[^\]]+\]/g, '') // Remove contact tags
+      .replace(/\[category:\s*\w+\]/gi, '')
+      .replace(/\[priority:\s*\w+\]/gi, '')
+      .replace(/\[due:\s*[\w\s]+\]/gi, '')
+      .trim();
+  };
+
   const queryMemoAI = async (question: string) => {
     if (!memos || memos.length === 0) {
       return "I don't have access to any memos yet. Please create some memos first and then ask me questions about them.";
     }
 
-    // Prepare memo data with better formatting and clean content
+    // Prepare memo data with cleaned content and proper titles
     const memoData = memos.map(memo => {
-      // Clean the content by removing contact tags and other metadata
-      const content = (memo.text || '')
-        .replace(/\[Contact:\s*[^\]]+\]/g, '')
-        .replace(/\[category:\s*\w+\]/gi, '')
-        .replace(/\[priority:\s*\w+\]/gi, '')
-        .replace(/\[due:\s*[\w\s]+\]/gi, '')
-        .trim();
-      
+      const content = cleanMemoText(memo.text || '');
       const date = memo.createdAt;
       const type = memo.type || 'note';
-      const title = memo.title || '';
+      const title = memo.title || 'Untitled';
       
-      return `[${type.toUpperCase()}] ${title ? `${title}: ` : ''}${content} (Created: ${new Date(date).toLocaleDateString()})`;
+      return `[${type.toUpperCase()}] ${title}: ${content} (Created: ${new Date(date).toLocaleDateString()})`;
     }).join('\n\n');
 
     const prompt = `You are a personal assistant analyzing someone's voice memos and notes. Answer their question based on the memo content below.
@@ -91,7 +95,7 @@ Answer:`;
       if (tasks.length === 0) {
         return "You don't have any tasks in your memos.";
       }
-      return `You have ${tasks.length} tasks:\n${tasks.slice(0, 5).map(t => `• ${t.title || t.text.replace(/\[Contact:\s*[^\]]+\]/g, '').substring(0, 50)}`).join('\n')}`;
+      return `You have ${tasks.length} tasks:\n${tasks.slice(0, 5).map(t => `• ${t.title || cleanMemoText(t.text).substring(0, 50)}`).join('\n')}`;
     }
     
     if (lowerQuestion.includes('note') || lowerQuestion.includes('idea')) {
@@ -99,18 +103,20 @@ Answer:`;
       if (notes.length === 0) {
         return "You don't have any notes or ideas in your memos.";
       }
-      return `You have ${notes.length} notes/ideas:\n${notes.slice(0, 3).map(n => `• ${n.title || n.text.replace(/\[Contact:\s*[^\]]+\]/g, '').substring(0, 50)}`).join('\n')}`;
+      return `You have ${notes.length} notes/ideas:\n${notes.slice(0, 3).map(n => `• ${n.title || cleanMemoText(n.text).substring(0, 50)}`).join('\n')}`;
     }
     
     if (lowerQuestion.includes('recent') || lowerQuestion.includes('latest')) {
       const recent = userMemos.slice(0, 3);
-      return `Your recent memos:\n${recent.map(m => `• ${m.type}: ${m.title || m.text.replace(/\[Contact:\s*[^\]]+\]/g, '').substring(0, 40)}`).join('\n')}`;
+      return `Your recent memos:\n${recent.map(m => `• ${m.type}: ${m.title || cleanMemoText(m.text).substring(0, 40)}`).join('\n')}`;
     }
 
     if (lowerQuestion.includes('tomorrow') || lowerQuestion.includes('today') || lowerQuestion.includes('volleyball') || lowerQuestion.includes('plan')) {
       const relevantMemos = userMemos.filter(m => {
-        const text = (m.text || '').toLowerCase().replace(/\[Contact:\s*[^\]]+\]/g, '');
-        return text.includes('tomorrow') || text.includes('today') || text.includes('volleyball') || text.includes('plan');
+        const text = cleanMemoText(m.text || '').toLowerCase();
+        const title = (m.title || '').toLowerCase();
+        return text.includes('tomorrow') || text.includes('today') || text.includes('volleyball') || text.includes('plan') ||
+               title.includes('tomorrow') || title.includes('today') || title.includes('volleyball') || title.includes('plan');
       });
       
       if (relevantMemos.length === 0) {
@@ -118,14 +124,14 @@ Answer:`;
       }
       
       return `I found ${relevantMemos.length} relevant memo(s):\n${relevantMemos.map(m => 
-        `• ${m.title || m.text.replace(/\[Contact:\s*[^\]]+\]/g, '').substring(0, 60)}`
+        `• ${m.title || cleanMemoText(m.text).substring(0, 60)}`
       ).join('\n')}`;
     }
     
     // General search through memo content
     const searchTerms = question.toLowerCase().split(' ').filter(word => word.length > 2);
     const matchingMemos = userMemos.filter(m => {
-      const memoText = (m.text || '').toLowerCase().replace(/\[Contact:\s*[^\]]+\]/g, '') + ' ' + (m.title || '').toLowerCase();
+      const memoText = cleanMemoText(m.text || '').toLowerCase() + ' ' + (m.title || '').toLowerCase();
       return searchTerms.some(term => memoText.includes(term));
     });
 
@@ -134,7 +140,7 @@ Answer:`;
     }
 
     return `I found ${matchingMemos.length} memo(s) related to your question:\n${matchingMemos.slice(0, 3).map(m => 
-      `• ${m.title || m.text.replace(/\[Contact:\s*[^\]]+\]/g, '').substring(0, 60)}`
+      `• ${m.title || cleanMemoText(m.text).substring(0, 60)}`
     ).join('\n')}`;
   };
 
