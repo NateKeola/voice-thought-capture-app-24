@@ -724,9 +724,7 @@ const RelationshipsPage = () => {
           firstName: editingProfile.first_name,
           lastName: editingProfile.last_name,
           type: editingProfile.type,
-          relationshipDescription: editingProfile.notes,
-          email: editingProfile.email,
-          phone: editingProfile.phone
+          relationshipDescription: editingProfile.notes
         } : null}
       />
       
