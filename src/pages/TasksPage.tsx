@@ -117,13 +117,13 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Use the memo's title if it exists, otherwise generate one
+  // Use the memo's title if it exists, otherwise generate one SYNCHRONOUSLY
   let title = memo.title;
   let description = cleanText;
   
-  // If no title exists, generate one
+  // If no title exists, generate one using the synchronous method
   if (!title) {
-    title = TitleGenerationService.generateTitle(cleanText, type);
+    title = TitleGenerationService.generateImmediateTitle(cleanText, type);
   }
   
   // If description is the same as title, clear it to avoid duplication

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 // Title generation service using Claude API
 export class TitleGenerationService {
   /**
-   * Generate a title using Claude API
+   * Generate a title using Claude API (ASYNC)
    */
   static async generateTitle(text: string, type: 'task' | 'note' | 'should'): Promise<string> {
     try {
@@ -37,7 +37,7 @@ export class TitleGenerationService {
   }
 
   /**
-   * Generate a fallback title when API fails
+   * Generate a fallback title synchronously (SYNC)
    */
   static generateFallbackTitle(text: string, type: 'task' | 'note' | 'should'): string {
     // Clean the text
@@ -85,6 +85,13 @@ export class TitleGenerationService {
     }
 
     return title;
+  }
+
+  /**
+   * Generate immediate title (SYNC) - for use in components that need instant results
+   */
+  static generateImmediateTitle(text: string, type: 'task' | 'note' | 'should'): string {
+    return this.generateFallbackTitle(text, type);
   }
 
   /**
