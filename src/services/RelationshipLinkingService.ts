@@ -1,6 +1,5 @@
 
 import { DetectedPerson } from './PersonDetectionService';
-import { useProfiles } from '@/hooks/useProfiles';
 
 export interface LinkedRelationship {
   id: string;
@@ -66,5 +65,24 @@ export class RelationshipLinkingService {
    */
   static clearPendingRelationships(): void {
     sessionStorage.removeItem('pendingRelationships');
+  }
+
+  /**
+   * Create relationship data for profiles table
+   */
+  static createProfileData(person: DetectedPerson): any {
+    const nameParts = person.name.split(' ');
+    const firstName = nameParts[0] || person.name;
+    const lastName = nameParts.slice(1).join(' ') || '';
+    const type = this.determineRelationshipType(person.relationship);
+    
+    return {
+      first_name: firstName,
+      last_name: lastName,
+      type: type,
+      email: null,
+      phone: null,
+      notes: `Detected from memo: "${person.context}"`
+    };
   }
 }

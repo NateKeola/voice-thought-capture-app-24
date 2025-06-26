@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { DetectedPerson } from '@/services/PersonDetectionService';
 import PersonProposalCard from './memo/PersonProposalCard';
 import { Users, UserPlus } from 'lucide-react';
+import { RelationshipLinkingService } from '@/services/RelationshipLinkingService';
 
 interface PersonConfirmationDialogProps {
   open: boolean;
@@ -54,9 +55,17 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
   };
 
   const handleSaveAndAdd = () => {
+    // Store the selected people for the relationships page to pick up
+    RelationshipLinkingService.storePendingRelationships(selectedPeople);
+    
+    // Call the callback if provided
     if (onSaveAndAddToRelationships) {
       onSaveAndAddToRelationships(selectedPeople);
+    } else {
+      // Fallback: still save the memo with contact tags
+      onConfirm(selectedPeople);
     }
+    
     setSelectedPeople([]);
   };
 
@@ -100,16 +109,14 @@ const PersonConfirmationDialog: React.FC<PersonConfirmationDialogProps> = ({
             Save with {selectedPeople.length} Contact{selectedPeople.length !== 1 ? 's' : ''}
           </Button>
 
-          {onSaveAndAddToRelationships && (
-            <Button 
-              onClick={handleSaveAndAdd}
-              disabled={selectedPeople.length === 0}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add to Relationships
-            </Button>
-          )}
+          <Button 
+            onClick={handleSaveAndAdd}
+            disabled={selectedPeople.length === 0}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add to Relationships
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

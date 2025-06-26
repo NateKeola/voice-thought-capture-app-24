@@ -9,6 +9,9 @@ import { ArrowLeft, ArrowRight, X, Users } from "lucide-react";
 import { Memo, MemoType } from "@/types";
 import { PersonDetectionService, DetectedPerson } from "@/services/PersonDetectionService";
 import PersonProposalCard from './PersonProposalCard';
+import { RelationshipLinkingService } from '@/services/RelationshipLinkingService';
+import { useProfiles } from '@/hooks/useProfiles';
+import { useToast } from '@/components/ui/use-toast';
 
 interface MemoEditScreenProps {
   initialMemo?: Partial<Memo>;
@@ -33,6 +36,10 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [detectedPeople, setDetectedPeople] = useState<DetectedPerson[]>([]);
   const [selectedPeople, setSelectedPeople] = useState<DetectedPerson[]>([]);
+  const [showRelationshipDialog, setShowRelationshipDialog] = useState(false);
+  
+  const { createProfile } = useProfiles();
+  const { toast } = useToast();
 
   // Detect people when text changes
   useEffect(() => {
@@ -66,6 +73,46 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
         type: initialMemo?.type || 'note', 
         title: title.trim() || undefined,
         linkedPeople: selectedPeople
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveAndAddToRelationships = async () => {
+    if (!text.trim() || selectedPeople.length === 0) return;
+    
+    setIsSaving(true);
+    try {
+      // First save the memo with contact tags
+      await onSave({ 
+        text, 
+        type: initialMemo?.type || 'note', 
+        title: title.trim() || undefined,
+        linkedPeople: selectedPeople
+      });
+
+      // Then create relationships for selected people
+      for (const person of selectedPeople) {
+        try {
+          const profileData = RelationshipLinkingService.createProfileData(person);
+          await createProfile.mutateAsync(profileData);
+        } catch (error) {
+          console.error('Error creating profile for', person.name, error);
+        }
+      }
+
+      toast({
+        title: "Memo and relationships saved",
+        description: `Added ${selectedPeople.length} new relationship${selectedPeople.length !== 1 ? 's' : ''} to your contacts.`
+      });
+
+    } catch (error) {
+      console.error('Error saving memo and relationships:', error);
+      toast({
+        title: "Error",
+        description: "There was a problem saving your memo and relationships.",
+        variant: "destructive"
       });
     } finally {
       setIsSaving(false);
@@ -156,14 +203,28 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
               <X className="h-4 w-4 mr-2" />
               Cancel
             </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={!text.trim() || isSaving}
-              className="bg-orange-500 hover:bg-orange-600"
-            >
-              <ArrowRight className="h-4 w-4 mr-2" />
-              {isSaving ? 'Processing...' : 'Continue'}
-            </Button>
+            
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleSave} 
+                disabled={!text.trim() || isSaving}
+                variant="outline"
+              >
+                <ArrowRight className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save Memo'}
+              </Button>
+              
+              {selectedPeople.length > 0 && (
+                <Button 
+                  onClick={handleSaveAndAddToRelationships} 
+                  disabled={!text.trim() || isSaving}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  {isSaving ? 'Processing...' : 'Save & Add to Relationships'}
+                </Button>
+              )}
+            </div>
           </CardFooter>
         </Card>
       </div>
