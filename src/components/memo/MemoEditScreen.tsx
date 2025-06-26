@@ -48,6 +48,7 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   useEffect(() => {
     if (text.trim()) {
       const people = PersonDetectionService.detectPeople(text);
+      console.log('Detected people:', people); // Debug log
       setDetectedPeople(people);
     } else {
       setDetectedPeople([]);
@@ -71,8 +72,18 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
     
     setIsSaving(true);
     try {
+      // Create the final memo text with contact tags for selected people
+      let finalText = text;
+      
+      // Add contact tags for selected people
+      if (selectedPeople.length > 0) {
+        // Generate unique IDs for selected people (or use existing relationship IDs if they exist)
+        const contactTags = selectedPeople.map(person => `[Contact: ${person.name}]`).join(' ');
+        finalText = `${contactTags} ${text}`;
+      }
+      
       await onSave({ 
-        text, 
+        text: finalText, 
         type: initialMemo?.type || 'note', 
         title: title.trim() || undefined,
         linkedPeople: selectedPeople
@@ -87,9 +98,14 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
     
     setIsSaving(true);
     try {
+      // Create the final memo text with contact tags
+      let finalText = text;
+      const contactTags = selectedPeople.map(person => `[Contact: ${person.name}]`).join(' ');
+      finalText = `${contactTags} ${text}`;
+
       // First save the memo with contact tags and title
       await onSave({ 
-        text, 
+        text: finalText, 
         type: initialMemo?.type || 'note', 
         title: title.trim() || undefined,
         linkedPeople: selectedPeople

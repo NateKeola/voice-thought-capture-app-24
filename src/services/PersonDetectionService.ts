@@ -18,11 +18,16 @@ export class PersonDetectionService {
    * Main function to detect people mentioned in memo text
    */
   static detectPeople(text: string): DetectedPerson[] {
+    console.log('Detecting people in text:', text); // Debug log
+    
     const detectedPeople: DetectedPerson[] = [];
     
     // Clean and prepare text
     const cleanText = this.cleanText(text);
     const sentences = this.splitIntoSentences(cleanText);
+    
+    console.log('Clean text:', cleanText); // Debug log
+    console.log('Sentences:', sentences); // Debug log
     
     for (const sentence of sentences) {
       // Try different detection methods
@@ -39,11 +44,16 @@ export class PersonDetectionService {
         ...contextualMentions
       ];
       
+      console.log(`Sentence: "${sentence}" - Found ${allMentions.length} mentions:`, allMentions); // Debug log
+      
       detectedPeople.push(...allMentions);
     }
     
     // Remove duplicates and merge similar names
-    return this.deduplicateAndMerge(detectedPeople);
+    const finalResults = this.deduplicateAndMerge(detectedPeople);
+    console.log('Final detected people:', finalResults); // Debug log
+    
+    return finalResults;
   }
   
   /**
@@ -52,14 +62,16 @@ export class PersonDetectionService {
   private static findDirectMentions(sentence: string): DetectedPerson[] {
     const mentions: DetectedPerson[] = [];
     
-    // Pattern for names (capitalized words, not at sentence start)
+    // Enhanced patterns for names
     const namePatterns = [
       // Full names: "John Smith", "Mary Jane Watson"
       /(?:^|\s)([A-Z][a-z]+(?:\s+[A-Z][a-z]*){1,2})(?=\s|[,.!?]|$)/g,
       // Single names in context: "talked to Sarah", "with Mike"
-      /(?:talked to|spoke with|met with|called|emailed|texted)\s+([A-Z][a-z]+)/gi,
+      /(?:talked to|spoke with|met with|called|emailed|texted|saw|visited)\s+([A-Z][a-z]+)/gi,
       // Names with titles: "Dr. Smith", "Mr. Johnson"
-      /((?:Dr|Mr|Mrs|Ms|Prof|Professor)\.?\s+[A-Z][a-z]+)/gi
+      /((?:Dr|Mr|Mrs|Ms|Prof|Professor)\.?\s+[A-Z][a-z]+)/gi,
+      // Simple capitalized words that could be names
+      /\b([A-Z][a-z]{2,})\b/g
     ];
     
     for (const pattern of namePatterns) {
@@ -86,7 +98,7 @@ export class PersonDetectionService {
   private static findPossessiveMentions(sentence: string): DetectedPerson[] {
     const mentions: DetectedPerson[] = [];
     
-    const possessivePattern = /([A-Z][a-z]+)'s\s+(?:project|idea|meeting|call|email|report|work|task|plan)/gi;
+    const possessivePattern = /([A-Z][a-z]+)'s\s+(?:project|idea|meeting|call|email|report|work|task|plan|house|car|job|family)/gi;
     
     let match;
     while ((match = possessivePattern.exec(sentence)) !== null) {
@@ -112,11 +124,11 @@ export class PersonDetectionService {
     
     const actionPatterns = [
       // Person + action verb
-      /([A-Z][a-z]+)\s+(?:said|mentioned|told|explained|suggested|recommended|thinks|believes|will|should|can|needs)/gi,
+      /([A-Z][a-z]+)\s+(?:said|mentioned|told|explained|suggested|recommended|thinks|believes|will|should|can|needs|wants|likes|loves|hates|works|lives|goes|comes)/gi,
       // Action + person
-      /(?:told|asked|called|emailed|texted|messaged)\s+([A-Z][a-z]+)/gi,
+      /(?:told|asked|called|emailed|texted|messaged|visited|saw|met)\s+([A-Z][a-z]+)/gi,
       // Meeting context
-      /(?:meeting with|call with|lunch with|dinner with)\s+([A-Z][a-z]+)/gi
+      /(?:meeting with|call with|lunch with|dinner with|coffee with)\s+([A-Z][a-z]+)/gi
     ];
     
     for (const pattern of actionPatterns) {
@@ -145,11 +157,11 @@ export class PersonDetectionService {
     
     const contextPatterns = [
       // Relationship + name
-      /(?:my|our)\s+(?:colleague|coworker|boss|manager|client|friend|partner|teammate)\s+([A-Z][a-z]+)/gi,
+      /(?:my|our)\s+(?:colleague|coworker|boss|manager|client|friend|partner|teammate|neighbor|doctor|dentist|teacher|student)\s+([A-Z][a-z]+)/gi,
       // Name + relationship
-      /([A-Z][a-z]+)(?:,?\s+(?:my|our)\s+(?:colleague|coworker|boss|manager|client|friend|partner|teammate))/gi,
+      /([A-Z][a-z]+)(?:,?\s+(?:my|our)\s+(?:colleague|coworker|boss|manager|client|friend|partner|teammate|neighbor|doctor|dentist|teacher|student))/gi,
       // Family relationships
-      /(?:my|our)\s+(?:mom|dad|mother|father|sister|brother|wife|husband|son|daughter)\s+([A-Z][a-z]+)/gi
+      /(?:my|our)\s+(?:mom|dad|mother|father|sister|brother|wife|husband|son|daughter|aunt|uncle|cousin|grandmother|grandfather|grandma|grandpa)\s+([A-Z][a-z]+)/gi
     ];
     
     for (const pattern of contextPatterns) {
@@ -189,6 +201,7 @@ export class PersonDetectionService {
     if (lowerText.includes('friend')) return 'friend';
     if (lowerText.includes('family') || lowerText.includes('relative')) return 'family';
     if (lowerText.includes('partner') || lowerText.includes('spouse')) return 'partner';
+    if (lowerText.includes('neighbor')) return 'neighbor';
     
     // Family specific
     if (lowerText.match(/\b(mom|mother|dad|father|parent)\b/)) return 'family';
@@ -248,10 +261,8 @@ export class PersonDetectionService {
     for (const person of sortedPeople) {
       // Add contact tag if not already present
       if (!enhancedText.includes(`[Contact: ${person.name}]`)) {
-        const nameRegex = new RegExp(`\\b${person.name}\\b`, 'gi');
-        enhancedText = enhancedText.replace(nameRegex, (match) => {
-          return `${match} [Contact: ${person.name}${person.relationship ? ` - ${person.relationship}` : ''}]`;
-        });
+        // Add contact tag at the beginning to avoid disrupting the original text
+        enhancedText = `[Contact: ${person.name}] ${enhancedText}`;
       }
     }
     
@@ -288,11 +299,14 @@ export class PersonDetectionService {
   private static isValidName(name: string): boolean {
     // Filter out common false positives
     const invalidNames = [
-      'I', 'Me', 'My', 'You', 'We', 'They', 'The', 'This', 'That',
+      'I', 'Me', 'My', 'You', 'We', 'They', 'The', 'This', 'That', 'There', 'Here', 'When', 'Where', 'What', 'How', 'Why', 'Who',
       'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December',
-      'Today', 'Tomorrow', 'Yesterday', 'Next', 'Last', 'First'
+      'Today', 'Tomorrow', 'Yesterday', 'Next', 'Last', 'First', 'Second', 'Third',
+      'Morning', 'Afternoon', 'Evening', 'Night', 'Day', 'Week', 'Month', 'Year',
+      'Home', 'Work', 'Office', 'School', 'House', 'Car', 'Phone', 'Email',
+      'Good', 'Bad', 'Great', 'Nice', 'Cool', 'Fun', 'Easy', 'Hard', 'New', 'Old'
     ];
     
     if (invalidNames.includes(name)) return false;
@@ -323,7 +337,7 @@ export class PersonDetectionService {
     }
     
     return Array.from(merged.values())
-      .filter(person => person.confidence > 0.7) // Filter low confidence
+      .filter(person => person.confidence > 0.6) // Lowered threshold for better detection
       .sort((a, b) => b.confidence - a.confidence);
   }
   
