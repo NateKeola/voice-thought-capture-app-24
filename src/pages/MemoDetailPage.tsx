@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -6,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { useMemos } from '@/contexts/MemoContext';
-import { detectMemoType } from '@/services/SpeechToText';
 import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
 import BottomNavBar from '@/components/BottomNavBar';
@@ -127,7 +127,7 @@ const MemoDetailPage: React.FC = () => {
   };
 
   const handleTitleChange = (value: string) => {
-    console.log('Title changed to:', value);
+    console.log('User editing title to:', value);
     setEditedTitle(value);
     setHasUnsavedChanges(true);
   };
@@ -186,8 +186,9 @@ const MemoDetailPage: React.FC = () => {
                 id="title"
                 value={editedTitle}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="Enter memo title..."
+                placeholder={memo?.title ? "Edit memo title..." : "Add a title..."}
                 className="w-full"
+                disabled={isSaving}
               />
             </div>
 
@@ -202,6 +203,7 @@ const MemoDetailPage: React.FC = () => {
                 onChange={(e) => handleTextChange(e.target.value)}
                 placeholder="Enter memo content..."
                 className="w-full min-h-[200px] resize-none"
+                disabled={isSaving}
               />
             </div>
 
@@ -209,6 +211,9 @@ const MemoDetailPage: React.FC = () => {
             <div className="text-sm text-gray-500 space-y-1">
               <p>Type: <span className="capitalize">{memo.type}</span></p>
               <p>Created: {new Date(memo.createdAt).toLocaleDateString()}</p>
+              {memo.title && !hasUnsavedChanges && (
+                <p>Auto-generated title: <span className="italic">{memo.title}</span></p>
+              )}
             </div>
           </div>
 

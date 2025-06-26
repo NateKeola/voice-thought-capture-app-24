@@ -15,6 +15,7 @@ interface TextMemoInputProps {
 
 const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialText = '' }) => {
   const [text, setText] = useState(initialText);
+  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const { createMemo } = useMemos();
@@ -33,17 +34,20 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
       return;
     }
 
+    setIsCreating(true);
     try {
       const memoType = detectMemoType(text);
       
+      console.log('Creating memo with auto-title generation...');
       const memo = await createMemo({
-        text: text,
+        text: text.trim(),
         type: memoType,
         audioUrl: null,
-        title: null // No auto-generated title
+        title: undefined // Let the service generate the title
       });
 
       if (memo) {
+        console.log('Memo created with title:', memo.title);
         navigate(`/memo/${memo.id}`);
         setText('');
         
@@ -58,6 +62,8 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
         description: "There was a problem creating your memo.",
         variant: "destructive"
       });
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -69,15 +75,17 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
         placeholder="Type your memo here..."
         className="w-full border-blue-100 focus-visible:ring-orange-500 mb-2"
         rows={3}
+        disabled={isCreating}
       />
       <div className="flex justify-end">
         <Button 
           onClick={handleSubmit} 
           className="bg-orange-500 hover:bg-orange-600"
           size="sm"
+          disabled={isCreating || !text.trim()}
         >
           <Send className="mr-2 h-4 w-4" />
-          Create Memo
+          {isCreating ? 'Creating...' : 'Create Memo'}
         </Button>
       </div>
     </div>

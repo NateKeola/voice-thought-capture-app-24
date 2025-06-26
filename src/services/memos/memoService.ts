@@ -1,5 +1,7 @@
+
 import { Memo, MemoType } from '@/types';
 import { isAuthenticated, getUserId } from '@/utils/authUtils';
+import { generateTitleWithClaude } from '@/services/claudeTitleService';
 import {
   saveLocalMemo,
   getAllLocalMemos,
@@ -15,28 +17,35 @@ import {
   deleteDbMemo
 } from './dbMemoStorage';
 
-// Save a new memo
+// Save a new memo with auto-generated title
 export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Memo> => {
   const authenticated = await isAuthenticated();
   
+  // Generate title if not provided
+  let memoWithTitle = { ...memo };
+  if (!memo.title) {
+    console.log('Generating title for new memo...');
+    const generatedTitle = await generateTitleWithClaude(memo.text, memo.type);
+    memoWithTitle.title = generatedTitle;
+    console.log('Generated title:', generatedTitle);
+  }
+  
   if (!authenticated) {
-    return saveLocalMemo(memo);
+    return saveLocalMemo(memoWithTitle);
   }
   
   const userId = await getUserId();
   if (!userId) {
     throw new Error('User ID not found');
   }
-  return saveDbMemo(memo, userId);
+  return saveDbMemo(memoWithTitle, userId);
 };
 
 // Get all memos
 export const getAllMemos = async (): Promise<Memo[]> => {
-  // Check if user is logged in
   const authenticated = await isAuthenticated();
   
   if (!authenticated) {
-    // Return local memos for unauthenticated users
     return getAllLocalMemos();
   }
   
@@ -45,11 +54,9 @@ export const getAllMemos = async (): Promise<Memo[]> => {
 
 // Get a memo by ID
 export const getMemoById = async (id: string): Promise<Memo | null> => {
-  // Check if user is logged in
   const authenticated = await isAuthenticated();
   
   if (!authenticated) {
-    // Find memo in local storage for unauthenticated users
     return getLocalMemoById(id);
   }
   
@@ -58,11 +65,9 @@ export const getMemoById = async (id: string): Promise<Memo | null> => {
 
 // Update a memo
 export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 'createdAt'>>): Promise<Memo | null> => {
-  // Check if user is logged in
   const authenticated = await isAuthenticated();
   
   if (!authenticated) {
-    // Update memo in local storage for unauthenticated users
     return updateLocalMemo(id, updates);
   }
   
@@ -75,11 +80,9 @@ export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 
 
 // Delete a memo
 export const deleteMemo = async (id: string): Promise<boolean> => {
-  // Check if user is logged in
   const authenticated = await isAuthenticated();
   
   if (!authenticated) {
-    // Delete memo from local storage for unauthenticated users
     return deleteLocalMemo(id);
   }
   

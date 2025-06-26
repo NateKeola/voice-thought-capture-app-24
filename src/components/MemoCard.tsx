@@ -18,10 +18,10 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
   
-  // Use the memo's title or fall back to "Untitled Memo"
-  const memoTitle = title || 'Untitled Memo';
+  // Use the memo's title, or show "Generating title..." if it's being generated
+  const memoTitle = title || 'Generating title...';
   
-  console.log('MemoCard rendering - memo id:', memo.id, 'title from memo:', title, 'final title:', memoTitle);
+  console.log('MemoCard rendering - memo id:', memo.id, 'title:', title);
   
   const getTypeConfig = (type: string) => {
     switch (type) {
@@ -72,7 +72,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
-            <h3 className="font-bold text-gray-800 mb-2 text-sm leading-tight">
+            <h3 className={`font-bold text-gray-800 mb-2 text-sm leading-tight ${!title ? 'text-gray-500 italic' : ''}`}>
               {memoTitle}
             </h3>
             <p className="text-sm text-muted-foreground line-clamp-2">{displayText}</p>

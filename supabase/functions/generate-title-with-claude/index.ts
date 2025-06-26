@@ -16,6 +16,11 @@ serve(async (req) => {
 
   try {
     const { text, type } = await req.json();
+    console.log('Generating title for:', { text: text.substring(0, 100), type });
+
+    if (!claudeApiKey) {
+      throw new Error('Claude API key not configured');
+    }
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -30,14 +35,20 @@ serve(async (req) => {
         messages: [
           {
             role: 'user',
-            content: `Generate a short, descriptive title (max 5 words) for this ${type} memo: "${text}"`
+            content: `Generate a short, descriptive title (max 5 words) for this ${type} memo: "${text}". Return only the title, no quotes or extra text.`
           }
         ],
       }),
     });
 
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+
     const data = await response.json();
     const generatedTitle = data.content[0].text.trim();
+    
+    console.log('Generated title:', generatedTitle);
 
     return new Response(JSON.stringify({ title: generatedTitle }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
