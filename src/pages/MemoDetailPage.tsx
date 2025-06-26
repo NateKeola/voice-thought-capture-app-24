@@ -63,21 +63,30 @@ const MemoDetailPage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      await updateMemo(memo.id, {
-        text: editedText,
-        title: editedTitle
+      const updatedMemo = await updateMemo(memo.id, {
+        text: editedText.trim(),
+        title: editedTitle.trim()
       });
       
-      setHasUnsavedChanges(false);
-      toast({
-        title: "Memo updated",
-        description: "Your changes have been saved successfully."
-      });
+      if (updatedMemo) {
+        setHasUnsavedChanges(false);
+        toast({
+          title: "Memo updated",
+          description: "Your changes have been saved successfully."
+        });
+        
+        // Navigate back to home page after successful save
+        setTimeout(() => {
+          navigate('/');
+        }, 1000); // Small delay to show the success toast
+      } else {
+        throw new Error('Failed to update memo');
+      }
     } catch (error) {
       console.error("Error updating memo:", error);
       toast({
         title: "Error updating memo",
-        description: "Failed to save your changes.",
+        description: "Failed to save your changes. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -89,17 +98,21 @@ const MemoDetailPage: React.FC = () => {
     if (!memo) return;
 
     try {
-      await deleteMemo(memo.id);
-      navigate('/');
-      toast({
-        title: "Memo deleted",
-        description: "Memo has been deleted successfully."
-      });
+      const success = await deleteMemo(memo.id);
+      if (success) {
+        navigate('/');
+        toast({
+          title: "Memo deleted",
+          description: "Memo has been deleted successfully."
+        });
+      } else {
+        throw new Error('Failed to delete memo');
+      }
     } catch (error) {
       console.error("Error deleting memo:", error);
       toast({
         title: "Error deleting memo",
-        description: "Failed to delete the memo.",
+        description: "Failed to delete the memo. Please try again.",
         variant: "destructive"
       });
     }
