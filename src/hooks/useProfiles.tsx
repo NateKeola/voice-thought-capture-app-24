@@ -61,9 +61,60 @@ export function useProfiles() {
     }
   });
 
+  const updateProfile = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Profile> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          ...updates,
+          last_interaction: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single() as { data: Profile | null, error: any };
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating profile",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const deleteProfile = useMutation({
+    mutationFn: async (profileId: string) => {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', profileId);
+
+      if (error) throw error;
+      return profileId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profiles'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting profile",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   return {
     profiles,
     isLoading,
-    createProfile
+    createProfile,
+    updateProfile,
+    deleteProfile
   };
 }

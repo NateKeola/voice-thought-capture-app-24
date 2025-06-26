@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Plus, Link } from 'lucide-react';
+import { Plus, Link, Edit, Trash2 } from 'lucide-react';
 import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -55,8 +55,10 @@ const RelationshipsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { profiles, isLoading: profilesLoading, createProfile } = useProfiles();
+  const { profiles, isLoading: profilesLoading, createProfile, updateProfile, deleteProfile } = useProfiles();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddMemoModal, setShowAddMemoModal] = useState(false);
@@ -67,6 +69,7 @@ const RelationshipsPage = () => {
   const { memos, createMemo, updateMemo, refreshMemos } = useMemos();
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [prefilledRelationshipData, setPrefilledRelationshipData] = useState(null);
+  const [pendingRelationships, setPendingRelationships] = useState([]);
   const isLoading = authLoading || profilesLoading;
 
   // Check for pending relationships from person detection on component mount
@@ -74,18 +77,22 @@ const RelationshipsPage = () => {
     const pendingRelationshipsData = sessionStorage.getItem('pendingRelationships');
     if (pendingRelationshipsData) {
       try {
-        const pendingRelationships = JSON.parse(pendingRelationshipsData);
-        if (pendingRelationships.length > 0) {
+        const relationships = JSON.parse(pendingRelationshipsData);
+        if (relationships.length > 0) {
+          setPendingRelationships(relationships);
           // Auto-open modal with first detected person
-          const firstPerson = pendingRelationships[0];
-          setPrefilledRelationshipData(firstPerson);
+          const firstPerson = relationships[0];
+          setPrefilledRelationshipData({
+            firstName: firstPerson.firstName,
+            lastName: firstPerson.lastName,
+            type: firstPerson.type,
+            relationshipDescription: firstPerson.relationshipDescription
+          });
           setShowAddModal(true);
-          
-          // Don't clear from session storage yet - wait until after memo is saved
           
           toast({
             title: "Detected contacts ready",
-            description: `Ready to add ${pendingRelationships.length} contact${pendingRelationships.length !== 1 ? 's' : ''} from your memo.`
+            description: `Ready to add ${relationships.length} contact${relationships.length !== 1 ? 's' : ''} from your memo.`
           });
         }
       } catch (error) {
@@ -123,41 +130,96 @@ const RelationshipsPage = () => {
     setPrefilledRelationshipData(null);
   };
 
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingProfile(null);
+  };
+
+  const handleEditProfile = (profile) => {
+    setEditingProfile(profile);
+    setShowEditModal(true);
+  };
+
+  const handleDeleteProfile = async (profile) => {
+    if (window.confirm(`Are you sure you want to delete ${profile.first_name} ${profile.last_name}? This action cannot be undone.`)) {
+      try {
+        await deleteProfile.mutateAsync(profile.id);
+        if (selectedProfile?.id === profile.id) {
+          setSelectedProfile(null);
+        }
+        toast({
+          title: "Contact deleted",
+          description: `${profile.first_name} ${profile.last_name} has been removed from your relationships.`
+        });
+      } catch (error) {
+        console.error('Error deleting profile:', error);
+        toast({
+          title: "Error deleting contact",
+          description: "There was a problem deleting the contact.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
   const handleCreateProfile = async (profileData) => {
     try {
       await createProfile.mutateAsync(profileData);
       setShowAddModal(false);
       setPrefilledRelationshipData(null);
       
-      // Check if there are more pending relationships to add
-      const pendingRelationshipsData = sessionStorage.getItem('pendingRelationships');
-      if (pendingRelationshipsData) {
-        try {
-          const pendingRelationships = JSON.parse(pendingRelationshipsData);
-          if (pendingRelationships.length > 1) {
-            // Remove the first one we just processed and set up the next
-            const remainingRelationships = pendingRelationships.slice(1);
-            sessionStorage.setItem('pendingRelationships', JSON.stringify(remainingRelationships));
-            
-            // Set up next relationship
-            setPrefilledRelationshipData(remainingRelationships[0]);
-            setShowAddModal(true);
-          } else {
-            // All relationships processed, clear session storage
-            sessionStorage.removeItem('pendingRelationships');
-            
-            toast({
-              title: "All contacts added!",
-              description: "Your memo has been saved and all detected contacts have been added to your relationships."
-            });
-          }
-        } catch (error) {
-          console.error('Error processing remaining relationships:', error);
-          sessionStorage.removeItem('pendingRelationships');
-        }
+      // Process remaining pending relationships
+      if (pendingRelationships.length > 1) {
+        const remainingRelationships = pendingRelationships.slice(1);
+        setPendingRelationships(remainingRelationships);
+        sessionStorage.setItem('pendingRelationships', JSON.stringify(remainingRelationships));
+        
+        // Set up next relationship
+        const nextPerson = remainingRelationships[0];
+        setPrefilledRelationshipData({
+          firstName: nextPerson.firstName,
+          lastName: nextPerson.lastName,
+          type: nextPerson.type,
+          relationshipDescription: nextPerson.relationshipDescription
+        });
+        setShowAddModal(true);
+      } else {
+        // All relationships processed, clear session storage
+        setPendingRelationships([]);
+        sessionStorage.removeItem('pendingRelationships');
+        
+        toast({
+          title: "All contacts added!",
+          description: "Your memo has been saved and all detected contacts have been added to your relationships."
+        });
       }
     } catch (error) {
       console.error('Error creating profile:', error);
+    }
+  };
+
+  const handleUpdateProfile = async (profileData) => {
+    try {
+      await updateProfile.mutateAsync({ id: editingProfile.id, ...profileData });
+      setShowEditModal(false);
+      setEditingProfile(null);
+      
+      // Update selected profile if it's the one being edited
+      if (selectedProfile?.id === editingProfile.id) {
+        setSelectedProfile({ ...selectedProfile, ...profileData });
+      }
+      
+      toast({
+        title: "Contact updated",
+        description: "The contact has been updated successfully."
+      });
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error updating contact",
+        description: "There was a problem updating the contact.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -398,15 +460,39 @@ const RelationshipsPage = () => {
                         </span>
                       </div>
                       <div className="flex-1">
-                        <div className="flex justify-between items-center">
-                          <p className="text-gray-800 font-medium">
-                            {`${profile.first_name} ${profile.last_name}`}
-                          </p>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            REL_TYPE_COLORS[profile.type.toLowerCase()] || REL_TYPE_COLORS.default
-                          }`}>
-                            {profile.type}
-                          </span>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <p className="text-gray-800 font-medium">
+                              {`${profile.first_name} ${profile.last_name}`}
+                            </p>
+                            <span className={`inline-block px-2 py-1 rounded-full text-xs mt-1 ${
+                              REL_TYPE_COLORS[profile.type.toLowerCase()] || REL_TYPE_COLORS.default
+                            }`}>
+                              {profile.type}
+                            </span>
+                          </div>
+                          <div className="flex gap-1 ml-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditProfile(profile);
+                              }}
+                              className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Edit contact"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProfile(profile);
+                              }}
+                              className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Delete contact"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </div>
                         <div className="flex justify-between mt-1">
                           <p className="text-gray-500 text-xs">
@@ -628,6 +714,20 @@ const RelationshipsPage = () => {
         onClose={handleCloseModal}
         onSubmit={handleCreateProfile}
         prefilledData={prefilledRelationshipData}
+      />
+
+      <AddRelationshipModal 
+        isOpen={showEditModal}
+        onClose={handleCloseEditModal}
+        onSubmit={handleUpdateProfile}
+        prefilledData={editingProfile ? {
+          firstName: editingProfile.first_name,
+          lastName: editingProfile.last_name,
+          type: editingProfile.type,
+          relationshipDescription: editingProfile.notes,
+          email: editingProfile.email,
+          phone: editingProfile.phone
+        } : null}
       />
       
       <BottomNavBar
