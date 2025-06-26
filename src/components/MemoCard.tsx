@@ -5,6 +5,7 @@ import { Memo } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { FileText, CheckCircle, CircleAlert, FileAudio, Users } from "lucide-react";
 import { extractMemoMetadata } from '@/utils/memoMetadata';
+import { TitleGenerationService } from '@/services/titleGeneration';
 
 interface MemoCardProps {
   memo: Memo;
@@ -18,10 +19,17 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
   
-  // Use the memo's title, or show "Generating title..." if it's being generated
-  const memoTitle = title || 'Generating title...';
+  // Debug log the title value
+  console.log('MemoCard rendering - memo id:', memo.id, 'title:', title, 'type of title:', typeof title);
   
-  console.log('MemoCard rendering - memo id:', memo.id, 'title:', title);
+  // Handle undefined, null, or invalid title values
+  let memoTitle = '';
+  if (title && typeof title === 'string' && title !== 'undefined') {
+    memoTitle = title;
+  } else {
+    // Generate a fallback title immediately
+    memoTitle = TitleGenerationService.generateImmediateTitle(text || '', type);
+  }
   
   const getTypeConfig = (type: string) => {
     switch (type) {
@@ -72,7 +80,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
-            <h3 className={`font-bold text-gray-800 mb-2 text-sm leading-tight ${!title ? 'text-gray-500 italic' : ''}`}>
+            <h3 className="font-bold text-gray-800 mb-2 text-sm leading-tight">
               {memoTitle}
             </h3>
             <p className="text-sm text-muted-foreground line-clamp-2">{displayText}</p>

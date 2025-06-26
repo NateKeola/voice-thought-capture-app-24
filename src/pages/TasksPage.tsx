@@ -73,6 +73,13 @@ const smartCategorizeNote = (text: string, listCategories: any[]) => {
 
 // Map memo to the interface expected by the TaskList component
 const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], listCategories: any[]) => {
+  console.log('🔍 Mapping memo to item:', { 
+    memoId: memo.id, 
+    memoTitle: memo.title, 
+    titleType: typeof memo.title,
+    memoText: memo.text?.substring(0, 50) 
+  });
+
   // Parse category and priority from memo text or use defaults
   let category = type === 'task' ? "personal" : "general";
   let priority = "medium";
@@ -117,14 +124,17 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
     .replace(/\[due:\s*[\w\s]+\]/gi, '')
     .trim();
   
-  // Use the memo's title if it exists, otherwise generate one SYNCHRONOUSLY
+  // Use the memo's title if it exists and is valid, otherwise generate one SYNCHRONOUSLY
   let title = memo.title;
   let description = cleanText;
   
-  // If no title exists, generate one using the synchronous method
-  if (!title) {
+  // Check if title is invalid (undefined, null, empty string, or "undefined")
+  if (!title || title === 'undefined' || typeof title !== 'string') {
+    console.log('🔍 Invalid title detected, generating new one:', title);
     title = TitleGenerationService.generateImmediateTitle(cleanText, type);
   }
+  
+  console.log('🔍 Final title after processing:', title);
   
   // If description is the same as title, clear it to avoid duplication
   if (description === title) {
@@ -134,7 +144,7 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
   // Use string ID to avoid NaN issues
   const itemId = String(memo.id);
 
-  return {
+  const result = {
     id: itemId,
     title: title,
     description: description,
@@ -145,6 +155,9 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
     created: 0,
     hasAudio: !!memo.audioUrl
   };
+
+  console.log('🔍 Final mapped item:', { id: result.id, title: result.title });
+  return result;
 };
 
 // Enhanced Item Component with single completion tracking

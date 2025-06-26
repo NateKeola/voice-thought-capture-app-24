@@ -40,6 +40,8 @@ export class TitleGenerationService {
    * Generate a fallback title synchronously (SYNC)
    */
   static generateFallbackTitle(text: string, type: 'task' | 'note' | 'should'): string {
+    console.log('🔍 Generating fallback title for:', { text: text?.substring(0, 50), type });
+    
     // Clean the text
     const cleanText = text
       .replace(/\[Contact: [^\]]+\]/g, '')
@@ -84,6 +86,7 @@ export class TitleGenerationService {
       }
     }
 
+    console.log('🔍 Generated fallback title:', title);
     return title;
   }
 
@@ -91,7 +94,10 @@ export class TitleGenerationService {
    * Generate immediate title (SYNC) - for use in components that need instant results
    */
   static generateImmediateTitle(text: string, type: 'task' | 'note' | 'should'): string {
-    return this.generateFallbackTitle(text, type);
+    console.log('🔍 Generating immediate title for:', { text: text?.substring(0, 50), type });
+    const title = this.generateFallbackTitle(text, type);
+    console.log('🔍 Final immediate title:', title);
+    return title;
   }
 
   /**
