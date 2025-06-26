@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -116,6 +115,12 @@ const MemoDetailPage: React.FC = () => {
     setHasUnsavedChanges(true);
   };
 
+  const handleTabChange = (tab: string) => {
+    if (tab === 'record') navigate('/home');
+    if (tab === 'relationships') navigate('/relationships');
+    if (tab === 'personal') navigate('/tasks');
+  };
+
   if (isLoading) {
     return <MemoLoading />;
   }
@@ -218,7 +223,10 @@ const MemoDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <BottomNavBar />
+      <BottomNavBar 
+        activeTab="record" 
+        onTabChange={handleTabChange}
+      />
     </div>
   );
 };
