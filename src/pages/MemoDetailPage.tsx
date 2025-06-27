@@ -34,7 +34,7 @@ const MemoDetailPage: React.FC = () => {
         .trim();
       
       setEditedText(cleanedText);
-      // Use the memo's title directly - this connects to the bold title shown in MemoCard
+      // Show the existing title (auto-generated or user-edited)
       setEditedTitle(memo.title || '');
       setHasUnsavedChanges(false);
     }
@@ -63,7 +63,7 @@ const MemoDetailPage: React.FC = () => {
       
       const updateData = {
         text: editedText.trim(),
-        title: editedTitle.trim() || null // This will update the title shown in MemoCard
+        title: editedTitle.trim() || null
       };
       
       console.log('Update data being sent:', updateData);
@@ -177,21 +177,21 @@ const MemoDetailPage: React.FC = () => {
         {/* Edit Form */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="space-y-4">
-            {/* Title Input - This is linked to the bold title in MemoCard */}
+            {/* Title Input */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Title (This will update the bold title shown on the main screen)
+                Title
               </label>
               <Input
                 id="title"
                 value={editedTitle}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder="Enter a custom title for your memo..."
+                placeholder="Enter a title for your memo..."
                 className="w-full"
                 disabled={isSaving}
               />
               <p className="text-xs text-gray-500 mt-1">
-                This title will replace the bold title shown in your memo list
+                This will be the bold title shown in your memo list
               </p>
             </div>
 
@@ -214,9 +214,7 @@ const MemoDetailPage: React.FC = () => {
             <div className="text-sm text-gray-500 space-y-1">
               <p>Type: <span className="capitalize">{memo.type}</span></p>
               <p>Created: {new Date(memo.createdAt).toLocaleDateString()}</p>
-              {memo.title && !hasUnsavedChanges && (
-                <p>Current title: <span className="font-medium">{memo.title}</span></p>
-              )}
+              <p>Current title: <span className="font-medium">{memo.title || 'No title set'}</span></p>
               {hasUnsavedChanges && editedTitle && (
                 <p>New title: <span className="font-medium text-blue-600">{editedTitle}</span></p>
               )}

@@ -5,7 +5,6 @@ import { Memo } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { FileText, CheckCircle, CircleAlert, FileAudio, Users } from "lucide-react";
 import { extractMemoMetadata } from '@/utils/memoMetadata';
-import { TitleGenerationService } from '@/services/titleGeneration';
 
 interface MemoCardProps {
   memo: Memo;
@@ -19,39 +18,8 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
   
-  // Helper function to map MemoType to title generation type
-  const getMemoTypeForTitle = (memoType: string): 'task' | 'note' | 'idea' => {
-    switch (memoType) {
-      case 'task':
-        return 'task';
-      case 'note':
-        return 'note';
-      case 'idea':
-        return 'idea';
-      default:
-        return 'note';
-    }
-  };
-  
-  // Use the memo's title directly if it exists and is valid
-  // This is the title that gets updated when user edits it in MemoDetailPage
-  let memoTitle = '';
-  
-  // Check if memo has a user-set or valid title
-  if (title && typeof title === 'string' && title !== 'undefined' && title.trim() !== '') {
-    // Additional check for malformed objects that got stringified
-    if (!title.includes('_type') && !title.includes('value')) {
-      memoTitle = title;
-      console.log('✅ Using existing memo title:', memoTitle);
-    }
-  }
-  
-  // If no valid title, generate one immediately
-  if (!memoTitle) {
-    console.log('🔍 No valid title found, generating new one for memo:', memo.id);
-    memoTitle = TitleGenerationService.generateImmediateTitle(text || '', getMemoTypeForTitle(type));
-    console.log('🔍 Generated title:', memoTitle);
-  }
+  // Use the memo's title directly - this is what gets updated when user edits it
+  const memoTitle = title || 'Untitled Memo';
   
   const getTypeConfig = (type: string) => {
     switch (type) {
@@ -102,7 +70,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
-            {/* This is the bold title that gets updated when user edits it */}
+            {/* This bold title should reflect whatever title is saved for the memo */}
             <h3 className="font-bold text-gray-800 mb-2 text-sm leading-tight">
               {memoTitle}
             </h3>
