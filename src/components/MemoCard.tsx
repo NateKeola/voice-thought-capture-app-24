@@ -33,14 +33,16 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
     }
   };
   
-  // Handle undefined, null, malformed, or invalid title values
+  // Use the memo's title directly if it exists and is valid
+  // This is the title that gets updated when user edits it in MemoDetailPage
   let memoTitle = '';
   
-  // Check if title is valid string
+  // Check if memo has a user-set or valid title
   if (title && typeof title === 'string' && title !== 'undefined' && title.trim() !== '') {
     // Additional check for malformed objects that got stringified
     if (!title.includes('_type') && !title.includes('value')) {
       memoTitle = title;
+      console.log('✅ Using existing memo title:', memoTitle);
     }
   }
   
@@ -100,6 +102,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
+            {/* This is the bold title that gets updated when user edits it */}
             <h3 className="font-bold text-gray-800 mb-2 text-sm leading-tight">
               {memoTitle}
             </h3>

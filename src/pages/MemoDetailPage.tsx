@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -35,6 +34,7 @@ const MemoDetailPage: React.FC = () => {
         .trim();
       
       setEditedText(cleanedText);
+      // Use the memo's title directly - this connects to the bold title shown in MemoCard
       setEditedTitle(memo.title || '');
       setHasUnsavedChanges(false);
     }
@@ -59,11 +59,11 @@ const MemoDetailPage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      console.log('Saving memo with title:', editedTitle.trim());
+      console.log('Saving memo with updated title:', editedTitle.trim());
       
       const updateData = {
         text: editedText.trim(),
-        title: editedTitle.trim() || null
+        title: editedTitle.trim() || null // This will update the title shown in MemoCard
       };
       
       console.log('Update data being sent:', updateData);
@@ -71,7 +71,7 @@ const MemoDetailPage: React.FC = () => {
       const updatedMemo = await updateMemo(memo.id, updateData);
       
       if (updatedMemo) {
-        console.log('Memo updated successfully:', updatedMemo);
+        console.log('Memo updated successfully with new title:', updatedMemo.title);
         setHasUnsavedChanges(false);
         
         toast({
@@ -177,19 +177,22 @@ const MemoDetailPage: React.FC = () => {
         {/* Edit Form */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="space-y-4">
-            {/* Title Input */}
+            {/* Title Input - This is linked to the bold title in MemoCard */}
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                Title
+                Title (This will update the bold title shown on the main screen)
               </label>
               <Input
                 id="title"
                 value={editedTitle}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                placeholder={memo?.title ? "Edit memo title..." : "Add a title..."}
+                placeholder="Enter a custom title for your memo..."
                 className="w-full"
                 disabled={isSaving}
               />
+              <p className="text-xs text-gray-500 mt-1">
+                This title will replace the bold title shown in your memo list
+              </p>
             </div>
 
             {/* Content Textarea */}
@@ -212,7 +215,10 @@ const MemoDetailPage: React.FC = () => {
               <p>Type: <span className="capitalize">{memo.type}</span></p>
               <p>Created: {new Date(memo.createdAt).toLocaleDateString()}</p>
               {memo.title && !hasUnsavedChanges && (
-                <p>Auto-generated title: <span className="italic">{memo.title}</span></p>
+                <p>Current title: <span className="font-medium">{memo.title}</span></p>
+              )}
+              {hasUnsavedChanges && editedTitle && (
+                <p>New title: <span className="font-medium text-blue-600">{editedTitle}</span></p>
               )}
             </div>
           </div>
