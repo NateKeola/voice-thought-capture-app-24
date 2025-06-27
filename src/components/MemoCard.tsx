@@ -5,6 +5,7 @@ import { Memo } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { FileText, CheckCircle, CircleAlert, FileAudio, Users } from "lucide-react";
 import { extractMemoMetadata } from '@/utils/memoMetadata';
+import { TitleGenerationService } from '@/services/titleGeneration';
 
 interface MemoCardProps {
   memo: Memo;
@@ -18,8 +19,33 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
   
-  // Use the memo's title directly - this is what gets updated when user edits it
-  const memoTitle = title || 'Untitled Memo';
+  // Helper function to map MemoType to title generation type
+  const getMemoTypeForTitle = (memoType: string): 'task' | 'note' | 'idea' => {
+    switch (memoType) {
+      case 'task':
+        return 'task';
+      case 'note':
+        return 'note';
+      case 'idea':
+        return 'idea';
+      default:
+        return 'note';
+    }
+  };
+  
+  // Use the memo's title if it exists and is valid, otherwise generate one
+  let memoTitle = '';
+  
+  // Check if memo has a valid title (not corrupted object)
+  if (title && typeof title === 'string' && title.trim() !== '' && !title.includes('_type') && !title.includes('value')) {
+    memoTitle = title;
+    console.log('✅ Using saved memo title:', memoTitle);
+  } else {
+    // Generate title if none exists or if corrupted
+    console.log('🔍 Generating title for memo:', memo.id);
+    memoTitle = TitleGenerationService.generateImmediateTitle(text || '', getMemoTypeForTitle(type));
+    console.log('🔍 Generated title:', memoTitle);
+  }
   
   const getTypeConfig = (type: string) => {
     switch (type) {
@@ -70,7 +96,6 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             {config.icon}
           </div>
           <div className="flex-1">
-            {/* This bold title should reflect whatever title is saved for the memo */}
             <h3 className="font-bold text-gray-800 mb-2 text-sm leading-tight">
               {memoTitle}
             </h3>

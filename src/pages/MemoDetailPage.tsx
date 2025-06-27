@@ -9,6 +9,7 @@ import { useMemos } from '@/contexts/MemoContext';
 import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
 import BottomNavBar from '@/components/BottomNavBar';
+import { TitleGenerationService } from '@/services/titleGeneration';
 
 const MemoDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,20 @@ const MemoDetailPage: React.FC = () => {
   
   const memo = memos.find(m => m.id === id);
 
+  // Helper function to map MemoType to title generation type
+  const getMemoTypeForTitle = (memoType: string): 'task' | 'note' | 'idea' => {
+    switch (memoType) {
+      case 'task':
+        return 'task';
+      case 'note':
+        return 'note';
+      case 'idea':
+        return 'idea';
+      default:
+        return 'note';
+    }
+  };
+
   useEffect(() => {
     if (memo) {
       console.log('MemoDetailPage - memo found:', memo);
@@ -34,8 +49,17 @@ const MemoDetailPage: React.FC = () => {
         .trim();
       
       setEditedText(cleanedText);
-      // Show the existing title (auto-generated or user-edited)
-      setEditedTitle(memo.title || '');
+      
+      // Show auto-generated title if no valid title exists, otherwise show existing title
+      let displayTitle = '';
+      if (memo.title && typeof memo.title === 'string' && memo.title.trim() !== '' && !memo.title.includes('_type') && !memo.title.includes('value')) {
+        displayTitle = memo.title;
+      } else {
+        // Generate auto title for display
+        displayTitle = TitleGenerationService.generateImmediateTitle(memo.text || '', getMemoTypeForTitle(memo.type));
+      }
+      
+      setEditedTitle(displayTitle);
       setHasUnsavedChanges(false);
     }
   }, [memo]);
@@ -61,9 +85,13 @@ const MemoDetailPage: React.FC = () => {
     try {
       console.log('Saving memo with updated title:', editedTitle.trim());
       
+      // Ensure we're saving a clean string, not an object
+      const titleToSave = editedTitle.trim() || null;
+      console.log('Title to save (type:', typeof titleToSave, '):', titleToSave);
+      
       const updateData = {
         text: editedText.trim(),
-        title: editedTitle.trim() || null
+        title: titleToSave
       };
       
       console.log('Update data being sent:', updateData);
@@ -214,7 +242,7 @@ const MemoDetailPage: React.FC = () => {
             <div className="text-sm text-gray-500 space-y-1">
               <p>Type: <span className="capitalize">{memo.type}</span></p>
               <p>Created: {new Date(memo.createdAt).toLocaleDateString()}</p>
-              <p>Current title: <span className="font-medium">{memo.title || 'No title set'}</span></p>
+              <p>Current title: <span className="font-medium">{memo.title || 'Auto-generated'}</span></p>
               {hasUnsavedChanges && editedTitle && (
                 <p>New title: <span className="font-medium text-blue-600">{editedTitle}</span></p>
               )}
