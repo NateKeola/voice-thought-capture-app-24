@@ -23,7 +23,8 @@ export const useProfileInterests = (profileId?: string) => {
     if (!profileId || !user) return;
 
     try {
-      const { data, error } = await supabase
+      // Use type assertion to work around the types not being updated yet
+      const { data, error } = await (supabase as any)
         .from('profile_interests')
         .select(`
           id,
@@ -46,7 +47,8 @@ export const useProfileInterests = (profileId?: string) => {
     if (!profileId || !user) return false;
 
     try {
-      const { error } = await supabase
+      // Use type assertion to work around the types not being updated yet
+      const { error } = await (supabase as any)
         .from('profile_interests')
         .insert({
           profile_id: profileId,
@@ -65,7 +67,8 @@ export const useProfileInterests = (profileId?: string) => {
   // Remove an interest from a profile
   const removeProfileInterest = async (profileInterestId: string) => {
     try {
-      const { error } = await supabase
+      // Use type assertion to work around the types not being updated yet
+      const { error } = await (supabase as any)
         .from('profile_interests')
         .delete()
         .eq('id', profileInterestId);
