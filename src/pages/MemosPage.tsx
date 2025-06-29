@@ -15,9 +15,8 @@ const MemosPage = () => {
   const navigate = useNavigate();
   const [activeFilter, setActiveFilter] = useState<MemoType | 'all'>('all');
   
-  // Use our memo context instead of local state
-  const { memos, isLoading, filterMemos } = useMemos();
-  const filteredMemos = filterMemos(activeFilter);
+  // Use our memo context
+  const { memos, isLoading } = useMemos();
   
   return (
     <div className="container max-w-md mx-auto py-6 px-4 pb-20">
@@ -33,7 +32,7 @@ const MemosPage = () => {
           </div>
         ) : (
           <MemoList 
-            memos={filteredMemos} 
+            memos={memos} 
             filter={activeFilter}
           />
         )}
