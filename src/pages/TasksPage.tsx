@@ -111,7 +111,7 @@ const smartCategorizeNote = (text: string, listCategories: any[]) => {
     if (travelCategory) return travelCategory.id;
   }
   
-  // If no specific category matches, try to find a general/default category
+  // Always default to "general" category
   const generalCategory = listCategories.find(cat => 
     cat.name.toLowerCase().includes('general') ||
     cat.name.toLowerCase().includes('misc') ||
@@ -119,8 +119,8 @@ const smartCategorizeNote = (text: string, listCategories: any[]) => {
     cat.name.toLowerCase().includes('default')
   );
   
-  // If still no match, return the first available category or create a default
-  return generalCategory ? generalCategory.id : (listCategories[0]?.id || "general");
+  // Return "general" string if no general category exists in the list
+  return generalCategory ? generalCategory.id : "general";
 };
 
 // Map memo to the interface expected by the TaskList component
