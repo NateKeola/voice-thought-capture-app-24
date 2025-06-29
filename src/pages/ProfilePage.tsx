@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import AchievementBadge from '@/components/profile/AchievementBadge';
 import MemoStatsTable from '@/components/profile/MemoStatsTable';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { renderProfileIcon } from '@/utils/iconRenderer';
 import type { Badge } from '@/types';
 import BottomNavBar from '@/components/BottomNavBar';
@@ -14,6 +14,8 @@ import NotificationSettings from '@/components/settings/NotificationSettings';
 import ThemeSettings from '@/components/settings/ThemeSettings';
 import AccountDetails from '@/components/settings/AccountDetails';
 import HelpSupport from '@/components/settings/HelpSupport';
+import AddInterestsModal from '@/components/profile/AddInterestsModal';
+import InterestsBadges from '@/components/profile/InterestsBadges';
 
 const BADGES: Badge[] = [
   { 
@@ -90,6 +92,7 @@ const ProfilePage = () => {
   const [activeTab, setActiveTab] = useState('badges');
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [showMemoTable, setShowMemoTable] = useState(false);
+  const [showAddInterests, setShowAddInterests] = useState(false);
   const { userName } = useUserProfile();
   const { user } = useAuth();
   const { memos } = useMemos();
@@ -174,6 +177,21 @@ const ProfilePage = () => {
             </div>
           </div>
         </div>
+
+        {/* Add Interests Section */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mt-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">Your Interests</h3>
+            <button
+              onClick={() => setShowAddInterests(true)}
+              className="flex items-center gap-2 text-orange-600 hover:text-orange-700 font-medium"
+            >
+              <Plus className="h-4 w-4" />
+              Add Interests
+            </button>
+          </div>
+          <InterestsBadges showRemove={true} />
+        </div>
       </div>
       <div className="flex justify-around px-6 mt-6 border-b border-gray-200">
         <button 
@@ -240,6 +258,12 @@ const ProfilePage = () => {
       {activeModal === 'help' && (
         <HelpSupport isOpen={true} onClose={closeModal} />
       )}
+      
+      {/* Add Interests Modal */}
+      <AddInterestsModal 
+        isOpen={showAddInterests} 
+        onClose={() => setShowAddInterests(false)} 
+      />
       
       {/* Memo Stats Table */}
       <MemoStatsTable 

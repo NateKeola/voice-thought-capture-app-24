@@ -45,6 +45,27 @@ export type Database = {
         }
         Relationships: []
       }
+      interests: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       memos: {
         Row: {
           audio_url: string | null
@@ -116,6 +137,35 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_interests: {
+        Row: {
+          created_at: string
+          id: string
+          interest_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interest_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interest_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_interests_interest_id_fkey"
+            columns: ["interest_id"]
+            isOneToOne: false
+            referencedRelation: "interests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
