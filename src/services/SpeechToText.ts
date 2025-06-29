@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface TranscriptionResult {
@@ -151,17 +150,29 @@ export const transcribeAudio = async (audioBlob: Blob): Promise<TranscriptionRes
   }
 };
 
-// Detect memo type from text content
+// Improved memo type detection from text content
 export const detectMemoType = (text: string): 'note' | 'task' | 'idea' => {
   const lowerText = text.toLowerCase();
   
-  // Task detection
+  // Task detection - improved to catch more patterns
   if (
+    // Existing patterns
     lowerText.includes('need to') ||
     lowerText.includes('have to') ||
     lowerText.includes('must') ||
     lowerText.includes('don\'t forget') ||
-    lowerText.startsWith('remember to')
+    lowerText.startsWith('remember to') ||
+    // New patterns for planned activities
+    lowerText.includes('going to') ||
+    lowerText.includes('will go') ||
+    lowerText.includes('planning to') ||
+    lowerText.includes('scheduled to') ||
+    lowerText.match(/\b(tomorrow|today|tonight|this\s+(morning|afternoon|evening|weekend|week|month))\b/) ||
+    lowerText.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/) ||
+    lowerText.match(/\b(play|meet|visit|call|email|buy|get|pick\s+up|drop\s+off)\b.*\b(with|at|from|to)\b/) ||
+    // Activity patterns
+    lowerText.match(/\b(im|i'm)\s+(going|gonna)\s+/) ||
+    lowerText.match(/\bgoing\s+\w+ing\s+(with|at|to)/) // "going diving with", "going fishing at"
   ) {
     return 'task';
   }
@@ -172,11 +183,13 @@ export const detectMemoType = (text: string): 'note' | 'task' | 'idea' => {
     lowerText.includes('maybe i could') ||
     lowerText.includes('what if') ||
     lowerText.includes('idea') ||
-    lowerText.includes('thinking about')
+    lowerText.includes('thinking about') ||
+    lowerText.includes('could be') ||
+    lowerText.includes('might want to')
   ) {
     return 'idea';
   }
   
-  // Default to note
+  // Default to note for observations, current situations, past events
   return 'note';
 };
