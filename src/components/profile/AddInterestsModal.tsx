@@ -6,20 +6,31 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Check } from 'lucide-react';
 import { useUserInterests, Interest } from '@/hooks/useUserInterests';
+import { useProfileInterests } from '@/hooks/useProfileInterests';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddInterestsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  profileId?: string; // Add profileId prop to determine if this is for user or profile interests
+  mode?: 'user' | 'profile'; // Add mode to differentiate between user and profile interests
 }
 
-const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ isOpen, onClose }) => {
-  const { allInterests, userInterests, addInterest, createCustomInterest, loading } = useUserInterests();
+const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  profileId,
+  mode = 'user' 
+}) => {
+  const { allInterests, userInterests, addInterest: addUserInterest, createCustomInterest, loading } = useUserInterests();
+  const { profileInterests, addProfileInterest } = useProfileInterests(profileId);
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [showCustomForm, setShowCustomForm] = useState(false);
   const [customInterestName, setCustomInterestName] = useState('');
   const [customInterestCategory, setCustomInterestCategory] = useState('');
+  const [isCreatingCustom, setIsCreatingCustom] = useState(false);
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -48,26 +59,43 @@ const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ isOpen, onClose }
     return groups;
   }, [filteredInterests]);
 
-  // Check if user has already selected an interest
+  // Check if interest is already selected based on mode
   const isInterestSelected = (interestId: string) => {
+    if (mode === 'profile' && profileId) {
+      return profileInterests.some(pi => pi.interest.id === interestId);
+    }
     return userInterests.some(ui => ui.interest.id === interestId);
   };
 
   const handleAddInterest = async (interestId: string) => {
-    await addInterest(interestId);
+    if (mode === 'profile' && profileId) {
+      await addProfileInterest(interestId);
+    } else {
+      await addUserInterest(interestId);
+    }
   };
 
   const handleCreateCustomInterest = async () => {
     if (!customInterestName.trim() || !customInterestCategory.trim()) return;
 
-    const newInterest = await createCustomInterest(customInterestName.trim(), customInterestCategory);
-    if (newInterest) {
-      // Automatically add the new interest to user's interests
-      await addInterest(newInterest.id);
-      // Reset form
-      setCustomInterestName('');
-      setCustomInterestCategory('');
-      setShowCustomForm(false);
+    setIsCreatingCustom(true);
+    try {
+      const newInterest = await createCustomInterest(customInterestName.trim(), customInterestCategory);
+      if (newInterest) {
+        // Automatically add the new interest based on mode
+        if (mode === 'profile' && profileId) {
+          await addProfileInterest(newInterest.id);
+        } else {
+          await addUserInterest(newInterest.id);
+        }
+        
+        // Reset form
+        setCustomInterestName('');
+        setCustomInterestCategory('');
+        setShowCustomForm(false);
+      }
+    } finally {
+      setIsCreatingCustom(false);
     }
   };
 
@@ -87,7 +115,9 @@ const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ isOpen, onClose }
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Add Your Interests</DialogTitle>
+          <DialogTitle>
+            {mode === 'profile' ? 'Add Profile Interests' : 'Add Your Interests'}
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
@@ -163,10 +193,10 @@ const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ isOpen, onClose }
               <div className="flex gap-2">
                 <Button
                   onClick={handleCreateCustomInterest}
-                  disabled={!customInterestName.trim() || !customInterestCategory.trim()}
+                  disabled={!customInterestName.trim() || !customInterestCategory.trim() || isCreatingCustom}
                   size="sm"
                 >
-                  Create & Add Interest
+                  {isCreatingCustom ? 'Creating...' : 'Create & Add Interest'}
                 </Button>
                 <Button
                   onClick={() => {

@@ -259,10 +259,11 @@ const ProfilePage = () => {
         <HelpSupport isOpen={true} onClose={closeModal} />
       )}
       
-      {/* Add Interests Modal */}
+      {/* Add Interests Modal - Updated with mode prop */}
       <AddInterestsModal 
         isOpen={showAddInterests} 
-        onClose={() => setShowAddInterests(false)} 
+        onClose={() => setShowAddInterests(false)}
+        mode="user"
       />
       
       {/* Memo Stats Table */}
