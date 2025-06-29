@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, Check } from 'lucide-react';
 import { useUserInterests, Interest } from '@/hooks/useUserInterests';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddInterestsModalProps {
   isOpen: boolean;
@@ -13,9 +14,12 @@ interface AddInterestsModalProps {
 }
 
 const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ isOpen, onClose }) => {
-  const { allInterests, userInterests, addInterest, loading } = useUserInterests();
+  const { allInterests, userInterests, addInterest, createCustomInterest, loading } = useUserInterests();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customInterestName, setCustomInterestName] = useState('');
+  const [customInterestCategory, setCustomInterestCategory] = useState('');
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -53,6 +57,20 @@ const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ isOpen, onClose }
     await addInterest(interestId);
   };
 
+  const handleCreateCustomInterest = async () => {
+    if (!customInterestName.trim() || !customInterestCategory.trim()) return;
+
+    const newInterest = await createCustomInterest(customInterestName.trim(), customInterestCategory);
+    if (newInterest) {
+      // Automatically add the new interest to user's interests
+      await addInterest(newInterest.id);
+      // Reset form
+      setCustomInterestName('');
+      setCustomInterestCategory('');
+      setShowCustomForm(false);
+    }
+  };
+
   if (loading) {
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -73,38 +91,97 @@ const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ isOpen, onClose }
         </DialogHeader>
         
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-          {/* Search and filter controls */}
-          <div className="space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search interests..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          {/* Add Custom Interest Button */}
+          <div className="flex justify-between items-center">
+            <div className="flex-1">
+              {/* Search and filter controls */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search interests..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedCategory === '' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedCategory('')}
+                  >
+                    All Categories
+                  </Button>
+                  {categories.map(category => (
+                    <Button
+                      key={category}
+                      variant={selectedCategory === category ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setSelectedCategory(category)}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={selectedCategory === '' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory('')}
-              >
-                All Categories
-              </Button>
-              {categories.map(category => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
+            <Button
+              onClick={() => setShowCustomForm(!showCustomForm)}
+              variant="outline"
+              className="ml-4"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Special Interest
+            </Button>
           </div>
+
+          {/* Custom Interest Form */}
+          {showCustomForm && (
+            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+              <h4 className="font-medium text-gray-800">Create Custom Interest</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Input
+                  placeholder="Interest name..."
+                  value={customInterestName}
+                  onChange={(e) => setCustomInterestName(e.target.value)}
+                />
+                <Select value={customInterestCategory} onValueChange={setCustomInterestCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(category => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleCreateCustomInterest}
+                  disabled={!customInterestName.trim() || !customInterestCategory.trim()}
+                  size="sm"
+                >
+                  Create & Add Interest
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowCustomForm(false);
+                    setCustomInterestName('');
+                    setCustomInterestCategory('');
+                  }}
+                  variant="outline"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Interests list */}
           <div className="flex-1 overflow-y-auto space-y-6">

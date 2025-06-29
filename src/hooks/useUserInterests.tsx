@@ -77,6 +77,30 @@ export const useUserInterests = () => {
     }
   };
 
+  // Create a new custom interest
+  const createCustomInterest = async (name: string, category: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('interests')
+        .insert({
+          name,
+          category
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      // Refresh all interests to include the new one
+      await fetchAllInterests();
+      
+      return data;
+    } catch (error) {
+      console.error('Error creating custom interest:', error);
+      return null;
+    }
+  };
+
   // Remove an interest for the user
   const removeInterest = async (userInterestId: string) => {
     try {
@@ -110,6 +134,7 @@ export const useUserInterests = () => {
     loading,
     addInterest,
     removeInterest,
+    createCustomInterest,
     refreshUserInterests: fetchUserInterests
   };
 };
