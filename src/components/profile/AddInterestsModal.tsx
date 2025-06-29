@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface AddInterestsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  profileId?: string; // Add profileId prop to determine if this is for user or profile interests
-  mode?: 'user' | 'profile'; // Add mode to differentiate between user and profile interests
+  profileId?: string;
+  mode?: 'user' | 'profile';
 }
 
 const AddInterestsModal: React.FC<AddInterestsModalProps> = ({ 
@@ -68,10 +68,14 @@ const AddInterestsModal: React.FC<AddInterestsModalProps> = ({
   };
 
   const handleAddInterest = async (interestId: string) => {
-    if (mode === 'profile' && profileId) {
-      await addProfileInterest(interestId);
-    } else {
-      await addUserInterest(interestId);
+    try {
+      if (mode === 'profile' && profileId) {
+        await addProfileInterest(interestId);
+      } else {
+        await addUserInterest(interestId);
+      }
+    } catch (error) {
+      console.error('Error adding interest:', error);
     }
   };
 
@@ -80,8 +84,12 @@ const AddInterestsModal: React.FC<AddInterestsModalProps> = ({
 
     setIsCreatingCustom(true);
     try {
+      console.log('Creating custom interest:', customInterestName, customInterestCategory);
       const newInterest = await createCustomInterest(customInterestName.trim(), customInterestCategory);
+      
       if (newInterest) {
+        console.log('Successfully created interest:', newInterest);
+        
         // Automatically add the new interest based on mode
         if (mode === 'profile' && profileId) {
           await addProfileInterest(newInterest.id);
@@ -93,7 +101,13 @@ const AddInterestsModal: React.FC<AddInterestsModalProps> = ({
         setCustomInterestName('');
         setCustomInterestCategory('');
         setShowCustomForm(false);
+        
+        console.log('Custom interest created and added successfully');
+      } else {
+        console.error('Failed to create custom interest - no data returned');
       }
+    } catch (error) {
+      console.error('Error creating custom interest:', error);
     } finally {
       setIsCreatingCustom(false);
     }

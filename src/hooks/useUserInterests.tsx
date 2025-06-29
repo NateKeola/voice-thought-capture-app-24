@@ -61,6 +61,7 @@ export const useUserInterests = () => {
     if (!user) return false;
 
     try {
+      console.log('Adding interest:', interestId, 'for user:', user.id);
       const { error } = await supabase
         .from('user_interests')
         .insert({
@@ -69,6 +70,7 @@ export const useUserInterests = () => {
         });
 
       if (error) throw error;
+      console.log('Interest added successfully');
       await fetchUserInterests(); // Refresh the list
       return true;
     } catch (error) {
@@ -80,6 +82,7 @@ export const useUserInterests = () => {
   // Create a new custom interest
   const createCustomInterest = async (name: string, category: string) => {
     try {
+      console.log('Creating custom interest:', { name, category });
       const { data, error } = await supabase
         .from('interests')
         .insert({
@@ -89,7 +92,12 @@ export const useUserInterests = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating custom interest:', error);
+        throw error;
+      }
+      
+      console.log('Custom interest created:', data);
       
       // Refresh all interests to include the new one
       await fetchAllInterests();
