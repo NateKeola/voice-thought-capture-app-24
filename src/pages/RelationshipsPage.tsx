@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { useMemos } from '@/contexts/MemoContext';
 import ProfileIconButton from '@/components/ProfileIconButton';
 import RecordButton from '@/components/RecordButton';
+import ProfileInterestsBadges from '@/components/profile/ProfileInterestsBadges';
+import AddProfileInterestsModal from '@/components/profile/AddProfileInterestsModal';
 
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
@@ -66,6 +68,7 @@ const RelationshipsPage = () => {
   const [newMemoText, setNewMemoText] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [globalTab, setGlobalTab] = useState('relationships');
+  const [showAddInterestsModal, setShowAddInterestsModal] = useState(false);
   const { memos, createMemo, updateMemo, refreshMemos } = useMemos();
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [prefilledRelationshipData, setPrefilledRelationshipData] = useState(null);
@@ -522,6 +525,14 @@ const RelationshipsPage = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button
+                      className="px-3 py-2 bg-green-500 text-white text-sm font-medium rounded-lg flex items-center"
+                      onClick={() => setShowAddInterestsModal(true)}
+                      size="sm"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Interests
+                    </Button>
+                    <Button
                       className="px-3 py-2 bg-blue-500 text-white text-sm font-medium rounded-lg flex items-center"
                       onClick={() => setShowLinkMemoModal(true)}
                       size="sm"
@@ -540,6 +551,16 @@ const RelationshipsPage = () => {
                     </Button>
                   </div>
                 </div>
+                
+                {/* Interests section */}
+                <div className="p-4 border-b border-gray-100">
+                  <h3 className="font-semibold text-gray-800 mb-2">Interests</h3>
+                  <ProfileInterestsBadges 
+                    profileId={selectedProfile.id} 
+                    showRemove={true}
+                  />
+                </div>
+                
                 <div className="flex-1 p-4 overflow-y-auto">
                   <div className="space-y-4">
                     {extractRelationshipMemos(memos, selectedProfile.id).map((memo, idx) => (
@@ -707,6 +728,16 @@ const RelationshipsPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Add Interests Modal */}
+      {showAddInterestsModal && selectedProfile && (
+        <AddProfileInterestsModal
+          isOpen={showAddInterestsModal}
+          onClose={() => setShowAddInterestsModal(false)}
+          profileId={selectedProfile.id}
+          profileName={`${selectedProfile.first_name} ${selectedProfile.last_name}`}
+        />
       )}
 
       <AddRelationshipModal 

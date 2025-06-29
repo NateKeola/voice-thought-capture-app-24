@@ -22,4 +22,10 @@ export type DatabaseTables = {
     created_at: string;
     updated_at: string;
   };
+  profile_interests: {
+    id: string;
+    profile_id: string;
+    interest_id: string;
+    created_at: string;
+  };
 }
