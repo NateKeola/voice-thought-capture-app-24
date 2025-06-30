@@ -4,17 +4,17 @@ import { ListTodo, Clock } from "lucide-react";
 
 interface TasksViewToggleProps {
   viewMode: "categories" | "timeline";
-  onViewModeChange: (mode: "categories" | "timeline") => void;
+  setViewMode: (mode: "categories" | "timeline") => void;
   onCategoriesViewSelected?: () => void;
 }
 
 const TasksViewToggle: React.FC<TasksViewToggleProps> = ({ 
   viewMode, 
-  onViewModeChange, 
+  setViewMode, 
   onCategoriesViewSelected 
 }) => {
   const handleCategoriesClick = () => {
-    onViewModeChange("categories");
+    setViewMode("categories");
     // Reset to overall category view when categories is selected
     if (onCategoriesViewSelected) {
       onCategoriesViewSelected();
@@ -40,7 +40,7 @@ const TasksViewToggle: React.FC<TasksViewToggleProps> = ({
             ? "bg-indigo-100 text-indigo-600"
             : "text-gray-500 hover:bg-gray-50"
         }`}
-        onClick={() => onViewModeChange("timeline")}
+        onClick={() => setViewMode("timeline")}
       >
         <Clock size={18} />
         <span>Recents</span>

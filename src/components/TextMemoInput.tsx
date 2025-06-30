@@ -46,8 +46,6 @@ const TextMemoInput: React.FC<TextMemoInputProps> = ({ onMemoCreated, initialTex
       console.log('Creating memo with generated title:', generatedTitle);
       const memo = await createMemo({
         text: text.trim(),
-        content: text.trim(), // Add content property
-        category: memoType, // Add category property
         type: memoType,
         audioUrl: null,
         title: generatedTitle // Use the generated synopsis

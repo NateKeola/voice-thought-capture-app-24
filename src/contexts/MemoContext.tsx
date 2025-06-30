@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAllMemos, saveMemo, updateMemo, deleteMemo } from '@/services/MemoStorage';
@@ -169,11 +168,9 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           (payload) => {
             console.log('Real-time update received:', payload);
             if (payload.eventType === 'INSERT') {
-              const newMemo: Memo = {
+              const newMemo = {
                 id: payload.new.id,
                 text: payload.new.content,
-                content: payload.new.content, // Add content property
-                category: payload.new.category, // Add category property
                 type: payload.new.category as MemoType,
                 audioUrl: payload.new.audio_url,
                 createdAt: payload.new.created_at,
@@ -191,11 +188,9 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               console.log('Updating memo from real-time:', payload.new);
               setMemos(current => current.map(memo => {
                 if (memo.id === payload.new.id) {
-                  const updatedMemo: Memo = {
+                  const updatedMemo = {
                     ...memo,
                     text: payload.new.content,
-                    content: payload.new.content, // Add content property
-                    category: payload.new.category, // Add category property
                     type: payload.new.category as MemoType,
                     audioUrl: payload.new.audio_url,
                     completed: payload.new.status === 'completed',

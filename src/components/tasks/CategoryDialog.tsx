@@ -15,17 +15,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface CategoryDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  category?: any;
-}
-
-const CategoryDialog: React.FC<CategoryDialogProps> = ({ isOpen, onClose, category }) => {
+const CategoryDialog: React.FC = () => {
+  const { isCategoryDialogOpen, closeCategoryDialog } = useTaskDialog();
   const { addCategory } = useCategories();
   const { toast } = useToast();
-  const [name, setName] = useState(category?.name || "");
-  const [color, setColor] = useState(category?.color || "#8B5CF6"); // Default to purple
+  const [name, setName] = useState("");
+  const [color, setColor] = useState("#8B5CF6"); // Default to purple
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,7 +41,9 @@ const CategoryDialog: React.FC<CategoryDialogProps> = ({ isOpen, onClose, catego
         title: "Success",
         description: "Category created successfully!",
       });
-      handleClose();
+      closeCategoryDialog();
+      setName("");
+      setColor("#8B5CF6");
     } catch (error) {
       toast({
         title: "Error",
@@ -56,12 +53,6 @@ const CategoryDialog: React.FC<CategoryDialogProps> = ({ isOpen, onClose, catego
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleClose = () => {
-    setName("");
-    setColor("#8B5CF6");
-    onClose();
   };
 
   const predefinedColors = [
@@ -75,7 +66,7 @@ const CategoryDialog: React.FC<CategoryDialogProps> = ({ isOpen, onClose, catego
   ];
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isCategoryDialogOpen} onOpenChange={closeCategoryDialog}>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Create New Category</DialogTitle>
@@ -123,7 +114,7 @@ const CategoryDialog: React.FC<CategoryDialogProps> = ({ isOpen, onClose, catego
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={closeCategoryDialog}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

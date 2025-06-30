@@ -19,10 +19,7 @@ interface AddRelationshipModalProps {
     lastName?: string;
     type?: string;
     relationshipDescription?: string;
-    email?: string;
-    phone?: string;
   };
-  isEditMode?: boolean;
 }
 
 const relationshipTypes = [
@@ -30,7 +27,7 @@ const relationshipTypes = [
   { id: 'personal', label: 'Personal', color: '#10B981' }
 ];
 
-const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEditMode = false }: AddRelationshipModalProps) => {
+const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddRelationshipModalProps) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -57,9 +54,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEdit
         firstName: prefilledData.firstName || '',
         lastName: prefilledData.lastName || '',
         types: prefilledData.type ? [prefilledData.type] : [],
-        relationshipDescription: prefilledData.relationshipDescription || '',
-        email: prefilledData.email || '',
-        phone: prefilledData.phone || ''
+        relationshipDescription: prefilledData.relationshipDescription || ''
       }));
     }
   }, [prefilledData, isOpen]);
@@ -116,17 +111,10 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEdit
   };
 
   const getModalTitle = () => {
-    if (isEditMode) {
-      return 'Edit Relationship';
-    }
     if (prefilledData) {
       return 'Add Detected Contact';
     }
     return step === 1 ? 'Create New Relationship' : 'Additional Details';
-  };
-
-  const getSubmitButtonText = () => {
-    return isEditMode ? 'Update Relationship' : 'Create Relationship';
   };
 
   return (
@@ -136,7 +124,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEdit
           <h2 className="text-white font-bold text-lg">
             {getModalTitle()}
           </h2>
-          {prefilledData && !isEditMode && (
+          {prefilledData && (
             <p className="text-orange-100 text-sm mt-1">
               Detected from your memo
             </p>
@@ -151,7 +139,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEdit
             />
             
             <div className="space-y-4">
-              {!prefilledData && !isEditMode && (
+              {!prefilledData && (
                 <>
                   <ContactSearchInput
                     searchTerm={searchTerm}
@@ -178,7 +166,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEdit
                     value={formData.firstName}
                     onChange={handleChange}
                     required
-                    className={(prefilledData && !isEditMode) ? "bg-blue-50 border-blue-200" : ""}
+                    className={prefilledData ? "bg-blue-50 border-blue-200" : ""}
                   />
                 </div>
                 <div>
@@ -191,7 +179,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEdit
                     value={formData.lastName}
                     onChange={handleChange}
                     required
-                    className={(prefilledData && !isEditMode) ? "bg-blue-50 border-blue-200" : ""}
+                    className={prefilledData ? "bg-blue-50 border-blue-200" : ""}
                   />
                 </div>
               </div>
@@ -212,7 +200,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEdit
                   onChange={handleChange}
                   rows={3}
                   placeholder="Describe your relationship and how it connects to your life..."
-                  className={`resize-none ${(prefilledData && !isEditMode) ? "bg-blue-50 border-blue-200" : ""}`}
+                  className={`resize-none ${prefilledData ? "bg-blue-50 border-blue-200" : ""}`}
                 />
               </div>
               
@@ -306,7 +294,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, isEdit
                   className="bg-orange-500 hover:bg-orange-600"
                   onClick={handleSubmit}
                 >
-                  {getSubmitButtonText()}
+                  Create Relationship
                 </Button>
               </div>
             </div>

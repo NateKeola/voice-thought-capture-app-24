@@ -13,13 +13,8 @@ const colors = [
   "#EF4444", "#F97316", "#84CC16", "#06B6D4", "#8B5A2B"
 ];
 
-interface ListCategoryDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  list?: any;
-}
-
-const ListCategoryDialog: React.FC<ListCategoryDialogProps> = ({ isOpen, onClose, list }) => {
+const ListCategoryDialog: React.FC = () => {
+  const { isListCategoryDialogOpen, closeListCategoryDialog } = useTaskDialog();
   const { addListCategory } = useListsCategories();
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState(colors[0]);
@@ -38,17 +33,17 @@ const ListCategoryDialog: React.FC<ListCategoryDialogProps> = ({ isOpen, onClose
     // Reset form
     setName("");
     setSelectedColor(colors[0]);
-    onClose();
+    closeListCategoryDialog();
   };
 
   const handleClose = () => {
     setName("");
     setSelectedColor(colors[0]);
-    onClose();
+    closeListCategoryDialog();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={isListCategoryDialogOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New List Category</DialogTitle>

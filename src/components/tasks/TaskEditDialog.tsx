@@ -91,8 +91,6 @@ const TaskEditDialog: React.FC<TaskEditDialogProps> = ({ isOpen, onClose, task }
       
       await updateMemo(task.id.toString(), {
         text: taskText,
-        content: taskText, // Add content property
-        category: values.category, // Add category property
         type: "task",
       });
 

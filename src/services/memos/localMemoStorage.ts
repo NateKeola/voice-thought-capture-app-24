@@ -3,28 +3,27 @@ import { Memo, MemoType } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Save a new memo to local storage
-export const saveToLocal = (memo: Omit<Memo, 'id' | 'createdAt'>): Memo => {
+export const saveLocalMemo = (memo: Omit<Memo, 'id' | 'createdAt'>): Memo => {
+  const memoId = uuidv4();
   const newMemo: Memo = {
-    id: uuidv4(),
+    id: memoId,
     text: memo.text,
-    content: memo.content || memo.text,
-    category: memo.category || memo.type,
     type: memo.type,
-    audioUrl: memo.audioUrl || null,
+    audioUrl: memo.audioUrl,
     createdAt: new Date().toISOString(),
-    completed: memo.completed || false,
-    title: memo.title
+    completed: memo.completed || false
   };
-
-  const existingMemos = JSON.parse(localStorage.getItem('memos') || '[]');
-  const updatedMemos = [newMemo, ...existingMemos];
-  localStorage.setItem('memos', JSON.stringify(updatedMemos));
+  
+  // Get existing local memos
+  const localMemosString = localStorage.getItem('local_memos') || '[]';
+  const localMemos = JSON.parse(localMemosString);
+  
+  // Add new memo to local storage
+  localMemos.unshift(newMemo);
+  localStorage.setItem('local_memos', JSON.stringify(localMemos));
   
   return newMemo;
 };
-
-// Export saveLocalMemo as alias for saveToLocal to fix import error
-export const saveLocalMemo = saveToLocal;
 
 // Get all memos from local storage
 export const getAllLocalMemos = (): Memo[] => {

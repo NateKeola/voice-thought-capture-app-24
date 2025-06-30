@@ -8,12 +8,10 @@ export interface ListCategory {
 }
 
 interface ListsContextType {
-  lists: ListCategory[];
-  createList: (name: string, color: string) => void;
-  updateList: (id: string, updates: Partial<ListCategory>) => void;
-  deleteList: (id: string) => void;
-  getListById: (id: string) => ListCategory | undefined;
+  listCategories: ListCategory[];
   addListCategory: (name: string, color: string) => void;
+  deleteListCategory: (id: string) => void;
+  getListCategoryById: (id: string) => ListCategory | undefined;
 }
 
 const ListsContext = createContext<ListsContextType | undefined>(undefined);
@@ -27,7 +25,7 @@ const defaultListCategories: ListCategory[] = [
 ];
 
 export const ListsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [lists, setLists] = useState<ListCategory[]>(() => {
+  const [listCategories, setListCategories] = useState<ListCategory[]>(() => {
     // Load list categories from localStorage if available
     const stored = localStorage.getItem('listCategories');
     return stored ? JSON.parse(stored) : defaultListCategories;
@@ -35,47 +33,31 @@ export const ListsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Save list categories to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('listCategories', JSON.stringify(lists));
-  }, [lists]);
+    localStorage.setItem('listCategories', JSON.stringify(listCategories));
+  }, [listCategories]);
 
-  const createList = (name: string, color: string) => {
+  const addListCategory = (name: string, color: string) => {
     const newCategory: ListCategory = {
       id: name.toLowerCase().replace(/\s+/g, '-'),
       name,
       color,
     };
-    setLists(prev => [...prev, newCategory]);
+    setListCategories(prev => [...prev, newCategory]);
   };
 
-  const addListCategory = (name: string, color: string) => {
-    createList(name, color);
+  const deleteListCategory = (id: string) => {
+    setListCategories(prev => prev.filter(cat => cat.id !== id));
   };
 
-  const updateList = (id: string, updates: Partial<ListCategory>) => {
-    setLists(prev => prev.map(cat => cat.id === id ? { ...cat, ...updates } : cat));
-  };
-
-  const deleteList = (id: string) => {
-    setLists(prev => prev.filter(cat => cat.id !== id));
-  };
-
-  const getListById = (id: string) => {
-    return lists.find(cat => cat.id === id);
+  const getListCategoryById = (id: string) => {
+    return listCategories.find(cat => cat.id === id);
   };
 
   return (
-    <ListsContext.Provider value={{ lists, createList, updateList, deleteList, getListById, addListCategory }}>
+    <ListsContext.Provider value={{ listCategories, addListCategory, deleteListCategory, getListCategoryById }}>
       {children}
     </ListsContext.Provider>
   );
-};
-
-export const useLists = () => {
-  const context = useContext(ListsContext);
-  if (!context) {
-    throw new Error('useLists must be used within a ListsProvider');
-  }
-  return context;
 };
 
 export const useListsCategories = () => {

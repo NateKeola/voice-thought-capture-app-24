@@ -4,8 +4,6 @@ export type MemoType = 'note' | 'task' | 'idea' | 'list';
 export interface Memo {
   id: string;
   text: string;
-  content: string; // Add content property
-  category: string; // Add category property
   type: MemoType;
   audioUrl?: string | null;
   createdAt: string;
