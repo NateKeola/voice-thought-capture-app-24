@@ -445,6 +445,23 @@ const TasksPageContent: React.FC = () => {
 
   const toggleItemCompletion = personalTab === "tasks" ? toggleTaskCompletion : toggleNoteCompletion;
 
+  // Handle note item click to navigate to memo detail
+  const handleNoteItemClick = (noteId: string) => {
+    console.log('Note clicked:', noteId);
+    
+    // Find the corresponding memo
+    const memo = memos.find(m => m.id === noteId);
+    
+    if (memo) {
+      // Navigate to memo detail page
+      navigate(`/memo/${memo.id}`);
+    } else {
+      // Show error if memo not found
+      toast.error("Memo not found");
+      console.error('Memo not found for ID:', noteId);
+    }
+  };
+
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
   };
