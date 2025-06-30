@@ -32,7 +32,7 @@ const TasksPage = () => {
   const [personalTab, setPersonalTab] = useState('tasks');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [viewMode, setViewMode] = useState('grid');
+  const [viewMode, setViewMode] = useState<"categories" | "timeline">("categories");
   const [sortBy, setSortBy] = useState('dueDate');
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -72,9 +72,9 @@ const TasksPage = () => {
   // Extract and format notes from memos
   const getFormattedNotes = () => {
     return memos
-      .filter(memo => memo.category !== 'task')
+      .filter(memo => memo.type !== 'task')
       .map(memo => {
-        let type = memo.category;
+        let type = memo.type;
         if (type === 'idea') type = 'should';
         
         const date = memo.createdAt ? new Date(memo.createdAt) : new Date();
@@ -88,7 +88,7 @@ const TasksPage = () => {
         
         return {
           id: memo.id,
-          text: memo.content,
+          text: memo.text,
           date: dateStr,
           type
         };
@@ -140,7 +140,10 @@ const TasksPage = () => {
             <div className="p-6 border-b border-gray-100">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-bold text-gray-800 text-xl">Tasks</h2>
-                <TasksViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+                <TasksViewToggle 
+                  viewMode={viewMode} 
+                  onViewModeChange={setViewMode} 
+                />
               </div>
             </div>
 

@@ -10,6 +10,8 @@ export interface Category {
 interface CategoryContextType {
   categories: Category[];
   addCategory: (name: string, color: string) => void;
+  createCategory: (name: string, color: string) => void;
+  updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
   getCategoryById: (id: string) => Category | undefined;
 }
@@ -45,6 +47,14 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setCategories(prev => [...prev, newCategory]);
   };
 
+  const createCategory = (name: string, color: string) => {
+    addCategory(name, color);
+  };
+
+  const updateCategory = (id: string, updates: Partial<Category>) => {
+    setCategories(prev => prev.map(cat => cat.id === id ? { ...cat, ...updates } : cat));
+  };
+
   const deleteCategory = (id: string) => {
     setCategories(prev => prev.filter(cat => cat.id !== id));
   };
@@ -54,7 +64,7 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <CategoryContext.Provider value={{ categories, addCategory, deleteCategory, getCategoryById }}>
+    <CategoryContext.Provider value={{ categories, addCategory, createCategory, updateCategory, deleteCategory, getCategoryById }}>
       {children}
     </CategoryContext.Provider>
   );
