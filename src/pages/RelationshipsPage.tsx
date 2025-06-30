@@ -203,13 +203,14 @@ const RelationshipsPage = () => {
 
   const handleUpdateProfile = async (profileData) => {
     try {
-      await updateProfile.mutateAsync({ id: editingProfile.id, ...profileData });
+      const { id, ...updateData } = profileData;
+      await updateProfile.mutateAsync({ id, ...updateData });
       setShowEditModal(false);
       setEditingProfile(null);
       
       // Update selected profile if it's the one being edited
-      if (selectedProfile?.id === editingProfile.id) {
-        setSelectedProfile({ ...selectedProfile, ...profileData });
+      if (selectedProfile?.id === id) {
+        setSelectedProfile({ ...selectedProfile, ...updateData });
       }
       
       toast({
@@ -473,6 +474,13 @@ const RelationshipsPage = () => {
                             }`}>
                               {profile.type}
                             </span>
+                            {/* Display contact info in the list */}
+                            {(profile.email || profile.phone) && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {profile.email && <div>📧 {profile.email}</div>}
+                                {profile.phone && <div>📞 {profile.phone}</div>}
+                              </div>
+                            )}
                           </div>
                           <div className="flex gap-1 ml-2">
                             <button
@@ -521,6 +529,13 @@ const RelationshipsPage = () => {
                     <div>
                       <h2 className="font-bold text-gray-800 text-lg">{selectedProfile.first_name} {selectedProfile.last_name}</h2>
                       <p className="text-gray-500 text-xs">Added: {new Date(selectedProfile.created_at).toLocaleDateString()}</p>
+                      {/* Display contact info in the detail view */}
+                      {(selectedProfile.email || selectedProfile.phone) && (
+                        <div className="text-sm text-gray-600 mt-1">
+                          {selectedProfile.email && <div>📧 {selectedProfile.email}</div>}
+                          {selectedProfile.phone && <div>📞 {selectedProfile.phone}</div>}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -751,12 +766,7 @@ const RelationshipsPage = () => {
         isOpen={showEditModal}
         onClose={handleCloseEditModal}
         onSubmit={handleUpdateProfile}
-        prefilledData={editingProfile ? {
-          firstName: editingProfile.first_name,
-          lastName: editingProfile.last_name,
-          type: editingProfile.type,
-          relationshipDescription: editingProfile.notes
-        } : null}
+        editingProfile={editingProfile}
       />
       
       <BottomNavBar

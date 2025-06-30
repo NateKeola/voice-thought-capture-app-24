@@ -19,7 +19,18 @@ interface AddRelationshipModalProps {
     lastName?: string;
     type?: string;
     relationshipDescription?: string;
+    email?: string;
+    phone?: string;
   };
+  editingProfile?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    type: string;
+    email?: string;
+    phone?: string;
+    notes?: string;
+  } | null;
 }
 
 const relationshipTypes = [
@@ -27,7 +38,7 @@ const relationshipTypes = [
   { id: 'personal', label: 'Personal', color: '#10B981' }
 ];
 
-const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddRelationshipModalProps) => {
+const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, editingProfile }: AddRelationshipModalProps) => {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -46,18 +57,34 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
   const [isSearching, setIsSearching] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
 
-  // Update form data when prefilledData changes
+  // Update form data when prefilledData or editingProfile changes
   useEffect(() => {
-    if (prefilledData && isOpen) {
-      setFormData(prev => ({
-        ...prev,
-        firstName: prefilledData.firstName || '',
-        lastName: prefilledData.lastName || '',
-        types: prefilledData.type ? [prefilledData.type] : [],
-        relationshipDescription: prefilledData.relationshipDescription || ''
-      }));
+    if (isOpen) {
+      if (editingProfile) {
+        // Populate form with existing profile data for editing
+        setFormData({
+          firstName: editingProfile.first_name || '',
+          lastName: editingProfile.last_name || '',
+          types: editingProfile.type ? [editingProfile.type] : [],
+          relationshipDescription: editingProfile.notes || '',
+          email: editingProfile.email || '',
+          phone: editingProfile.phone || '',
+          notes: ''
+        });
+      } else if (prefilledData) {
+        // Populate form with detected data for new relationships
+        setFormData(prev => ({
+          ...prev,
+          firstName: prefilledData.firstName || '',
+          lastName: prefilledData.lastName || '',
+          types: prefilledData.type ? [prefilledData.type] : [],
+          relationshipDescription: prefilledData.relationshipDescription || '',
+          email: prefilledData.email || '',
+          phone: prefilledData.phone || ''
+        }));
+      }
     }
-  }, [prefilledData, isOpen]);
+  }, [prefilledData, editingProfile, isOpen]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -100,22 +127,34 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
     // Join multiple types with a comma
     const typeString = formData.types.join(', ');
 
-    onSubmit({
+    const profileData = {
       first_name: formData.firstName,
       last_name: formData.lastName,
       type: typeString,
       email: formData.email || null,
       phone: formData.phone || null,
       notes: combinedNotes || null
-    });
+    };
+
+    // If editing, include the profile ID
+    if (editingProfile) {
+      onSubmit({ ...profileData, id: editingProfile.id });
+    } else {
+      onSubmit(profileData);
+    }
   };
 
   const getModalTitle = () => {
+    if (editingProfile) {
+      return 'Edit Contact';
+    }
     if (prefilledData) {
       return 'Add Detected Contact';
     }
     return step === 1 ? 'Create New Relationship' : 'Additional Details';
   };
+
+  const isEditing = !!editingProfile;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -124,7 +163,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
           <h2 className="text-white font-bold text-lg">
             {getModalTitle()}
           </h2>
-          {prefilledData && (
+          {prefilledData && !isEditing && (
             <p className="text-orange-100 text-sm mt-1">
               Detected from your memo
             </p>
@@ -139,7 +178,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
             />
             
             <div className="space-y-4">
-              {!prefilledData && (
+              {!prefilledData && !isEditing && (
                 <>
                   <ContactSearchInput
                     searchTerm={searchTerm}
@@ -166,7 +205,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                     value={formData.firstName}
                     onChange={handleChange}
                     required
-                    className={prefilledData ? "bg-blue-50 border-blue-200" : ""}
+                    className={(prefilledData || isEditing) ? "bg-blue-50 border-blue-200" : ""}
                   />
                 </div>
                 <div>
@@ -179,7 +218,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                     value={formData.lastName}
                     onChange={handleChange}
                     required
-                    className={prefilledData ? "bg-blue-50 border-blue-200" : ""}
+                    className={(prefilledData || isEditing) ? "bg-blue-50 border-blue-200" : ""}
                   />
                 </div>
               </div>
@@ -200,7 +239,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                   onChange={handleChange}
                   rows={3}
                   placeholder="Describe your relationship and how it connects to your life..."
-                  className={`resize-none ${prefilledData ? "bg-blue-50 border-blue-200" : ""}`}
+                  className={`resize-none ${(prefilledData || isEditing) ? "bg-blue-50 border-blue-200" : ""}`}
                 />
               </div>
               
@@ -213,6 +252,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
+                  placeholder="contact@example.com"
                 />
               </div>
               
@@ -225,6 +265,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
+                  placeholder="+1 (555) 123-4567"
                 />
               </div>
               
@@ -250,13 +291,19 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                 <div className="flex flex-wrap gap-1 mt-1">
                   {formData.types.map(type => (
                     <span key={type} className={`text-xs px-2 py-0.5 rounded-full ${
-                      type === 'Work' ? 'bg-blue-100 text-blue-600' :
+                      type === 'work' ? 'bg-blue-100 text-blue-600' :
                       'bg-green-100 text-green-600'
                     }`}>
                       {type}
                     </span>
                   ))}
                 </div>
+                {(formData.email || formData.phone) && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {formData.email && <div>📧 {formData.email}</div>}
+                    {formData.phone && <div>📞 {formData.phone}</div>}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -294,7 +341,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData }: AddR
                   className="bg-orange-500 hover:bg-orange-600"
                   onClick={handleSubmit}
                 >
-                  Create Relationship
+                  {isEditing ? 'Update Contact' : 'Create Relationship'}
                 </Button>
               </div>
             </div>
