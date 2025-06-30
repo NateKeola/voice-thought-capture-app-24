@@ -19,12 +19,12 @@ export const fromDbMemo = (dbMemo: DbMemo): Memo => {
   return {
     id: dbMemo.id,
     text: dbMemo.content,
-    content: dbMemo.content, // Add content property
-    category: dbMemo.category, // Add category property
+    content: dbMemo.content,
+    category: dbMemo.category,
     type: dbMemo.category as MemoType,
     audioUrl: dbMemo.audio_url,
     createdAt: dbMemo.created_at,
     completed: dbMemo.status === 'completed',
-    title: dbMemo.title || undefined
+    title: (dbMemo as any).title || undefined // Handle optional title property safely
   };
 };

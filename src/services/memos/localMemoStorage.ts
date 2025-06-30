@@ -1,3 +1,4 @@
+
 import { Memo, MemoType } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -6,8 +7,8 @@ export const saveToLocal = (memo: Omit<Memo, 'id' | 'createdAt'>): Memo => {
   const newMemo: Memo = {
     id: uuidv4(),
     text: memo.text,
-    content: memo.content || memo.text, // Add content property
-    category: memo.category || memo.type, // Add category property
+    content: memo.content || memo.text,
+    category: memo.category || memo.type,
     type: memo.type,
     audioUrl: memo.audioUrl || null,
     createdAt: new Date().toISOString(),
@@ -21,6 +22,9 @@ export const saveToLocal = (memo: Omit<Memo, 'id' | 'createdAt'>): Memo => {
   
   return newMemo;
 };
+
+// Export saveLocalMemo as alias for saveToLocal to fix import error
+export const saveLocalMemo = saveToLocal;
 
 // Get all memos from local storage
 export const getAllLocalMemos = (): Memo[] => {

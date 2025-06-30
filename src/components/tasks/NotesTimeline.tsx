@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,30 +11,23 @@ interface Note {
 
 interface NotesTimelineProps {
   notes: Note[];
+  onItemClick?: (noteId: string) => void;
 }
 
-const NotesTimeline = ({ notes }: NotesTimelineProps) => {
+const NotesTimeline = ({ notes, onItemClick }: NotesTimelineProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleNoteItemClick = (noteId: string, memos: any[]) => {
+  const handleNoteItemClick = (noteId: string) => {
     console.log('Note clicked:', noteId);
     
-    // Find the corresponding memo
-    const memo = memos.find(m => m.id === noteId);
-    
-    if (memo) {
-      // Navigate to memo detail page
-      navigate(`/memo/${memo.id}`);
-    } else {
-      // Show error if memo not found
-      toast({
-        title: "Memo not found",
-        description: "Could not find the selected memo.",
-        variant: "destructive"
-      });
-      console.error('Memo not found for ID:', noteId);
+    if (onItemClick) {
+      onItemClick(noteId);
+      return;
     }
+    
+    // Default behavior - navigate to memo detail
+    navigate(`/memo/${noteId}`);
   };
 
   const getMemoTypeColor = (type: string) => {
@@ -77,7 +69,7 @@ const NotesTimeline = ({ notes }: NotesTimelineProps) => {
         <div 
           key={note.id || idx} 
           className="p-4 rounded-xl border border-gray-200 hover:shadow-md transition-shadow cursor-pointer bg-white"
-          onClick={() => handleNoteItemClick(note.id, [])}
+          onClick={() => handleNoteItemClick(note.id)}
         >
           <div className="flex">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-4 ${getMemoTypeColor(note.type)}`}>
