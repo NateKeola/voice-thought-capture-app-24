@@ -39,6 +39,8 @@ export const useRelationshipMemos = (relationshipId?: string) => {
     
     const newMemo = await createMemo({
       text: memoText,
+      content: memoText, // Add content property
+      category: type, // Add category property
       type: type,
       audioUrl: null
     });

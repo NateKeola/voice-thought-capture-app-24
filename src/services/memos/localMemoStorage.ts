@@ -1,26 +1,23 @@
-
 import { Memo, MemoType } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Save a new memo to local storage
-export const saveLocalMemo = (memo: Omit<Memo, 'id' | 'createdAt'>): Memo => {
-  const memoId = uuidv4();
+export const saveToLocal = (memo: Omit<Memo, 'id' | 'createdAt'>): Memo => {
   const newMemo: Memo = {
-    id: memoId,
+    id: uuidv4(),
     text: memo.text,
+    content: memo.content || memo.text, // Add content property
+    category: memo.category || memo.type, // Add category property
     type: memo.type,
-    audioUrl: memo.audioUrl,
+    audioUrl: memo.audioUrl || null,
     createdAt: new Date().toISOString(),
-    completed: memo.completed || false
+    completed: memo.completed || false,
+    title: memo.title
   };
-  
-  // Get existing local memos
-  const localMemosString = localStorage.getItem('local_memos') || '[]';
-  const localMemos = JSON.parse(localMemosString);
-  
-  // Add new memo to local storage
-  localMemos.unshift(newMemo);
-  localStorage.setItem('local_memos', JSON.stringify(localMemos));
+
+  const existingMemos = JSON.parse(localStorage.getItem('memos') || '[]');
+  const updatedMemos = [newMemo, ...existingMemos];
+  localStorage.setItem('memos', JSON.stringify(updatedMemos));
   
   return newMemo;
 };

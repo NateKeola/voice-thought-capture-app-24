@@ -75,7 +75,7 @@ const TasksPage = () => {
       .filter(memo => memo.type !== 'task')
       .map(memo => {
         let type = memo.type;
-        if (type === 'idea') type = 'should';
+        if (type === 'idea') type = 'idea'; // Fix: remove "should" type assignment
         
         const date = memo.createdAt ? new Date(memo.createdAt) : new Date();
         const now = new Date();
@@ -133,7 +133,7 @@ const TasksPage = () => {
               <h2 className="font-bold text-gray-800 text-xl">Recent Notes</h2>
               <span className="text-gray-500 text-sm">{formattedNotes.length} notes</span>
             </div>
-            <NotesTimeline notes={formattedNotes} />
+            <NotesTimeline notes={formattedNotes} onItemClick={handleNoteItemClick} />
           </div>
         ) : (
           <div className="bg-white rounded-2xl shadow-sm h-full overflow-hidden flex flex-col">

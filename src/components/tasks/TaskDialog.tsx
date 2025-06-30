@@ -44,8 +44,12 @@ const taskFormSchema = z.object({
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
 
-const TaskDialog: React.FC = () => {
-  const { isTaskDialogOpen, closeTaskDialog, preselectedCategory } = useTaskDialog();
+interface TaskDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const TaskDialog: React.FC<TaskDialogProps> = ({ isOpen, onClose }) => {
   const { categories } = useCategories();
   const { createMemo } = useMemos();
   const { toast } = useToast();
@@ -61,20 +65,6 @@ const TaskDialog: React.FC = () => {
     },
   });
 
-  // Update form when dialog opens and when preselected category changes
-  React.useEffect(() => {
-    if (isTaskDialogOpen) {
-      console.log("TaskDialog opened with preselectedCategory:", preselectedCategory);
-      form.reset({
-        title: "",
-        description: "",
-        category: preselectedCategory || "personal",
-        priority: "medium",
-        due: "today",
-      });
-    }
-  }, [isTaskDialogOpen, preselectedCategory, form]);
-
   const onSubmit = async (values: TaskFormValues) => {
     try {
       // Format the text to include metadata in square brackets
@@ -82,6 +72,8 @@ const TaskDialog: React.FC = () => {
       
       await createMemo({
         text: taskText,
+        content: taskText, // Add content property
+        category: values.category, // Add category property
         type: "task",
         audioUrl: "",
       });
@@ -91,7 +83,7 @@ const TaskDialog: React.FC = () => {
         description: "Your task has been created successfully.",
       });
       
-      closeTaskDialog();
+      onClose();
       form.reset();
     } catch (error) {
       console.error("Error creating task:", error);
@@ -104,7 +96,7 @@ const TaskDialog: React.FC = () => {
   };
 
   return (
-    <Dialog open={isTaskDialogOpen} onOpenChange={closeTaskDialog}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Task</DialogTitle>
@@ -232,7 +224,7 @@ const TaskDialog: React.FC = () => {
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={closeTaskDialog}>
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancel
               </Button>
               <Button type="submit">Create Task</Button>

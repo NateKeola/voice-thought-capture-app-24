@@ -13,6 +13,7 @@ interface ListsContextType {
   updateList: (id: string, updates: Partial<ListCategory>) => void;
   deleteList: (id: string) => void;
   getListById: (id: string) => ListCategory | undefined;
+  addListCategory: (name: string, color: string) => void;
 }
 
 const ListsContext = createContext<ListsContextType | undefined>(undefined);
@@ -46,6 +47,10 @@ export const ListsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setLists(prev => [...prev, newCategory]);
   };
 
+  const addListCategory = (name: string, color: string) => {
+    createList(name, color);
+  };
+
   const updateList = (id: string, updates: Partial<ListCategory>) => {
     setLists(prev => prev.map(cat => cat.id === id ? { ...cat, ...updates } : cat));
   };
@@ -59,7 +64,7 @@ export const ListsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <ListsContext.Provider value={{ lists, createList, updateList, deleteList, getListById }}>
+    <ListsContext.Provider value={{ lists, createList, updateList, deleteList, getListById, addListCategory }}>
       {children}
     </ListsContext.Provider>
   );
@@ -69,6 +74,14 @@ export const useLists = () => {
   const context = useContext(ListsContext);
   if (!context) {
     throw new Error('useLists must be used within a ListsProvider');
+  }
+  return context;
+};
+
+export const useListsCategories = () => {
+  const context = useContext(ListsContext);
+  if (!context) {
+    throw new Error('useListsCategories must be used within a ListsProvider');
   }
   return context;
 };

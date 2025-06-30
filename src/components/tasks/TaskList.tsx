@@ -1,3 +1,4 @@
+
 import React from "react";
 import TaskItem from "./TaskItem";
 import EmptyTaskState from "./EmptyTaskState";
@@ -20,6 +21,7 @@ interface TaskListProps {
   selectedCategory: string | null;
   categoryNames: { [key: string]: string };
   onBackClick?: () => void;
+  onAddTask: () => void;
 }
 
 const TaskList: React.FC<TaskListProps> = ({
@@ -31,6 +33,7 @@ const TaskList: React.FC<TaskListProps> = ({
   selectedCategory,
   categoryNames,
   onBackClick,
+  onAddTask,
 }) => {
   const [openCategory, setOpenCategory] = React.useState<string | null>(null);
   
@@ -40,6 +43,7 @@ const TaskList: React.FC<TaskListProps> = ({
         selectedCategory={selectedCategory} 
         categoryName={selectedCategory ? categoryNames[selectedCategory] : undefined} 
         onBackClick={onBackClick} 
+        onAddTask={onAddTask}
       />
     );
   }
