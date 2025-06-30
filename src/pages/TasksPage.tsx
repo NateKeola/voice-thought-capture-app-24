@@ -20,6 +20,7 @@ import { Memo } from "@/types";
 import { TitleGenerationService } from "@/services/titleGeneration";
 import { detectMemoType } from "@/services/SpeechToText";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const priorityColors = {
   high: "bg-red-500",
@@ -229,14 +230,16 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
   return result;
 };
 
-// Enhanced Item Component with single completion tracking
+// Enhanced Item Component with single completion tracking and navigation
 const EnhancedItemComponent: React.FC<{
   item: any;
   getCategoryColor: (id: string) => string;
   priorityColors: { [key: string]: string };
   completedItemIds: string[];
   onToggleComplete: (id: string) => void;
-}> = ({ item, getCategoryColor, priorityColors, completedItemIds, onToggleComplete }) => {
+  onItemClick?: (id: string) => void;
+  isNote?: boolean;
+}> = ({ item, getCategoryColor, priorityColors, completedItemIds, onToggleComplete, onItemClick, isNote = false }) => {
   const categoryColor = getCategoryColor(item.category);
   const isCompleted = completedItemIds.includes(item.id);
 
@@ -246,12 +249,19 @@ const EnhancedItemComponent: React.FC<{
     onToggleComplete(item.id);
   };
 
+  const handleItemClick = () => {
+    if (onItemClick && isNote) {
+      onItemClick(item.id);
+    }
+  };
+
   return (
     <div 
       className={`bg-white rounded-xl p-4 shadow-sm border-l-4 transition-all duration-200 ${
         isCompleted ? 'opacity-60 bg-gray-50' : 'hover:shadow-md'
-      }`}
+      } ${isNote ? 'cursor-pointer' : ''}`}
       style={{ borderColor: categoryColor }}
+      onClick={handleItemClick}
     >
       <div className="flex items-start gap-3 mb-3">
         <button
@@ -314,6 +324,7 @@ const EnhancedItemComponent: React.FC<{
 
 // Inner component to use the TaskDialog context
 const TasksPageContent: React.FC = () => {
+  const navigate = useNavigate();
   const { openCategoryDialog, openTaskDialog, openListCategoryDialog } = useTaskDialog();
   const { categories, deleteCategory } = useCategories();
   const { listCategories, deleteListCategory } = useListsCategories();
@@ -667,6 +678,7 @@ const TasksPageContent: React.FC = () => {
                     priorityColors={priorityColors}
                     completedItemIds={currentCompletedIds}
                     onToggleComplete={toggleItemCompletion}
+                    isNote={false}
                   />
                 ))}
                 {filteredItems.length === 0 && (
@@ -765,6 +777,8 @@ const TasksPageContent: React.FC = () => {
                     priorityColors={priorityColors}
                     completedItemIds={currentCompletedIds}
                     onToggleComplete={toggleItemCompletion}
+                    onItemClick={handleNoteItemClick}
+                    isNote={true}
                   />
                 ))}
                 {filteredItems.length === 0 && (
