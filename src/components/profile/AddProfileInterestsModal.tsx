@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, Check } from 'lucide-react';
+import { Search, Plus, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { useUserInterests, Interest } from '@/hooks/useUserInterests';
 import { useProfileInterests } from '@/hooks/useProfileInterests';
 import { useToast } from '@/components/ui/use-toast';
@@ -28,6 +27,7 @@ const AddProfileInterestsModal: React.FC<AddProfileInterestsModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [newInterestName, setNewInterestName] = useState('');
   const [isCreatingInterest, setIsCreatingInterest] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -123,7 +123,7 @@ const AddProfileInterestsModal: React.FC<AddProfileInterestsModalProps> = ({
         </DialogHeader>
         
         <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
-          {/* Search and filter controls */}
+          {/* Search and Create Custom Interest - Always visible */}
           <div className="space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -156,60 +156,79 @@ const AddProfileInterestsModal: React.FC<AddProfileInterestsModalProps> = ({
                 </Button>
               </div>
             </div>
-            
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant={selectedCategory === '' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setSelectedCategory('')}
-              >
-                All Categories
-              </Button>
-              {categories.map(category => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </Button>
-              ))}
-            </div>
+
+            {/* Toggle Button for All Categories */}
+            <Button
+              variant="outline"
+              onClick={() => setShowAllCategories(!showAllCategories)}
+              className="w-full justify-between"
+            >
+              <span>All Categories</span>
+              {showAllCategories ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </Button>
           </div>
 
-          {/* Interests list */}
-          <div className="flex-1 overflow-y-auto space-y-6">
-            {Object.entries(groupedInterests).map(([category, interests]) => (
-              <div key={category}>
-                <h3 className="font-semibold text-lg mb-3 text-gray-800">{category}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {interests.map(interest => {
-                    const isSelected = isInterestSelected(interest.id);
-                    return (
-                      <Button
-                        key={interest.id}
-                        variant={isSelected ? 'secondary' : 'outline'}
-                        size="sm"
-                        onClick={() => !isSelected && handleAddInterest(interest.id)}
-                        disabled={isSelected}
-                        className="justify-start h-auto py-2 px-3"
-                      >
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-sm">{interest.name}</span>
-                          {isSelected ? (
-                            <Check className="h-3 w-3 text-green-600" />
-                          ) : (
-                            <Plus className="h-3 w-3" />
-                          )}
-                        </div>
-                      </Button>
-                    );
-                  })}
-                </div>
+          {/* Categories and Interests - Only show when toggled */}
+          {showAllCategories && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={selectedCategory === '' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSelectedCategory('')}
+                >
+                  All Categories
+                </Button>
+                {categories.map(category => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    {category}
+                  </Button>
+                ))}
               </div>
-            ))}
-          </div>
+
+              {/* Interests list */}
+              <div className="flex-1 overflow-y-auto space-y-6">
+                {Object.entries(groupedInterests).map(([category, interests]) => (
+                  <div key={category}>
+                    <h3 className="font-semibold text-lg mb-3 text-gray-800">{category}</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {interests.map(interest => {
+                        const isSelected = isInterestSelected(interest.id);
+                        return (
+                          <Button
+                            key={interest.id}
+                            variant={isSelected ? 'secondary' : 'outline'}
+                            size="sm"
+                            onClick={() => !isSelected && handleAddInterest(interest.id)}
+                            disabled={isSelected}
+                            className="justify-start h-auto py-2 px-3"
+                          >
+                            <div className="flex items-center gap-2 flex-1">
+                              <span className="text-sm">{interest.name}</span>
+                              {isSelected ? (
+                                <Check className="h-3 w-3 text-green-600" />
+                              ) : (
+                                <Plus className="h-3 w-3" />
+                              )}
+                            </div>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex justify-end pt-4">
