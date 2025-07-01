@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -171,6 +172,39 @@ const AddProfileInterestsModal: React.FC<AddProfileInterestsModalProps> = ({
               )}
             </Button>
           </div>
+
+          {/* Search Results - Show when searching even if categories are not toggled */}
+          {searchTerm && !showAllCategories && (
+            <div className="flex-1 overflow-y-auto space-y-6">
+              <div>
+                <h3 className="font-semibold text-lg mb-3 text-gray-800">Search Results</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {filteredInterests.map(interest => {
+                    const isSelected = isInterestSelected(interest.id);
+                    return (
+                      <Button
+                        key={interest.id}
+                        variant={isSelected ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={() => !isSelected && handleAddInterest(interest.id)}
+                        disabled={isSelected}
+                        className="justify-start h-auto py-2 px-3"
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="text-sm">{interest.name}</span>
+                          {isSelected ? (
+                            <Check className="h-3 w-3 text-green-600" />
+                          ) : (
+                            <Plus className="h-3 w-3" />
+                          )}
+                        </div>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Categories and Interests - Only show when toggled */}
           {showAllCategories && (
