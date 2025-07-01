@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Search, Plus, Check } from 'lucide-react';
 import { useUserInterests, Interest } from '@/hooks/useUserInterests';
 import { useProfileInterests } from '@/hooks/useProfileInterests';
+import { useToast } from '@/components/ui/use-toast';
 
 interface AddProfileInterestsModalProps {
   isOpen: boolean;
@@ -20,10 +21,13 @@ const AddProfileInterestsModal: React.FC<AddProfileInterestsModalProps> = ({
   profileId, 
   profileName 
 }) => {
-  const { allInterests, loading } = useUserInterests();
+  const { toast } = useToast();
+  const { allInterests, loading, createCustomInterest } = useUserInterests();
   const { profileInterests, addProfileInterest } = useProfileInterests(profileId);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [newInterestName, setNewInterestName] = useState('');
+  const [isCreatingInterest, setIsCreatingInterest] = useState(false);
 
   // Get unique categories
   const categories = useMemo(() => {
@@ -60,7 +64,42 @@ const AddProfileInterestsModal: React.FC<AddProfileInterestsModalProps> = ({
   const handleAddInterest = async (interestId: string) => {
     const success = await addProfileInterest(interestId);
     if (success) {
-      // Optionally show success message
+      toast({
+        title: "Interest added",
+        description: "Interest has been added to the profile.",
+      });
+    }
+  };
+
+  const handleCreateCustomInterest = async () => {
+    if (!newInterestName.trim()) return;
+    
+    setIsCreatingInterest(true);
+    try {
+      const newInterest = await createCustomInterest(newInterestName.trim(), 'Custom');
+      if (newInterest) {
+        // Add the newly created interest to the profile
+        await addProfileInterest(newInterest.id);
+        setNewInterestName('');
+        toast({
+          title: "Custom interest created",
+          description: `"${newInterestName}" has been created and added to ${profileName}.`,
+        });
+      } else {
+        toast({
+          title: "Error creating interest",
+          description: "There was a problem creating the custom interest.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error creating interest",
+        description: "There was a problem creating the custom interest.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingInterest(false);
     }
   };
 
@@ -94,6 +133,28 @@ const AddProfileInterestsModal: React.FC<AddProfileInterestsModalProps> = ({
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
+            </div>
+            
+            {/* Add Custom Interest Section */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h3 className="font-medium text-blue-900 mb-2">Create Custom Interest</h3>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Enter custom interest name..."
+                  value={newInterestName}
+                  onChange={(e) => setNewInterestName(e.target.value)}
+                  className="flex-1"
+                  onKeyPress={(e) => e.key === 'Enter' && handleCreateCustomInterest()}
+                />
+                <Button
+                  onClick={handleCreateCustomInterest}
+                  disabled={!newInterestName.trim() || isCreatingInterest}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {isCreatingInterest ? 'Creating...' : 'Create'}
+                </Button>
+              </div>
             </div>
             
             <div className="flex flex-wrap gap-2">
