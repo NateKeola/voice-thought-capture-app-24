@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import { Memo, MemoType } from "@/types";
 import { extractMemoMetadata } from '@/utils/memoMetadata';
+import RelationshipSelector from './RelationshipSelector';
 
 interface MemoEditScreenProps {
   initialMemo?: Partial<Memo>;
@@ -22,6 +23,12 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
   onCancel,
   isCreating = false
 }) => {
+  // Extract relationship info from existing memo text
+  const extractRelationshipFromText = (text: string) => {
+    const contactMatch = text.match(/\[Contact:\s*([^\]]+)\]/);
+    return contactMatch ? contactMatch[1] : null;
+  };
+
   // Clean the text content by removing any tags for editing
   const getEditableText = (text: string) => {
     const metadata = extractMemoMetadata(text || '');
@@ -30,16 +37,30 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
 
   const [text, setText] = useState(getEditableText(initialMemo?.text || ''));
   const [title, setTitle] = useState(initialMemo?.title || '');
+  const [selectedRelationshipId, setSelectedRelationshipId] = useState<string | null>(
+    extractRelationshipFromText(initialMemo?.text || '')
+  );
+  const [selectedRelationshipName, setSelectedRelationshipName] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const handleRelationshipSelect = (relationshipId: string | null, relationshipName?: string) => {
+    setSelectedRelationshipId(relationshipId);
+    setSelectedRelationshipName(relationshipName || '');
+  };
 
   const handleSave = async () => {
     if (!text.trim()) return;
     
     setIsSaving(true);
     try {
-      // Save without person detection - that will happen in the detail page
+      // Add relationship tag to memo text if a relationship is selected
+      let finalText = text.trim();
+      if (selectedRelationshipId) {
+        finalText = `[Contact: ${selectedRelationshipId}] ${finalText}`;
+      }
+
       await onSave({ 
-        text: text, 
+        text: finalText, 
         type: initialMemo?.type || 'note', 
         title: title.trim() || undefined
       });
@@ -98,6 +119,17 @@ const MemoEditScreen: React.FC<MemoEditScreenProps> = ({
                 className="mt-1 min-h-[200px] resize-none border-blue-100 focus-visible:ring-orange-500"
               />
             </div>
+
+            <RelationshipSelector
+              selectedRelationshipId={selectedRelationshipId}
+              onRelationshipSelect={handleRelationshipSelect}
+            />
+
+            {selectedRelationshipId && selectedRelationshipName && (
+              <div className="text-sm text-blue-600">
+                This memo will be linked to {selectedRelationshipName}
+              </div>
+            )}
           </CardContent>
 
           <CardFooter className="flex justify-between bg-gray-50 rounded-b-lg">

@@ -9,6 +9,7 @@ import { useMemos } from '@/contexts/MemoContext';
 import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
 import BottomNavBar from '@/components/BottomNavBar';
+import RelationshipSelector from '@/components/memo/RelationshipSelector';
 import { TitleGenerationService } from '@/services/titleGeneration';
 
 const MemoDetailPage: React.FC = () => {
@@ -19,10 +20,18 @@ const MemoDetailPage: React.FC = () => {
   
   const [editedText, setEditedText] = useState('');
   const [editedTitle, setEditedTitle] = useState('');
+  const [selectedRelationshipId, setSelectedRelationshipId] = useState<string | null>(null);
+  const [selectedRelationshipName, setSelectedRelationshipName] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const memo = memos.find(m => m.id === id);
+
+  // Helper function to extract relationship info from memo text
+  const extractRelationshipFromText = (text: string) => {
+    const contactMatch = text.match(/\[Contact:\s*([^\]]+)\]/);
+    return contactMatch ? contactMatch[1] : null;
+  };
 
   // Helper function to map MemoType to title generation type
   const getMemoTypeForTitle = (memoType: string): 'task' | 'note' | 'idea' => {
@@ -41,6 +50,11 @@ const MemoDetailPage: React.FC = () => {
   useEffect(() => {
     if (memo) {
       console.log('MemoDetailPage - memo found:', memo);
+      
+      // Extract relationship ID from memo text
+      const relationshipId = extractRelationshipFromText(memo.text);
+      setSelectedRelationshipId(relationshipId);
+      
       const cleanedText = memo.text
         .replace(/\[Contact:\s*[^\]]+\]/g, '')
         .replace(/\[category:\s*\w+\]/gi, '')
@@ -78,6 +92,12 @@ const MemoDetailPage: React.FC = () => {
     }
   };
 
+  const handleRelationshipSelect = (relationshipId: string | null, relationshipName?: string) => {
+    setSelectedRelationshipId(relationshipId);
+    setSelectedRelationshipName(relationshipName || '');
+    setHasUnsavedChanges(true);
+  };
+
   const handleSave = async () => {
     if (!memo || !hasUnsavedChanges) return;
 
@@ -89,8 +109,14 @@ const MemoDetailPage: React.FC = () => {
       const titleToSave = editedTitle.trim() || null;
       console.log('Title to save (type:', typeof titleToSave, '):', titleToSave);
       
+      // Add relationship tag to memo text if a relationship is selected
+      let finalText = editedText.trim();
+      if (selectedRelationshipId) {
+        finalText = `[Contact: ${selectedRelationshipId}] ${finalText}`;
+      }
+      
       const updateData = {
-        text: editedText.trim(),
+        text: finalText,
         title: titleToSave
       };
       
@@ -237,6 +263,18 @@ const MemoDetailPage: React.FC = () => {
                 disabled={isSaving}
               />
             </div>
+
+            {/* Relationship Selector */}
+            <RelationshipSelector
+              selectedRelationshipId={selectedRelationshipId}
+              onRelationshipSelect={handleRelationshipSelect}
+            />
+
+            {selectedRelationshipId && selectedRelationshipName && (
+              <div className="text-sm text-blue-600">
+                This memo will be linked to {selectedRelationshipName}
+              </div>
+            )}
 
             {/* Memo Info */}
             <div className="text-sm text-gray-500 space-y-1">
