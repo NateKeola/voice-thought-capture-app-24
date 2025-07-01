@@ -28,12 +28,12 @@ const priorityColors = {
   low: "bg-blue-400"
 };
 
-// Improved smart categorization for notes based on memo content
-const smartCategorizeNote = (text: string, listCategories: any[]) => {
+// Enhanced smart categorization that works for both tasks and notes
+const smartCategorizeContent = (text: string, categories: any[], type: 'task' | 'note') => {
   const lowerText = text.toLowerCase();
   
   // First, try to match content to existing categories by name
-  for (const category of listCategories) {
+  for (const category of categories) {
     const categoryName = category.name.toLowerCase();
     if (lowerText.includes(categoryName)) {
       return category.id;
@@ -42,25 +42,11 @@ const smartCategorizeNote = (text: string, listCategories: any[]) => {
   
   // Enhanced content-based categorization with better keyword matching
   
-  // Social & Activities - for activities with people, events, places
-  if (lowerText.match(/\b(with|at|show|event|party|meet|meeting|dinner|lunch|coffee)\b/) ||
-      lowerText.match(/\b(play|playing|game|sport|volleyball|diving|fishing|swimming)\b/) ||
-      lowerText.match(/\b(friend|buddy|people|person|guy|girl)\b/) ||
-      lowerText.match(/\b(restaurant|bar|club|venue|location|place)\b/)) {
-    const socialCategory = listCategories.find(cat => 
-      cat.name.toLowerCase().includes('social') || 
-      cat.name.toLowerCase().includes('activity') ||
-      cat.name.toLowerCase().includes('personal') ||
-      cat.name.toLowerCase().includes('life')
-    );
-    if (socialCategory) return socialCategory.id;
-  }
-  
   // Work & Professional
   if (lowerText.match(/\b(work|job|office|business|company|project|client|meeting|call|email)\b/) ||
       lowerText.match(/\b(colleague|boss|employee|team|department)\b/) ||
       lowerText.match(/\b(app|software|development|coding|tech|technology)\b/)) {
-    const workCategory = listCategories.find(cat => 
+    const workCategory = categories.find(cat => 
       cat.name.toLowerCase().includes('work') || 
       cat.name.toLowerCase().includes('professional') ||
       cat.name.toLowerCase().includes('business')
@@ -68,32 +54,10 @@ const smartCategorizeNote = (text: string, listCategories: any[]) => {
     if (workCategory) return workCategory.id;
   }
   
-  // Ideas & Thoughts
-  if (lowerText.match(/\b(idea|concept|brainstorm|think|thought|innovation|creative|inspiration)\b/) ||
-      lowerText.match(/\b(maybe|could|should|might|what if|consider)\b/)) {
-    const ideasCategory = listCategories.find(cat => 
-      cat.name.toLowerCase().includes('idea') ||
-      cat.name.toLowerCase().includes('thought') ||
-      cat.name.toLowerCase().includes('creative')
-    );
-    if (ideasCategory) return ideasCategory.id;
-  }
-  
-  // Learning & Research
-  if (lowerText.match(/\b(research|study|learn|article|book|documentation|course|tutorial)\b/) ||
-      lowerText.match(/\b(read|reading|information|knowledge|education)\b/)) {
-    const researchCategory = listCategories.find(cat => 
-      cat.name.toLowerCase().includes('research') || 
-      cat.name.toLowerCase().includes('learning') ||
-      cat.name.toLowerCase().includes('education')
-    );
-    if (researchCategory) return researchCategory.id;
-  }
-  
   // Health & Fitness
   if (lowerText.match(/\b(health|fitness|exercise|workout|gym|stretch|run|walk)\b/) ||
       lowerText.match(/\b(doctor|medical|appointment|medicine|therapy)\b/)) {
-    const healthCategory = listCategories.find(cat => 
+    const healthCategory = categories.find(cat => 
       cat.name.toLowerCase().includes('health') || 
       cat.name.toLowerCase().includes('fitness') ||
       cat.name.toLowerCase().includes('medical')
@@ -101,27 +65,85 @@ const smartCategorizeNote = (text: string, listCategories: any[]) => {
     if (healthCategory) return healthCategory.id;
   }
   
-  // Travel & Places
-  if (lowerText.match(/\b(travel|trip|vacation|flight|hotel|airport|destination)\b/) ||
-      lowerText.match(/\b(city|state|country|location|address|directions)\b/)) {
-    const travelCategory = listCategories.find(cat => 
-      cat.name.toLowerCase().includes('travel') || 
-      cat.name.toLowerCase().includes('trip') ||
-      cat.name.toLowerCase().includes('location')
+  // Finance & Money
+  if (lowerText.match(/\b(money|finance|budget|bank|payment|invoice|bill|expense)\b/) ||
+      lowerText.match(/\b(investment|savings|loan|credit|tax)\b/)) {
+    const financeCategory = categories.find(cat => 
+      cat.name.toLowerCase().includes('finance') || 
+      cat.name.toLowerCase().includes('money') ||
+      cat.name.toLowerCase().includes('budget')
     );
-    if (travelCategory) return travelCategory.id;
+    if (financeCategory) return financeCategory.id;
   }
   
-  // Always default to "general" category
-  const generalCategory = listCategories.find(cat => 
-    cat.name.toLowerCase().includes('general') ||
-    cat.name.toLowerCase().includes('misc') ||
-    cat.name.toLowerCase().includes('other') ||
-    cat.name.toLowerCase().includes('default')
-  );
+  // Home & Personal
+  if (lowerText.match(/\b(home|house|apartment|cleaning|maintenance|repair)\b/) ||
+      lowerText.match(/\b(family|personal|private|chore|grocery|shopping)\b/)) {
+    const homeCategory = categories.find(cat => 
+      cat.name.toLowerCase().includes('home') || 
+      cat.name.toLowerCase().includes('personal') ||
+      cat.name.toLowerCase().includes('family')
+    );
+    if (homeCategory) return homeCategory.id;
+  }
   
-  // Return "general" string if no general category exists in the list
-  return generalCategory ? generalCategory.id : "general";
+  // Social & Activities (more relevant for notes)
+  if (type === 'note' && (
+      lowerText.match(/\b(with|at|show|event|party|meet|meeting|dinner|lunch|coffee)\b/) ||
+      lowerText.match(/\b(play|playing|game|sport|volleyball|diving|fishing|swimming)\b/) ||
+      lowerText.match(/\b(friend|buddy|people|person|guy|girl)\b/) ||
+      lowerText.match(/\b(restaurant|bar|club|venue|location|place)\b/)
+    )) {
+    const socialCategory = categories.find(cat => 
+      cat.name.toLowerCase().includes('social') || 
+      cat.name.toLowerCase().includes('activity') ||
+      cat.name.toLowerCase().includes('personal')
+    );
+    if (socialCategory) return socialCategory.id;
+  }
+  
+  // Ideas & Thoughts (more relevant for notes)
+  if (type === 'note' && (
+      lowerText.match(/\b(idea|concept|brainstorm|think|thought|innovation|creative|inspiration)\b/) ||
+      lowerText.match(/\b(maybe|could|should|might|what if|consider)\b/)
+    )) {
+    const ideasCategory = categories.find(cat => 
+      cat.name.toLowerCase().includes('idea') ||
+      cat.name.toLowerCase().includes('thought') ||
+      cat.name.toLowerCase().includes('creative')
+    );
+    if (ideasCategory) return ideasCategory.id;
+  }
+  
+  // Learning & Research (more relevant for notes)
+  if (type === 'note' && (
+      lowerText.match(/\b(research|study|learn|article|book|documentation|course|tutorial)\b/) ||
+      lowerText.match(/\b(read|reading|information|knowledge|education)\b/)
+    )) {
+    const researchCategory = categories.find(cat => 
+      cat.name.toLowerCase().includes('research') || 
+      cat.name.toLowerCase().includes('learning') ||
+      cat.name.toLowerCase().includes('education')
+    );
+    if (researchCategory) return researchCategory.id;
+  }
+  
+  // Default fallback - prefer "personal" for tasks, "general" for notes
+  if (type === 'task') {
+    const personalCategory = categories.find(cat => 
+      cat.name.toLowerCase().includes('personal') ||
+      cat.id === 'personal'
+    );
+    return personalCategory ? personalCategory.id : "personal";
+  } else {
+    const generalCategory = categories.find(cat => 
+      cat.name.toLowerCase().includes('general') ||
+      cat.name.toLowerCase().includes('misc') ||
+      cat.name.toLowerCase().includes('other') ||
+      cat.name.toLowerCase().includes('default')
+    );
+    return generalCategory ? generalCategory.id : "general";
+  }
 };
 
 // Map memo to the interface expected by the TaskList component
@@ -149,21 +171,10 @@ const mapMemoToItem = (memo: Memo, type: 'task' | 'note', categories: any[], lis
     const match = memo.text.match(/\[category:\s*(\w+)\]/i);
     if (match && match[1]) category = match[1].toLowerCase();
   } else {
-    // Smart categorization based on content
-    if (type === 'task') {
-      // Use existing smart categorization for tasks
-      const taskCategories = categories;
-      for (const cat of taskCategories) {
-        if (memo.text.toLowerCase().includes(cat.name.toLowerCase())) {
-          category = cat.id;
-          break;
-        }
-      }
-    } else {
-      // Use improved smart categorization for notes
-      category = smartCategorizeNote(memo.text, listCategories);
-      console.log('🔍 Smart categorized note:', memo.id, 'to category:', category);
-    }
+    // Use unified smart categorization for both tasks and notes
+    const targetCategories = type === 'task' ? categories : listCategories;
+    category = smartCategorizeContent(memo.text, targetCategories, type);
+    console.log('🔍 Smart categorized', type, memo.id, 'to category:', category);
   }
   
   if (memo.text.includes("[priority:")) {

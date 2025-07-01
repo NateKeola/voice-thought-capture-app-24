@@ -26,27 +26,63 @@ const defaultCategories: Category[] = [
 
 export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [categories, setCategories] = useState<Category[]>(() => {
-    // Load categories from localStorage if available
-    const stored = localStorage.getItem('taskCategories');
-    return stored ? JSON.parse(stored) : defaultCategories;
+    try {
+      // Load categories from localStorage if available
+      const stored = localStorage.getItem('taskCategories');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Ensure we have at least the default categories
+        const merged = [...defaultCategories];
+        parsed.forEach((cat: Category) => {
+          if (!merged.find(existing => existing.id === cat.id)) {
+            merged.push(cat);
+          }
+        });
+        return merged;
+      }
+      return defaultCategories;
+    } catch (error) {
+      console.error('Error loading categories from localStorage:', error);
+      return defaultCategories;
+    }
   });
 
   // Save categories to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('taskCategories', JSON.stringify(categories));
+    try {
+      localStorage.setItem('taskCategories', JSON.stringify(categories));
+      console.log('Categories saved to localStorage:', categories);
+    } catch (error) {
+      console.error('Error saving categories to localStorage:', error);
+    }
   }, [categories]);
 
   const addCategory = (name: string, color: string) => {
     const newCategory: Category = {
-      id: name.toLowerCase().replace(/\s+/g, '-'),
+      id: name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(),
       name,
       color,
     };
-    setCategories(prev => [...prev, newCategory]);
+    setCategories(prev => {
+      const updated = [...prev, newCategory];
+      console.log('Adding category:', newCategory, 'Updated list:', updated);
+      return updated;
+    });
   };
 
   const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(cat => cat.id !== id));
+    // Prevent deletion of default categories
+    const defaultIds = defaultCategories.map(cat => cat.id);
+    if (defaultIds.includes(id)) {
+      console.warn('Cannot delete default category:', id);
+      return;
+    }
+    
+    setCategories(prev => {
+      const updated = prev.filter(cat => cat.id !== id);
+      console.log('Deleting category:', id, 'Updated list:', updated);
+      return updated;
+    });
   };
 
   const getCategoryById = (id: string) => {
