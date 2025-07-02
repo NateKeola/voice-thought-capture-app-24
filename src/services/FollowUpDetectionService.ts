@@ -1,3 +1,6 @@
+
+import { extractMemoMetadata } from '@/utils/memoMetadata';
+
 export interface DetectedFollowUp {
   id: string;
   memoId: string;
@@ -83,7 +86,9 @@ export class FollowUpDetectionService {
     const followUps: DetectedFollowUp[] = [];
 
     for (const memo of memos) {
-      const detectedActions = this.extractActionableItems(memo.text, memo.id, memo.createdAt);
+      // Extract metadata to get clean text and contact information
+      const metadata = extractMemoMetadata(memo.content);
+      const detectedActions = this.extractActionableItems(metadata.cleanText, memo.id, memo.createdAt);
       followUps.push(...detectedActions);
     }
 

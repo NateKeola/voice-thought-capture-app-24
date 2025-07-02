@@ -4,12 +4,14 @@ import { Memo } from '@/types';
 import { FollowUpDetectionService } from '@/services/FollowUpDetectionService';
 import FollowUpCard from './FollowUpCard';
 import { CheckCircle2, Calendar } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface FollowUpSectionProps {
   memos: Memo[];
 }
 
 const FollowUpSection: React.FC<FollowUpSectionProps> = ({ memos }) => {
+  const navigate = useNavigate();
   const mostRecentFollowUp = FollowUpDetectionService.getMostRecentFollowUp(memos);
 
   if (!mostRecentFollowUp) {
@@ -30,8 +32,11 @@ const FollowUpSection: React.FC<FollowUpSectionProps> = ({ memos }) => {
 
   return (
     <section className="w-full max-w-md mb-6">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-orange-500 to-amber-400 rounded-t-2xl p-4 text-white shadow-lg">
+      {/* Header - Make it clickable */}
+      <div 
+        className="bg-gradient-to-r from-orange-500 to-amber-400 rounded-t-2xl p-4 text-white shadow-lg cursor-pointer hover:from-orange-600 hover:to-amber-500 transition-colors"
+        onClick={() => navigate('/follow-ups')}
+      >
         <div className="flex items-center gap-3">
           <Calendar className="h-6 w-6" />
           <div>

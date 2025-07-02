@@ -8,6 +8,7 @@ import HomePage from "./pages/HomePage";
 import MemosPage from "./pages/MemosPage";
 import RelationshipsPage from "./pages/RelationshipsPage";
 import MemoDetailPage from "./pages/MemoDetailPage";
+import FollowUpsPage from "./pages/FollowUpsPage";
 import NotFound from "./pages/NotFound";
 import Onboarding from "./pages/Onboarding";
 import AuthPage from "./pages/AuthPage";
@@ -37,6 +38,7 @@ const App = () => {
                 <Route path="/memos" element={<AuthGuard><MemosPage /></AuthGuard>} />
                 <Route path="/tasks" element={<AuthGuard><TasksPage /></AuthGuard>} />
                 <Route path="/relationships" element={<AuthGuard><RelationshipsPage /></AuthGuard>} />
+                <Route path="/follow-ups" element={<AuthGuard><FollowUpsPage /></AuthGuard>} />
                 <Route path="/memo/:id" element={<AuthGuard><MemoDetailPage /></AuthGuard>} />
                 <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
                 <Route path="*" element={<NotFound />} />
