@@ -9,6 +9,7 @@ import { MemoType, Memo } from '@/types';
 import IntroSection from '@/components/home/IntroSection';
 import RecordingSection from '@/components/home/RecordingSection';
 import MemosSection from '@/components/home/MemosSection';
+import FollowUpSection from '@/components/home/FollowUpSection';
 import { useMemos } from '@/contexts/MemoContext';
 
 const HomePage = () => {
@@ -75,6 +76,9 @@ const HomePage = () => {
             <div className="w-full max-w-sm mt-8">
               <TextMemoInput onMemoCreated={refreshMemos} />
             </div>
+
+            {/* Follow Up Section */}
+            <FollowUpSection memos={memos} />
 
             {/* Memos Section */}
             <MemosSection 
