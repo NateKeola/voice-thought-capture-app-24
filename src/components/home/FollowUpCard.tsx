@@ -6,6 +6,7 @@ import { Clock, User, ArrowRight } from "lucide-react";
 import { DetectedFollowUp } from '@/services/FollowUpDetectionService';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { extractMemoMetadata } from '@/utils/memoMetadata';
 
 interface FollowUpCardProps {
   followUp: DetectedFollowUp;
@@ -29,6 +30,9 @@ const FollowUpCard: React.FC<FollowUpCardProps> = ({ followUp }) => {
     navigate(`/memo/${followUp.memoId}`);
   };
 
+  // Clean the text to remove contact ID tags
+  const { cleanText } = extractMemoMetadata(followUp.text);
+
   return (
     <Card className="w-full border-l-4 border-l-orange-400 shadow-sm hover:shadow-md transition-shadow">
       <CardContent className="p-4">
@@ -50,7 +54,7 @@ const FollowUpCard: React.FC<FollowUpCardProps> = ({ followUp }) => {
             </div>
             
             <p className="text-sm text-gray-700 line-clamp-2 mb-3">
-              {followUp.text}
+              {cleanText}
             </p>
             
             <div className="flex items-center gap-2">
