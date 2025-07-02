@@ -26,6 +26,7 @@ const MemosPage = () => {
     setSelectedCategory(selectedCategory === categoryId ? null : categoryId);
   };
 
+  // Filter memos by selected category
   const filteredMemos = selectedCategory 
     ? memos.filter(memo => memo.text.includes(`[Category: ${selectedCategory}]`))
     : memos;

@@ -25,6 +25,10 @@ const MemoList: React.FC<MemoListProps> = ({ memos, filter = 'all' }) => {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [memos, filter]);
 
+  const handleMemoClick = (memoId: string) => {
+    navigate(`/memo/${memoId}`);
+  };
+
   if (filteredMemos.length === 0) {
     const getEmptyMessage = () => {
       switch (filter) {
@@ -55,7 +59,7 @@ const MemoList: React.FC<MemoListProps> = ({ memos, filter = 'all' }) => {
         <MemoCard 
           key={memo.id} 
           memo={memo} 
-          onClick={() => navigate(`/memo/${memo.id}`)}
+          onClick={() => handleMemoClick(memo.id)}
         />
       ))}
     </div>
