@@ -1,5 +1,3 @@
-import { extractMemoMetadata } from '@/utils/memoMetadata';
-
 export interface DetectedFollowUp {
   id: string;
   memoId: string;
@@ -79,18 +77,13 @@ export class FollowUpDetectionService {
   ];
 
   /**
-   * Detect follow-up actions from memos, excluding completed ones
+   * Detect follow-up actions from memos
    */
   static detectFollowUps(memos: any[]): DetectedFollowUp[] {
     const followUps: DetectedFollowUp[] = [];
 
-    // Filter out completed memos first
-    const incompleteMemos = memos.filter(memo => !memo.completed);
-
-    for (const memo of incompleteMemos) {
-      // Extract metadata to get clean text and contact information
-      const metadata = extractMemoMetadata(memo.content);
-      const detectedActions = this.extractActionableItems(metadata.cleanText, memo.id, memo.createdAt);
+    for (const memo of memos) {
+      const detectedActions = this.extractActionableItems(memo.text, memo.id, memo.createdAt);
       followUps.push(...detectedActions);
     }
 
@@ -303,7 +296,7 @@ export class FollowUpDetectionService {
   }
 
   /**
-   * Get the most recent follow-up from incomplete memos only
+   * Get the most recent follow-up
    */
   static getMostRecentFollowUp(memos: any[]): DetectedFollowUp | null {
     const followUps = this.detectFollowUps(memos);
