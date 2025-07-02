@@ -14,6 +14,7 @@ import AuthPage from "./pages/AuthPage";
 import Index from "./pages/Index";
 import ProfilePage from "./pages/ProfilePage";
 import TasksPage from "./pages/TasksPage";
+import FollowUpsPage from "./pages/FollowUpsPage";
 import AuthGuard from "./components/AuthGuard";
 import { UserProfileProvider } from "./contexts/UserProfileContext";
 import { MemoProvider } from "./contexts/MemoContext";
@@ -37,6 +38,7 @@ const App = () => {
                 <Route path="/memos" element={<AuthGuard><MemosPage /></AuthGuard>} />
                 <Route path="/tasks" element={<AuthGuard><TasksPage /></AuthGuard>} />
                 <Route path="/relationships" element={<AuthGuard><RelationshipsPage /></AuthGuard>} />
+                <Route path="/follow-ups" element={<AuthGuard><FollowUpsPage /></AuthGuard>} />
                 <Route path="/memo/:id" element={<AuthGuard><MemoDetailPage /></AuthGuard>} />
                 <Route path="/profile" element={<AuthGuard><ProfilePage /></AuthGuard>} />
                 <Route path="*" element={<NotFound />} />
