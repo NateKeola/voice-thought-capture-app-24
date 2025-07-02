@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useMemos } from '@/contexts/MemoContext';
+import { useProfiles } from '@/hooks/useProfiles';
 import { Memo, MemoType } from '@/types';
 
 interface RelationshipMemo extends Memo {
@@ -9,6 +10,7 @@ interface RelationshipMemo extends Memo {
 
 export const useRelationshipMemos = (relationshipId?: string) => {
   const { memos, isLoading, error, createMemo, updateMemo, deleteMemo } = useMemos();
+  const { updateProfile } = useProfiles();
   const [relationshipMemos, setRelationshipMemos] = useState<RelationshipMemo[]>([]);
 
   // Filter memos for this relationship
@@ -42,6 +44,18 @@ export const useRelationshipMemos = (relationshipId?: string) => {
       type: type,
       audioUrl: null
     });
+
+    // Update the relationship's last_interaction timestamp
+    if (newMemo) {
+      try {
+        await updateProfile.mutateAsync({ 
+          id: relationshipId, 
+          last_interaction: new Date().toISOString() 
+        });
+      } catch (error) {
+        console.error('Error updating relationship last interaction:', error);
+      }
+    }
 
     return newMemo;
   };

@@ -227,15 +227,33 @@ const RelationshipsPage = () => {
     }
   };
 
-  const filteredProfiles = profiles.filter(profile => {
-    const matchesSearch = searchQuery.toLowerCase().split(' ').every(term =>
-      `${profile.first_name} ${profile.last_name}`.toLowerCase().includes(term) ||
-      profile.type.toLowerCase().includes(term)
-    );
+  // Sort profiles by last_interaction date (most recent first) and filter
+  const filteredProfiles = profiles
+    .sort((a, b) => new Date(b.last_interaction).getTime() - new Date(a.last_interaction).getTime())
+    .filter(profile => {
+      const matchesSearch = searchQuery.toLowerCase().split(' ').every(term =>
+        `${profile.first_name} ${profile.last_name}`.toLowerCase().includes(term) ||
+        profile.type.toLowerCase().includes(term)
+      );
+      
+      return activeTab === 'all' ? matchesSearch : 
+             matchesSearch && profile.type.toLowerCase() === activeTab.toLowerCase();
+    });
+
+  // Update last_interaction when a profile is selected
+  const handleProfileSelect = async (profile) => {
+    setSelectedProfile(profile);
     
-    return activeTab === 'all' ? matchesSearch : 
-           matchesSearch && profile.type.toLowerCase() === activeTab.toLowerCase();
-  });
+    // Update the last_interaction timestamp
+    try {
+      await updateProfile.mutateAsync({ 
+        id: profile.id, 
+        last_interaction: new Date().toISOString() 
+      });
+    } catch (error) {
+      console.error('Error updating last interaction:', error);
+    }
+  };
 
   const handleAddMemo = async () => {
     if (!newMemoText.trim()) return;
@@ -330,6 +348,12 @@ const RelationshipsPage = () => {
           text: `[Contact: ${selectedProfile.id}] ${memo.text}`
         });
       }
+      
+      // Update last_interaction when linking a memo
+      await updateProfile.mutateAsync({ 
+        id: selectedProfile.id, 
+        last_interaction: new Date().toISOString() 
+      });
       
       // Refresh memos to show the updated state
       await refreshMemos();
@@ -455,7 +479,7 @@ const RelationshipsPage = () => {
                     className={`p-4 cursor-pointer hover:bg-orange-50 transition-colors ${
                       selectedProfile?.id === profile.id ? 'bg-orange-50' : ''
                     }`}
-                    onClick={() => setSelectedProfile(profile)}
+                    onClick={() => handleProfileSelect(profile)}
                   >
                     <div className="flex items-center">
                       <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mr-4">
@@ -507,7 +531,7 @@ const RelationshipsPage = () => {
                         </div>
                         <div className="flex justify-between mt-1">
                           <p className="text-gray-500 text-xs">
-                            Added: {new Date(profile.created_at).toLocaleDateString()}
+                            Last interaction: {new Date(profile.last_interaction).toLocaleDateString()}
                           </p>
                         </div>
                       </div>

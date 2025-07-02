@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Link, Plus, Search, X } from "lucide-react";
 import { useMemos } from '@/contexts/MemoContext';
 import { useCategories } from '@/contexts/CategoryContext';
+import { useProfiles } from '@/hooks/useProfiles';
 import { Memo } from '@/types';
 
 interface CategoryMemoLinkerProps {
@@ -22,6 +22,7 @@ const CategoryMemoLinker: React.FC<CategoryMemoLinkerProps> = ({
   onToggle
 }) => {
   const { memos, updateMemo } = useMemos();
+  const { updateProfile } = useProfiles();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearch, setShowSearch] = useState(false);
 
@@ -40,6 +41,21 @@ const CategoryMemoLinker: React.FC<CategoryMemoLinkerProps> = ({
     try {
       const updatedText = `[Category: ${categoryId}] ${memo.text}`;
       await updateMemo(memo.id, { text: updatedText });
+      
+      // Update last_interaction for any related relationships
+      const contactMatch = memo.text.match(/\[Contact: ([^\]]+)\]/);
+      if (contactMatch) {
+        const relationshipId = contactMatch[1];
+        try {
+          await updateProfile.mutateAsync({ 
+            id: relationshipId, 
+            last_interaction: new Date().toISOString() 
+          });
+        } catch (error) {
+          console.error('Error updating relationship last interaction:', error);
+        }
+      }
+      
       setSearchTerm('');
       setShowSearch(false);
     } catch (error) {
@@ -51,6 +67,20 @@ const CategoryMemoLinker: React.FC<CategoryMemoLinkerProps> = ({
     try {
       const updatedText = memo.text.replace(`[Category: ${categoryId}] `, '');
       await updateMemo(memo.id, { text: updatedText });
+      
+      // Update last_interaction for any related relationships
+      const contactMatch = memo.text.match(/\[Contact: ([^\]]+)\]/);
+      if (contactMatch) {
+        const relationshipId = contactMatch[1];
+        try {
+          await updateProfile.mutateAsync({ 
+            id: relationshipId, 
+            last_interaction: new Date().toISOString() 
+          });
+        } catch (error) {
+          console.error('Error updating relationship last interaction:', error);
+        }
+      }
     } catch (error) {
       console.error('Error unlinking memo from category:', error);
     }
