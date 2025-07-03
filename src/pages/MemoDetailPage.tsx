@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
@@ -33,6 +34,15 @@ const MemoDetailPage: React.FC = () => {
     return contactMatch ? contactMatch[1] : null;
   };
 
+  // Helper function to check if a title is valid (not corrupted or auto-generated placeholder)
+  const isValidUserTitle = (title: string | undefined) => {
+    if (!title || typeof title !== 'string') return false;
+    const trimmed = title.trim();
+    if (trimmed === '' || trimmed === 'undefined') return false;
+    if (trimmed.includes('_type') || trimmed.includes('value')) return false;
+    return true;
+  };
+
   // Helper function to map MemoType to title generation type
   const getMemoTypeForTitle = (memoType: string): 'task' | 'note' | 'idea' => {
     switch (memoType) {
@@ -64,16 +74,17 @@ const MemoDetailPage: React.FC = () => {
       
       setEditedText(cleanedText);
       
-      // Show auto-generated title if no valid title exists, otherwise show existing title
-      let displayTitle = '';
-      if (memo.title && typeof memo.title === 'string' && memo.title.trim() !== '' && !memo.title.includes('_type') && !memo.title.includes('value')) {
-        displayTitle = memo.title;
+      // Use the existing title if it's valid, otherwise generate one for display only
+      if (isValidUserTitle(memo.title)) {
+        setEditedTitle(memo.title);
+        console.log('Using existing valid title:', memo.title);
       } else {
-        // Generate auto title for display
-        displayTitle = TitleGenerationService.generateImmediateTitle(memo.text || '', getMemoTypeForTitle(memo.type));
+        // Generate title for display but don't save it yet
+        const autoTitle = TitleGenerationService.generateImmediateTitle(memo.text || '', getMemoTypeForTitle(memo.type));
+        setEditedTitle(autoTitle);
+        console.log('Generated title for display:', autoTitle);
       }
       
-      setEditedTitle(displayTitle);
       setHasUnsavedChanges(false);
     }
   }, [memo]);
@@ -103,11 +114,7 @@ const MemoDetailPage: React.FC = () => {
 
     setIsSaving(true);
     try {
-      console.log('Saving memo with updated title:', editedTitle.trim());
-      
-      // Ensure we're saving a clean string, not an object
-      const titleToSave = editedTitle.trim() || null;
-      console.log('Title to save (type:', typeof titleToSave, '):', titleToSave);
+      console.log('Saving memo with title:', editedTitle.trim());
       
       // Add relationship tag to memo text if a relationship is selected
       let finalText = editedText.trim();
@@ -117,7 +124,7 @@ const MemoDetailPage: React.FC = () => {
       
       const updateData = {
         text: finalText,
-        title: titleToSave
+        title: editedTitle.trim() || null // Save the user's title
       };
       
       console.log('Update data being sent:', updateData);
@@ -125,7 +132,7 @@ const MemoDetailPage: React.FC = () => {
       const updatedMemo = await updateMemo(memo.id, updateData);
       
       if (updatedMemo) {
-        console.log('Memo updated successfully with new title:', updatedMemo.title);
+        console.log('Memo updated successfully with title:', updatedMemo.title);
         setHasUnsavedChanges(false);
         
         toast({
@@ -280,9 +287,9 @@ const MemoDetailPage: React.FC = () => {
             <div className="text-sm text-gray-500 space-y-1">
               <p>Type: <span className="capitalize">{memo.type}</span></p>
               <p>Created: {new Date(memo.createdAt).toLocaleDateString()}</p>
-              <p>Current title: <span className="font-medium">{memo.title || 'Auto-generated'}</span></p>
+              <p>Current saved title: <span className="font-medium">{isValidUserTitle(memo.title) ? memo.title : 'Auto-generated'}</span></p>
               {hasUnsavedChanges && editedTitle && (
-                <p>New title: <span className="font-medium text-blue-600">{editedTitle}</span></p>
+                <p>New title to save: <span className="font-medium text-blue-600">{editedTitle}</span></p>
               )}
             </div>
           </div>

@@ -19,6 +19,15 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
   
+  // Helper function to check if a title is valid (not corrupted or auto-generated placeholder)
+  const isValidUserTitle = (title: string | undefined) => {
+    if (!title || typeof title !== 'string') return false;
+    const trimmed = title.trim();
+    if (trimmed === '' || trimmed === 'undefined') return false;
+    if (trimmed.includes('_type') || trimmed.includes('value')) return false;
+    return true;
+  };
+  
   // Helper function to map MemoType to title generation type
   const getMemoTypeForTitle = (memoType: string): 'task' | 'note' | 'idea' => {
     switch (memoType) {
@@ -33,15 +42,14 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
     }
   };
   
-  // Use the memo's title if it exists and is valid, otherwise generate one
+  // Use the memo's saved title if it exists and is valid, otherwise generate one for display
   let memoTitle = '';
   
-  // Check if memo has a valid title (not corrupted object)
-  if (title && typeof title === 'string' && title.trim() !== '' && !title.includes('_type') && !title.includes('value')) {
+  if (isValidUserTitle(title)) {
     memoTitle = title;
     console.log('✅ Using saved memo title:', memoTitle);
   } else {
-    // Generate title if none exists or if corrupted
+    // Generate title only for display if none exists or if corrupted
     console.log('🔍 Generating title for memo:', memo.id);
     memoTitle = TitleGenerationService.generateImmediateTitle(text || '', getMemoTypeForTitle(type));
     console.log('🔍 Generated title:', memoTitle);
