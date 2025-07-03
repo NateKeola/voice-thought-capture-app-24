@@ -21,6 +21,7 @@ export type DatabaseTables = {
     user_id: string;
     created_at: string;
     updated_at: string;
+    title: string | null; // Add title field
   };
   profile_interests: {
     id: string;
