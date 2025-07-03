@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Plus, Link, Edit, Trash2 } from 'lucide-react';
+import { Plus, Link, Edit, Trash2, ArrowLeft, User } from 'lucide-react';
 import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -12,6 +12,7 @@ import ProfileIconButton from '@/components/ProfileIconButton';
 import RecordButton from '@/components/RecordButton';
 import ProfileInterestsBadges from '@/components/profile/ProfileInterestsBadges';
 import AddProfileInterestsModal from '@/components/profile/AddProfileInterestsModal';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
@@ -73,6 +74,8 @@ const RelationshipsPage = () => {
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [prefilledRelationshipData, setPrefilledRelationshipData] = useState(null);
   const [pendingRelationships, setPendingRelationships] = useState([]);
+  const isMobile = useIsMobile();
+  const [showDetailView, setShowDetailView] = useState(false);
   const isLoading = authLoading || profilesLoading;
 
   // Check for pending relationships from person detection on component mount
@@ -243,6 +246,9 @@ const RelationshipsPage = () => {
   // Update last_interaction when a profile is selected
   const handleProfileSelect = async (profile) => {
     setSelectedProfile(profile);
+    if (isMobile) {
+      setShowDetailView(true);
+    }
     
     // Update the last_interaction timestamp
     try {
@@ -253,6 +259,11 @@ const RelationshipsPage = () => {
     } catch (error) {
       console.error('Error updating last interaction:', error);
     }
+  };
+
+  const handleBackToList = () => {
+    setShowDetailView(false);
+    setSelectedProfile(null);
   };
 
   const handleAddMemo = async () => {
@@ -401,8 +412,283 @@ const RelationshipsPage = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col h-full bg-gray-50">
+  // Mobile List View
+  const renderMobileListView = () => (
+    <>
+      <div className="bg-orange-500 px-4 pt-12 pb-6 rounded-b-3xl shadow-md">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-white text-2xl font-bold">Relationships</h1>
+            <p className="text-orange-100 text-sm mt-1">
+              {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </p>
+          </div>
+          <ProfileIconButton />
+        </div>
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-orange-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zm1-12a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              className="block w-full bg-orange-400 bg-opacity-50 border border-orange-300 rounded-xl py-3 pl-10 pr-3 text-orange-100 placeholder-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+              placeholder="Search relationships..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 pt-4">
+        <div className="flex space-x-2 overflow-x-auto pb-2">
+          {['all', 'work', 'personal'].map((tab) => (
+            <button
+              key={tab}
+              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === tab ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex-1 px-4 py-4 overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-bold text-gray-800 text-lg">People ({filteredProfiles.length})</h2>
+          <Button
+            size="sm"
+            className="bg-orange-500 text-white"
+            onClick={() => setShowAddModal(true)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          {isLoading ? (
+            <div className="p-6 text-center text-gray-500">Loading...</div>
+          ) : filteredProfiles.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-2xl shadow-sm">
+              <User className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+              <p className="text-gray-500 mb-4">No relationships found</p>
+              <Button
+                className="bg-orange-500 text-white"
+                onClick={() => setShowAddModal(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add New Contact
+              </Button>
+            </div>
+          ) : (
+            filteredProfiles.map(profile => (
+              <div
+                key={profile.id}
+                className="bg-white rounded-2xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-all active:scale-95"
+                onClick={() => handleProfileSelect(profile)}
+              >
+                <div className="flex items-center">
+                  <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center mr-4 flex-shrink-0">
+                    <span className="text-orange-600 font-bold text-lg">
+                      {`${profile.first_name[0]}${profile.last_name[0]}`}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="text-gray-800 font-semibold text-lg truncate">
+                        {`${profile.first_name} ${profile.last_name}`}
+                      </h3>
+                      <div className="flex gap-1 ml-2 flex-shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditProfile(profile);
+                          }}
+                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Edit contact"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProfile(profile);
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                          title="Delete contact"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(profile.type)}`}>
+                        {profile.type}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {extractRelationshipMemos(memos, profile.id).length} memo(s)
+                      </span>
+                    </div>
+                    
+                    {(profile.email || profile.phone) && (
+                      <div className="text-xs text-gray-500 space-y-1">
+                        {profile.email && <div className="truncate">📧 {profile.email}</div>}
+                        {profile.phone && <div>📞 {profile.phone}</div>}
+                      </div>
+                    )}
+                    
+                    <p className="text-gray-400 text-xs mt-2">
+                      Last interaction: {new Date(profile.last_interaction).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </>
+  );
+
+  // Mobile Detail View
+  const renderMobileDetailView = () => (
+    <>
+      <div className="bg-orange-500 px-4 pt-12 pb-6">
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBackToList}
+            className="text-white hover:bg-orange-600 mr-3 p-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="flex items-center flex-1">
+            <div className="w-12 h-12 rounded-full bg-orange-400 flex items-center justify-center mr-3">
+              <span className="text-white font-bold text-lg">
+                {selectedProfile ? `${selectedProfile.first_name[0]}${selectedProfile.last_name[0]}` : ''}
+              </span>
+            </div>
+            <div>
+              <h1 className="text-white text-xl font-bold">
+                {selectedProfile ? `${selectedProfile.first_name} ${selectedProfile.last_name}` : ''}
+              </h1>
+              <p className="text-orange-100 text-sm">
+                {selectedProfile ? selectedProfile.type : ''}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {selectedProfile && (
+        <div className="flex-1 overflow-y-auto">
+          {/* Contact Info */}
+          <div className="bg-white mx-4 mt-4 rounded-2xl shadow-sm p-4">
+            <h3 className="font-semibold text-gray-800 mb-3">Contact Information</h3>
+            <div className="space-y-2">
+              {selectedProfile.email && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="mr-2">📧</span>
+                  <span>{selectedProfile.email}</span>
+                </div>
+              )}
+              {selectedProfile.phone && (
+                <div className="flex items-center text-sm text-gray-600">
+                  <span className="mr-2">📞</span>
+                  <span>{selectedProfile.phone}</span>
+                </div>
+              )}
+              <div className="flex items-center text-sm text-gray-500">
+                <span className="mr-2">📅</span>
+                <span>Added: {new Date(selectedProfile.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="mx-4 mt-4 space-y-3">
+            <Button
+              className="w-full bg-orange-500 text-white py-3 text-lg"
+              onClick={() => setShowAddMemoModal(true)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 3a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+              Add Memo
+            </Button>
+            
+            <div className="flex gap-3">
+              <Button
+                className="flex-1 bg-blue-500 text-white py-3"
+                onClick={() => setShowLinkMemoModal(true)}
+              >
+                <Link className="h-4 w-4 mr-2" />
+                Link Memo
+              </Button>
+              <Button
+                className="flex-1 bg-green-500 text-white py-3"
+                onClick={() => setShowAddInterestsModal(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Interests
+              </Button>
+            </div>
+          </div>
+
+          {/* Interests */}
+          <div className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
+            <h3 className="font-semibold text-gray-800 mb-3">Interests</h3>
+            <ProfileInterestsBadges 
+              profileId={selectedProfile.id} 
+              showRemove={true}
+            />
+          </div>
+
+          {/* Memos */}
+          <div className="mx-4 mt-4 mb-4 bg-white rounded-2xl shadow-sm p-4">
+            <h3 className="font-semibold text-gray-800 mb-4">Memos ({extractRelationshipMemos(memos, selectedProfile.id).length})</h3>
+            <div className="space-y-3">
+              {extractRelationshipMemos(memos, selectedProfile.id).map((memo, idx) => (
+                <div key={memo.id || idx} className="p-4 rounded-xl border border-gray-100 bg-gray-50">
+                  <div className="flex">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 flex-shrink-0 ${getMemoTypeColor(memo.type)}`}>
+                      {getMemoTypeIcon(memo.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gray-700 text-sm leading-relaxed">{memo.text}</p>
+                      <div className="flex justify-between items-center mt-3">
+                        <p className="text-gray-400 text-xs">{memo.date}</p>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getMemoTypeColor(memo.type)}`}>
+                          {memo.type}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {extractRelationshipMemos(memos, selectedProfile.id).length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No memos for this relationship yet</p>
+                  <p className="text-sm mt-1">Tap "Add Memo" to create one</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  // Desktop View (keep existing layout)
+  const renderDesktopView = () => (
+    <>
       <div className="bg-orange-500 px-6 pt-12 pb-6 rounded-b-3xl shadow-md">
         <div className="flex justify-between items-center">
           <div>
@@ -642,6 +928,18 @@ const RelationshipsPage = () => {
           </div>
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <div className="flex flex-col h-full bg-gray-50">
+      {isMobile ? (
+        showDetailView && selectedProfile ? 
+          renderMobileDetailView() : 
+          renderMobileListView()
+      ) : (
+        renderDesktopView()
+      )}
 
       {/* Enhanced Add Memo Modal with Voice Recording */}
       {showAddMemoModal && (
