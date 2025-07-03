@@ -81,14 +81,16 @@ export const getMemoById = async (id: string): Promise<Memo | null> => {
 export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 'createdAt'>>): Promise<Memo | null> => {
   const authenticated = await isAuthenticated();
   
-  // If updating text and no valid title, regenerate title
-  if (updates.text && (!updates.title || updates.title === 'undefined' || typeof updates.title !== 'string')) {
+  // ONLY generate title if text is being updated AND no title is explicitly provided
+  // If user provides a title, use it as-is without regeneration
+  if (updates.text && !updates.title && !updates.hasOwnProperty('title')) {
+    console.log('No title provided with text update, generating title...');
     try {
       const generatedTitle = await generateTitleWithClaude(updates.text, updates.type || 'note');
       updates.title = generatedTitle;
-      console.log('Regenerated title for updated memo:', generatedTitle);
+      console.log('Generated title for updated memo:', generatedTitle);
     } catch (error) {
-      console.error('Error regenerating title:', error);
+      console.error('Error generating title:', error);
       // Fallback title
       const fallbackTitle = updates.text.substring(0, 50).trim() + (updates.text.length > 50 ? '...' : '');
       updates.title = fallbackTitle || `Updated ${new Date().toLocaleDateString()}`;

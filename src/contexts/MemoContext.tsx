@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getAllMemos, saveMemo, updateMemo, deleteMemo } from '@/services/MemoStorage';
@@ -175,7 +176,7 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 audioUrl: payload.new.audio_url,
                 createdAt: payload.new.created_at,
                 completed: payload.new.status === 'completed',
-                title: payload.new.title || undefined // Handle null/empty titles properly
+                title: payload.new.title || undefined
               };
               console.log('Adding new memo from real-time:', newMemo);
               setMemos(current => [newMemo, ...current]);
@@ -188,13 +189,15 @@ export const MemoProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               console.log('Updating memo from real-time:', payload.new);
               setMemos(current => current.map(memo => {
                 if (memo.id === payload.new.id) {
+                  // Preserve the existing title if no new title is provided to prevent overwriting user edits
                   const updatedMemo = {
                     ...memo,
                     text: payload.new.content,
                     type: payload.new.category as MemoType,
                     audioUrl: payload.new.audio_url,
                     completed: payload.new.status === 'completed',
-                    title: payload.new.title || undefined // Handle null/empty titles properly
+                    // Only update title if it's explicitly provided in the payload
+                    title: payload.new.title !== null ? payload.new.title : memo.title
                   };
                   console.log('Updated memo from real-time:', updatedMemo);
                   return updatedMemo;
