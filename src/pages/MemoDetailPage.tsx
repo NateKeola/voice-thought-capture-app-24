@@ -122,9 +122,10 @@ const MemoDetailPage: React.FC = () => {
         finalText = `[Contact: ${selectedRelationshipId}] ${finalText}`;
       }
       
+      // Always save the user's title, even if it's empty
       const updateData = {
         text: finalText,
-        title: editedTitle.trim() || null // Save the user's title
+        title: editedTitle.trim() || undefined
       };
       
       console.log('Update data being sent:', updateData);
@@ -287,7 +288,7 @@ const MemoDetailPage: React.FC = () => {
             <div className="text-sm text-gray-500 space-y-1">
               <p>Type: <span className="capitalize">{memo.type}</span></p>
               <p>Created: {new Date(memo.createdAt).toLocaleDateString()}</p>
-              <p>Current saved title: <span className="font-medium">{isValidUserTitle(memo.title) ? memo.title : 'Auto-generated'}</span></p>
+              <p>Current saved title: <span className="font-medium">{memo.title || 'No title saved'}</span></p>
               {hasUnsavedChanges && editedTitle && (
                 <p>New title to save: <span className="font-medium text-blue-600">{editedTitle}</span></p>
               )}

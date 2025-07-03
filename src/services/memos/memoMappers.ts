@@ -11,7 +11,8 @@ export const toDbMemo = (memo: Omit<Memo, 'id' | 'createdAt'> | Partial<Omit<Mem
     category: memo.type,
     audio_url: memo.audioUrl,
     status: memo.completed ? 'completed' : 'active',
-    user_id: userId
+    user_id: userId,
+    title: memo.title || null // Include title in database mapping
   };
 };
 
@@ -22,6 +23,7 @@ export const fromDbMemo = (dbMemo: DbMemo): Memo => {
     type: dbMemo.category as MemoType,
     audioUrl: dbMemo.audio_url,
     createdAt: dbMemo.created_at,
-    completed: dbMemo.status === 'completed'
+    completed: dbMemo.status === 'completed',
+    title: dbMemo.title || undefined // Map title from database
   };
 };

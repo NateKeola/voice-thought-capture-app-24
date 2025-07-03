@@ -81,9 +81,8 @@ export const getMemoById = async (id: string): Promise<Memo | null> => {
 export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 'createdAt'>>): Promise<Memo | null> => {
   const authenticated = await isAuthenticated();
   
-  // ONLY generate title if text is being updated AND no title is explicitly provided
-  // If user provides a title, use it as-is without regeneration
-  if (updates.text && !updates.title && !updates.hasOwnProperty('title')) {
+  // If user provides a title, use it as-is. Only generate if no title is provided and text is being updated
+  if (updates.text && updates.title === undefined) {
     console.log('No title provided with text update, generating title...');
     try {
       const generatedTitle = await generateTitleWithClaude(updates.text, updates.type || 'note');
