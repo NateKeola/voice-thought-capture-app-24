@@ -27,19 +27,28 @@ const defaultCategories: Category[] = [
 export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [categories, setCategories] = useState<Category[]>(() => {
     try {
-      // Load categories from localStorage if available
       const stored = localStorage.getItem('taskCategories');
+      const deletedCategories = localStorage.getItem('deletedTaskCategories');
+      
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Ensure we have at least the default categories
-        const merged = [...defaultCategories];
+        const deletedIds = deletedCategories ? JSON.parse(deletedCategories) : [];
+        
+        // Only merge default categories that haven't been deleted
+        const availableDefaults = defaultCategories.filter(cat => !deletedIds.includes(cat.id));
+        const merged = [...availableDefaults];
+        
+        // Add any custom categories that don't conflict with defaults
         parsed.forEach((cat: Category) => {
           if (!merged.find(existing => existing.id === cat.id)) {
             merged.push(cat);
           }
         });
+        
         return merged;
       }
+      
+      // First time load - use all default categories
       return defaultCategories;
     } catch (error) {
       console.error('Error loading categories from localStorage:', error);
@@ -71,16 +80,26 @@ export const CategoryProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const deleteCategory = (id: string) => {
-    // Prevent deletion of default categories
-    const defaultIds = defaultCategories.map(cat => cat.id);
-    if (defaultIds.includes(id)) {
-      console.warn('Cannot delete default category:', id);
-      return;
-    }
-    
     setCategories(prev => {
       const updated = prev.filter(cat => cat.id !== id);
       console.log('Deleting category:', id, 'Updated list:', updated);
+      
+      // Track deleted default categories to prevent them from reappearing
+      const defaultIds = defaultCategories.map(cat => cat.id);
+      if (defaultIds.includes(id)) {
+        try {
+          const existingDeleted = localStorage.getItem('deletedTaskCategories');
+          const deletedIds = existingDeleted ? JSON.parse(existingDeleted) : [];
+          if (!deletedIds.includes(id)) {
+            deletedIds.push(id);
+            localStorage.setItem('deletedTaskCategories', JSON.stringify(deletedIds));
+            console.log('Marked default category as deleted:', id);
+          }
+        } catch (error) {
+          console.error('Error saving deleted category tracking:', error);
+        }
+      }
+      
       return updated;
     });
   };
