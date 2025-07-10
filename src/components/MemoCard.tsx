@@ -43,8 +43,9 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
             contactNames.push(fullName);
           }
         } else {
-          // If no profile found, it might be a direct name
-          if (!contactNames.includes(contactId)) {
+          // Skip IDs that look like UUIDs or codes - only add if it looks like a name
+          const looksLikeName = contactId.length < 50 && !contactId.includes('-') && !/^[0-9a-f]{8,}/.test(contactId);
+          if (looksLikeName && !contactNames.includes(contactId)) {
             contactNames.push(contactId);
           }
         }
