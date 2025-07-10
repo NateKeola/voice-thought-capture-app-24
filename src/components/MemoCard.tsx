@@ -1,11 +1,13 @@
 
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Memo } from "@/types";
 import { formatDistanceToNow } from 'date-fns';
 import { FileText, CheckCircle, CircleAlert, FileAudio, Users } from "lucide-react";
 import { extractMemoMetadata } from '@/utils/memoMetadata';
 import { TitleGenerationService } from '@/services/titleGeneration';
+import { useProfiles } from '@/hooks/useProfiles';
 
 interface MemoCardProps {
   memo: Memo;
@@ -14,10 +16,45 @@ interface MemoCardProps {
 
 const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const { text, type, createdAt, audioUrl, title } = memo;
+  const { profiles } = useProfiles();
   
   // Extract metadata and clean text for display
   const metadata = extractMemoMetadata(text || '');
   const displayText = metadata.cleanText;
+  
+  // Get contact names from metadata
+  const getContactNames = () => {
+    const contactNames: string[] = [];
+    
+    // Add detected person names from metadata.contacts
+    contactNames.push(...metadata.contacts);
+    
+    // Extract relationship contact names from [Contact: id] tags
+    const contactTags = text?.match(/\[Contact: ([^\]]+)\]/g) || [];
+    contactTags.forEach(tag => {
+      const idMatch = tag.match(/\[Contact: ([^\]]+)\]/);
+      if (idMatch) {
+        const contactId = idMatch[1];
+        // Find the profile with this ID
+        const profile = profiles?.find(p => p.id === contactId);
+        if (profile) {
+          const fullName = `${profile.first_name} ${profile.last_name}`.trim();
+          if (!contactNames.includes(fullName)) {
+            contactNames.push(fullName);
+          }
+        } else {
+          // If no profile found, it might be a direct name
+          if (!contactNames.includes(contactId)) {
+            contactNames.push(contactId);
+          }
+        }
+      }
+    });
+    
+    return contactNames;
+  };
+  
+  const contactNames = getContactNames();
   
   // Helper function to check if a title is valid (not corrupted or auto-generated placeholder)
   const isValidUserTitle = (title: string | undefined) => {
@@ -108,6 +145,17 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
               {memoTitle}
             </h3>
             <p className="text-sm text-muted-foreground line-clamp-2">{displayText}</p>
+            
+            {/* Contact badges */}
+            {contactNames.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {contactNames.map((name, index) => (
+                  <Badge key={index} variant="secondary" className="text-xs">
+                    {name}
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
