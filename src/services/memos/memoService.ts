@@ -1,7 +1,7 @@
 
 import { Memo, MemoType } from '@/types';
 import { isAuthenticated, getUserId } from '@/utils/authUtils';
-import { generateTitleWithClaude } from '@/services/claudeTitleService';
+import { TitleGenerationService } from '@/services/titleGeneration';
 import {
   saveLocalMemo,
   getAllLocalMemos,
@@ -33,14 +33,16 @@ export const saveMemo = async (memo: Omit<Memo, 'id' | 'createdAt'>): Promise<Me
   if (!hasValidTitle) {
     console.log('Generating title for new memo...');
     try {
-      const generatedTitle = await generateTitleWithClaude(memo.text, memo.type);
+      // Try async title generation first
+      const memoTypeForTitle = memo.type === 'idea' ? 'idea' : (memo.type === 'task' ? 'task' : 'note');
+      const generatedTitle = await TitleGenerationService.generateTitleWithCache(memo.text, memoTypeForTitle);
       memoWithTitle.title = generatedTitle;
       console.log('Generated title:', generatedTitle);
     } catch (error) {
-      console.error('Error generating title:', error);
-      // Fallback to a simple title based on content
-      const fallbackTitle = memo.text.substring(0, 50).trim() + (memo.text.length > 50 ? '...' : '');
-      memoWithTitle.title = fallbackTitle || `${memo.type} - ${new Date().toLocaleDateString()}`;
+      console.error('Error generating title, using fallback:', error);
+      // Use the intelligent fallback from TitleGenerationService
+      const memoTypeForTitle = memo.type === 'idea' ? 'idea' : (memo.type === 'task' ? 'task' : 'note');
+      memoWithTitle.title = TitleGenerationService.generateImmediateTitle(memo.text, memoTypeForTitle);
     }
   }
   
@@ -85,14 +87,16 @@ export const updateMemo = async (id: string, updates: Partial<Omit<Memo, 'id' | 
   if (updates.text && updates.title === undefined) {
     console.log('No title provided with text update, generating title...');
     try {
-      const generatedTitle = await generateTitleWithClaude(updates.text, updates.type || 'note');
+      // Try async title generation first
+      const memoTypeForTitle = (updates.type === 'idea' ? 'idea' : (updates.type === 'task' ? 'task' : 'note')) as 'task' | 'note' | 'idea';
+      const generatedTitle = await TitleGenerationService.generateTitleWithCache(updates.text, memoTypeForTitle);
       updates.title = generatedTitle;
       console.log('Generated title for updated memo:', generatedTitle);
     } catch (error) {
-      console.error('Error generating title:', error);
-      // Fallback title
-      const fallbackTitle = updates.text.substring(0, 50).trim() + (updates.text.length > 50 ? '...' : '');
-      updates.title = fallbackTitle || `Updated ${new Date().toLocaleDateString()}`;
+      console.error('Error generating title, using fallback:', error);
+      // Use the intelligent fallback from TitleGenerationService
+      const memoTypeForTitle = (updates.type === 'idea' ? 'idea' : (updates.type === 'task' ? 'task' : 'note')) as 'task' | 'note' | 'idea';
+      updates.title = TitleGenerationService.generateImmediateTitle(updates.text, memoTypeForTitle);
     }
   }
   
