@@ -26,7 +26,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const getContactNames = () => {
     const contactNames: string[] = [];
     
-    // Add detected person names from metadata.contacts
+    // Add detected person names from metadata.contacts (these are actual names detected from text)
     contactNames.push(...metadata.contacts);
     
     // Extract relationship contact names from [Contact: id] tags
@@ -42,13 +42,8 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
           if (!contactNames.includes(fullName)) {
             contactNames.push(fullName);
           }
-        } else {
-          // Skip IDs that look like UUIDs or codes - only add if it looks like a name
-          const looksLikeName = contactId.length < 50 && !contactId.includes('-') && !/^[0-9a-f]{8,}/.test(contactId);
-          if (looksLikeName && !contactNames.includes(contactId)) {
-            contactNames.push(contactId);
-          }
         }
+        // If no profile found, don't add anything - only show actual names, not codes/IDs
       }
     });
     
