@@ -26,10 +26,7 @@ const MemoCard: React.FC<MemoCardProps> = ({ memo, onClick }) => {
   const getContactNames = () => {
     const contactNames: string[] = [];
     
-    // Add detected person names from metadata.contacts (these are actual names detected from text)
-    contactNames.push(...metadata.contacts);
-    
-    // Extract relationship contact names from [Contact: id] tags
+    // Extract relationship contact names from [Contact: id] tags and resolve to actual names
     const contactTags = text?.match(/\[Contact: ([^\]]+)\]/g) || [];
     contactTags.forEach(tag => {
       const idMatch = tag.match(/\[Contact: ([^\]]+)\]/);
