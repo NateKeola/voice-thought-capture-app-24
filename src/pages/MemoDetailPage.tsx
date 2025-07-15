@@ -323,10 +323,6 @@ const MemoDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <BottomNavBar 
-        activeTab="record" 
-        onTabChange={handleTabChange}
-      />
     </div>
   );
 };
