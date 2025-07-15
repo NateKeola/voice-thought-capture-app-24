@@ -1,1 +1,4 @@
 project_id = "oeoojqkhvvssndljblxz"
+
+[functions.enhance-memo]
+verify_jwt = false
