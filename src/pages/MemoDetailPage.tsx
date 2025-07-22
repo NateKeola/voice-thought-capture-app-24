@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, Save, Volume2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Trash2, Save, Volume2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import MemoLoading from '@/components/memo/MemoLoading';
 import MemoError from '@/components/memo/MemoError';
 import BottomNavBar from '@/components/BottomNavBar';
 import RelationshipSelector from '@/components/memo/RelationshipSelector';
-import { supabase } from '@/integrations/supabase/client';
 import { TitleGenerationService } from '@/services/titleGeneration';
 
 const MemoDetailPage: React.FC = () => {
@@ -25,7 +24,6 @@ const MemoDetailPage: React.FC = () => {
   const [selectedRelationshipId, setSelectedRelationshipId] = useState<string | null>(null);
   const [selectedRelationshipName, setSelectedRelationshipName] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isEnhancing, setIsEnhancing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const memo = memos.find(m => m.id === id);
@@ -196,44 +194,6 @@ const MemoDetailPage: React.FC = () => {
     setHasUnsavedChanges(true);
   };
 
-  const handleEnhanceMemo = async () => {
-    if (!editedText.trim()) {
-      toast({
-        title: "Nothing to enhance",
-        description: "Please add some content to enhance.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsEnhancing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('enhance-memo', {
-        body: { content: editedText }
-      });
-
-      if (error) throw error;
-
-      if (data?.enhancedContent) {
-        setEditedText(data.enhancedContent);
-        setHasUnsavedChanges(true);
-        toast({
-          title: "Memo enhanced",
-          description: "Your memo has been improved for better readability."
-        });
-      }
-    } catch (error) {
-      console.error('Error enhancing memo:', error);
-      toast({
-        title: "Enhancement failed",
-        description: "Failed to enhance the memo. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
-
   const handleTabChange = (tab: string) => {
     if (tab === 'record') navigate('/home');
     if (tab === 'relationships') navigate('/relationships');
@@ -308,7 +268,7 @@ const MemoDetailPage: React.FC = () => {
                 onChange={(e) => handleTextChange(e.target.value)}
                 placeholder="Enter memo content..."
                 className="w-full min-h-[200px] resize-none"
-              disabled={isSaving || isEnhancing}
+                disabled={isSaving}
               />
             </div>
 
@@ -316,20 +276,7 @@ const MemoDetailPage: React.FC = () => {
             <RelationshipSelector
               selectedRelationshipId={selectedRelationshipId}
               onRelationshipSelect={handleRelationshipSelect}
-              />
-              
-              {/* Enhance Button */}
-              <div className="flex justify-center my-4">
-                <Button
-                  onClick={handleEnhanceMemo}
-                  disabled={isEnhancing || isSaving || !editedText.trim()}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  {isEnhancing ? 'Enhancing...' : 'Enhance with AI'}
-                </Button>
-              </div>
+            />
 
             {selectedRelationshipId && selectedRelationshipName && (
               <div className="text-sm text-blue-600">
@@ -353,13 +300,13 @@ const MemoDetailPage: React.FC = () => {
             <Button
               variant="outline"
               onClick={() => navigate('/')}
-                disabled={isSaving || isEnhancing}
+              disabled={isSaving}
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!hasUnsavedChanges || isSaving || isEnhancing}
+              disabled={!hasUnsavedChanges || isSaving}
               className="bg-blue-600 hover:bg-blue-700"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -368,7 +315,7 @@ const MemoDetailPage: React.FC = () => {
             <Button
               variant="destructive"
               onClick={handleDelete}
-                disabled={isSaving || isEnhancing}
+              disabled={isSaving}
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete
@@ -376,6 +323,10 @@ const MemoDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+      <BottomNavBar 
+        activeTab="record" 
+        onTabChange={handleTabChange}
+      />
     </div>
   );
 };
