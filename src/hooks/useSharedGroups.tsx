@@ -28,13 +28,11 @@ export function useSharedGroups() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('shared_groups')
-        .select(`
-          *,
-          group_members!inner(*)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
+        console.error('Error fetching groups:', error);
         toast({
           title: "Error fetching groups",
           description: error.message,
