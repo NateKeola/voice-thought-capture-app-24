@@ -13,6 +13,7 @@ import RecordButton from '@/components/RecordButton';
 import ProfileInterestsBadges from '@/components/profile/ProfileInterestsBadges';
 import AddProfileInterestsModal from '@/components/profile/AddProfileInterestsModal';
 import { useIsMobile } from '@/hooks/use-mobile';
+import SharedRelationshipsView from '@/components/relationships/SharedRelationshipsView';
 
 const REL_TYPE_COLORS = {
   work: 'bg-blue-100 text-blue-600',
@@ -68,7 +69,7 @@ const RelationshipsPage = () => {
   const [showLinkMemoModal, setShowLinkMemoModal] = useState(false);
   const [newMemoText, setNewMemoText] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [globalTab, setGlobalTab] = useState('relationships');
+  const [globalTab, setGlobalTab] = useState('personal');
   const [showAddInterestsModal, setShowAddInterestsModal] = useState(false);
   const { memos, createMemo, updateMemo, refreshMemos } = useMemos();
   const [isRecordingMode, setIsRecordingMode] = useState(false);
@@ -425,50 +426,78 @@ const RelationshipsPage = () => {
           </div>
           <ProfileIconButton />
         </div>
+        
+        {/* Global Tab Switcher */}
         <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-orange-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zm1-12a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              className="block w-full bg-orange-400 bg-opacity-50 border border-orange-300 rounded-xl py-3 pl-10 pr-3 text-orange-100 placeholder-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
-              placeholder="Search relationships..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex space-x-1 bg-orange-600 bg-opacity-50 rounded-xl p-1">
+            {['personal', 'shared'].map((tab) => (
+              <button
+                key={tab}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  globalTab === tab 
+                    ? 'bg-white text-orange-600' 
+                    : 'text-orange-100 hover:text-white'
+                }`}
+                onClick={() => setGlobalTab(tab)}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
+
+        {/* Search bar only for personal tab */}
+        {globalTab === 'personal' && (
+          <div className="mt-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-orange-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zm1-12a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                className="block w-full bg-orange-400 bg-opacity-50 border border-orange-300 rounded-xl py-3 pl-10 pr-3 text-orange-100 placeholder-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+                placeholder="Search relationships..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="px-4 pt-4">
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          {['all', 'work', 'personal'].map((tab) => (
-            <button
-              key={tab}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === tab ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+      {/* Type filter tabs only for personal tab */}
+      {globalTab === 'personal' && (
+        <div className="px-4 pt-4">
+          <div className="flex space-x-2 overflow-x-auto pb-2">
+            {['all', 'work', 'personal'].map((tab) => (
+              <button
+                key={tab}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === tab ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 px-4 py-4 overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-gray-800 text-lg">People ({filteredProfiles.length})</h2>
-          <Button
-            size="sm"
-            className="bg-orange-500 text-white"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
-        </div>
+        {globalTab === 'personal' ? (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-gray-800 text-lg">People ({filteredProfiles.length})</h2>
+              <Button
+                size="sm"
+                className="bg-orange-500 text-white"
+                onClick={() => setShowAddModal(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
 
         <div className="space-y-3">
           {isLoading ? (
@@ -552,6 +581,10 @@ const RelationshipsPage = () => {
             ))
           )}
         </div>
+          </>
+        ) : (
+          <SharedRelationshipsView />
+        )}
       </div>
     </>
   );
@@ -686,7 +719,7 @@ const RelationshipsPage = () => {
     </>
   );
 
-  // Desktop View (keep existing layout)
+  // Desktop View 
   const renderDesktopView = () => (
     <>
       <div className="bg-orange-500 px-6 pt-12 pb-6 rounded-b-3xl shadow-md">
@@ -699,39 +732,67 @@ const RelationshipsPage = () => {
           </div>
           <ProfileIconButton />
         </div>
+        
+        {/* Global Tab Switcher */}
         <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-orange-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zm1-12a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              className="block w-full bg-orange-400 bg-opacity-50 border border-orange-300 rounded-xl py-2 pl-10 pr-3 text-orange-100 placeholder-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
-              placeholder="Search relationships..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+          <div className="flex space-x-1 bg-orange-600 bg-opacity-50 rounded-xl p-1 max-w-xs">
+            {['personal', 'shared'].map((tab) => (
+              <button
+                key={tab}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  globalTab === tab 
+                    ? 'bg-white text-orange-600' 
+                    : 'text-orange-100 hover:text-white'
+                }`}
+                onClick={() => setGlobalTab(tab)}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
-      <div className="px-6 pt-4">
-        <div className="flex space-x-2 overflow-x-auto">
-          {['all', 'work', 'personal'].map((tab) => (
-            <button
-              key={tab}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === tab ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
+
+        {/* Search bar only for personal tab */}
+        {globalTab === 'personal' && (
+          <div className="mt-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-orange-300" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zm1-12a1 1 0 10-2 0v1a1 1 0 110 2h4a1 1 0 01.293.707l2.828 2.829a1 1 0 101.414-1.415L11 9.586V6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                className="block w-full bg-orange-400 bg-opacity-50 border border-orange-300 rounded-xl py-2 pl-10 pr-3 text-orange-100 placeholder-orange-200 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:border-transparent"
+                placeholder="Search relationships..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </div>
       
+      {/* Type filter tabs only for personal tab */}
+      {globalTab === 'personal' && (
+        <div className="px-6 pt-4">
+          <div className="flex space-x-2 overflow-x-auto">
+            {['all', 'work', 'personal'].map((tab) => (
+              <button
+                key={tab}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === tab ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <div className="flex-1 px-6 py-4 overflow-hidden">
-        <div className="flex h-full space-x-4">
+        {globalTab === 'personal' ? (
+          <div className="flex h-full space-x-4">
           <div className="w-1/3 bg-white rounded-2xl shadow-sm overflow-y-auto">
             <div className="p-4 border-b border-gray-100 flex justify-between items-center">
               <h2 className="font-bold text-gray-800 text-lg">People</h2>
@@ -926,7 +987,10 @@ const RelationshipsPage = () => {
               </div>
             )}
           </div>
-        </div>
+          </div>
+        ) : (
+          <SharedRelationshipsView />
+        )}
       </div>
     </>
   );
