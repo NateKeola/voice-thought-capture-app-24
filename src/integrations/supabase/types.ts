@@ -50,38 +50,6 @@ export type Database = {
         }
         Relationships: []
       }
-      group_members: {
-        Row: {
-          group_id: string
-          id: string
-          joined_at: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          group_id: string
-          id?: string
-          joined_at?: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          group_id?: string
-          id?: string
-          joined_at?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "group_members_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "shared_groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       interests: {
         Row: {
           category: string
@@ -214,77 +182,6 @@ export type Database = {
         }
         Relationships: []
       }
-      shared_contacts: {
-        Row: {
-          added_by: string
-          created_at: string
-          email: string | null
-          group_id: string
-          id: string
-          name: string
-          notes: string | null
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          added_by: string
-          created_at?: string
-          email?: string | null
-          group_id: string
-          id?: string
-          name: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          added_by?: string
-          created_at?: string
-          email?: string | null
-          group_id?: string
-          id?: string
-          name?: string
-          notes?: string | null
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "shared_contacts_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "shared_groups"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      shared_groups: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          invite_code: string
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          id?: string
-          invite_code: string
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          invite_code?: string
-          name?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       user_interests: {
         Row: {
           created_at: string
@@ -319,10 +216,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_invite_code: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       update_achievement_progress: {
         Args: {
           p_achievement_id: string
