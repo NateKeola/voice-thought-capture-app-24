@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,9 @@ import AvatarSelector from './AvatarSelector';
 import RelationshipTypeSelector from './RelationshipTypeSelector';
 import ContactSearchInput from './ContactSearchInput';
 import ContactSelectionCards from './ContactSelectionCards';
+import ContactImportButton from './ContactImportButton';
+import ImportedContactsList from './ImportedContactsList';
+import { ImportedContact } from '@/hooks/useContactImport';
 
 interface AddRelationshipModalProps {
   isOpen: boolean;
@@ -57,6 +59,11 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, editin
   const [isSearching, setIsSearching] = useState(false);
   const [selectedContact, setSelectedContact] = useState(null);
 
+  // Contact import states
+  const [importedContacts, setImportedContacts] = useState<ImportedContact[]>([]);
+  const [selectedImportedContacts, setSelectedImportedContacts] = useState<string[]>([]);
+  const [showImportedContacts, setShowImportedContacts] = useState(false);
+
   // Update form data when prefilledData or editingProfile changes
   useEffect(() => {
     if (isOpen) {
@@ -99,6 +106,9 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, editin
         notes: ''
       });
       setStep(1);
+      setImportedContacts([]);
+      setSelectedImportedContacts([]);
+      setShowImportedContacts(false);
     }
   }, [isOpen]);
   
@@ -116,6 +126,66 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, editin
   const handleContactSelect = (contact: any) => {
     setSelectedContact(contact);
     // You can add logic here to populate form fields with selected contact data
+  };
+
+  // Contact import handlers
+  const handleContactsImported = (contacts: ImportedContact[]) => {
+    setImportedContacts(contacts);
+    setSelectedImportedContacts(contacts.map((_, index) => `${contacts[index].firstName}-${contacts[index].lastName}-${index}`));
+    setShowImportedContacts(true);
+  };
+
+  const handleImportedContactToggle = (contactIndex: number) => {
+    const contact = importedContacts[contactIndex];
+    const contactKey = `${contact.firstName}-${contact.lastName}-${contactIndex}`;
+    
+    setSelectedImportedContacts(prev => 
+      prev.includes(contactKey)
+        ? prev.filter(key => key !== contactKey)
+        : [...prev, contactKey]
+    );
+  };
+
+  const handleSelectAllImported = () => {
+    const allKeys = importedContacts.map((contact, index) => 
+      `${contact.firstName}-${contact.lastName}-${index}`
+    );
+    setSelectedImportedContacts(allKeys);
+  };
+
+  const handleSelectNoneImported = () => {
+    setSelectedImportedContacts([]);
+  };
+
+  const handleAddSelectedContacts = () => {
+    const selectedContactsData = importedContacts.filter((contact, index) => {
+      const contactKey = `${contact.firstName}-${contact.lastName}-${index}`;
+      return selectedImportedContacts.includes(contactKey);
+    });
+
+    // For now, just fill the form with the first selected contact
+    // In a full implementation, you might want to create multiple contacts
+    if (selectedContactsData.length > 0) {
+      const firstContact = selectedContactsData[0];
+      setFormData(prev => ({
+        ...prev,
+        firstName: firstContact.firstName,
+        lastName: firstContact.lastName,
+        email: firstContact.email || '',
+        phone: firstContact.phone || '',
+        types: ['personal'] // Default to personal
+      }));
+    }
+
+    setShowImportedContacts(false);
+    setImportedContacts([]);
+    setSelectedImportedContacts([]);
+  };
+
+  const handleCancelImport = () => {
+    setShowImportedContacts(false);
+    setImportedContacts([]);
+    setSelectedImportedContacts([]);
   };
 
   const handleSubmit = () => {
@@ -159,12 +229,12 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, editin
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md p-0 overflow-hidden">
-        <div className="bg-orange-500 px-6 py-4">
-          <h2 className="text-white font-bold text-lg">
+        <div className="bg-primary px-6 py-4">
+          <h2 className="text-primary-foreground font-bold text-lg">
             {getModalTitle()}
           </h2>
           {prefilledData && !isEditing && (
-            <p className="text-orange-100 text-sm mt-1">
+            <p className="text-primary-foreground/80 text-sm mt-1">
               Detected from your memo
             </p>
           )}
@@ -172,134 +242,158 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, editin
         
         {step === 1 ? (
           <div className="p-6">
-            <AvatarSelector 
-              initials={getInitials()} 
-              onAvatarChange={setAvatar} 
-            />
-            
-            <div className="space-y-4">
-              {!prefilledData && !isEditing && (
-                <>
-                  <ContactSearchInput
-                    searchTerm={searchTerm}
-                    isSearching={isSearching}
-                    onSearchChange={setSearchTerm}
-                  />
-
-                  <ContactSelectionCards
-                    searchResults={searchResults}
-                    selectedContact={selectedContact}
-                    onContactSelect={handleContactSelect}
-                  />
-                </>
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-1">
-                    First Name*
-                  </label>
-                  <Input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleChange}
-                    required
-                    className={(prefilledData || isEditing) ? "bg-blue-50 border-blue-200" : ""}
-                  />
-                </div>
-                <div>
-                  <label className="block text-gray-700 text-sm font-medium mb-1">
-                    Last Name*
-                  </label>
-                  <Input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleChange}
-                    required
-                    className={(prefilledData || isEditing) ? "bg-blue-50 border-blue-200" : ""}
-                  />
-                </div>
-              </div>
-              
-              <RelationshipTypeSelector
-                types={relationshipTypes}
-                selectedTypes={formData.types}
-                onTypeSelect={(types) => setFormData({...formData, types})}
+            {showImportedContacts ? (
+              <ImportedContactsList
+                contacts={importedContacts}
+                selectedContacts={selectedImportedContacts}
+                onContactToggle={handleImportedContactToggle}
+                onSelectAll={handleSelectAllImported}
+                onSelectNone={handleSelectNoneImported}
+                onAddSelected={handleAddSelectedContacts}
+                onCancel={handleCancelImport}
               />
+            ) : (
+              <>
+                <AvatarSelector 
+                  initials={getInitials()} 
+                  onAvatarChange={setAvatar} 
+                />
+                
+                <div className="space-y-4">
+                  {!prefilledData && !isEditing && (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <div className="flex-1">
+                          <ContactSearchInput
+                            searchTerm={searchTerm}
+                            isSearching={isSearching}
+                            onSearchChange={setSearchTerm}
+                          />
+                        </div>
+                        <div className="ml-4">
+                          <ContactImportButton
+                            onContactsImported={handleContactsImported}
+                            disabled={false}
+                          />
+                        </div>
+                      </div>
 
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Relationship Description
-                </label>
-                <Textarea
-                  name="relationshipDescription"
-                  value={formData.relationshipDescription}
-                  onChange={handleChange}
-                  rows={3}
-                  placeholder="Describe your relationship and how it connects to your life..."
-                  className={`resize-none ${(prefilledData || isEditing) ? "bg-blue-50 border-blue-200" : ""}`}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Email
-                </label>
-                <Input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="contact@example.com"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
-                  Phone
-                </label>
-                <Input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="+1 (555) 123-4567"
-                />
-              </div>
-              
-              <div className="pt-4 flex justify-end">
-                <Button
-                  className="bg-orange-500 hover:bg-orange-600"
-                  onClick={() => setStep(2)}
-                  disabled={!formData.firstName || !formData.lastName || formData.types.length === 0}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+                      <ContactSelectionCards
+                        searchResults={searchResults}
+                        selectedContact={selectedContact}
+                        onContactSelect={handleContactSelect}
+                      />
+                    </>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-foreground text-sm font-medium mb-1">
+                        First Name*
+                      </label>
+                      <Input
+                        type="text"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        required
+                        className={(prefilledData || isEditing) ? "bg-accent/50 border-accent" : ""}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-foreground text-sm font-medium mb-1">
+                        Last Name*
+                      </label>
+                      <Input
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        required
+                        className={(prefilledData || isEditing) ? "bg-accent/50 border-accent" : ""}
+                      />
+                    </div>
+                  </div>
+                  
+                  <RelationshipTypeSelector
+                    types={relationshipTypes}
+                    selectedTypes={formData.types}
+                    onTypeSelect={(types) => setFormData({...formData, types})}
+                  />
+
+                  <div>
+                    <label className="block text-foreground text-sm font-medium mb-1">
+                      Relationship Description
+                    </label>
+                    <Textarea
+                      name="relationshipDescription"
+                      value={formData.relationshipDescription}
+                      onChange={handleChange}
+                      rows={3}
+                      placeholder="Describe your relationship and how it connects to your life..."
+                      className={`resize-none ${(prefilledData || isEditing) ? "bg-accent/50 border-accent" : ""}`}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-foreground text-sm font-medium mb-1">
+                      Email
+                    </label>
+                    <Input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="contact@example.com"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-foreground text-sm font-medium mb-1">
+                      Phone
+                    </label>
+                    <Input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      placeholder="+1 (555) 123-4567"
+                    />
+                  </div>
+                  
+                  <div className="pt-4 flex justify-end">
+                    <Button
+                      className="bg-primary hover:bg-primary/90"
+                      onClick={() => setStep(2)}
+                      disabled={!formData.firstName || !formData.lastName || formData.types.length === 0}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="p-6">
             <div className="flex items-center space-x-3 mb-6">
-              <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 font-bold">
+              <div className="w-12 h-12 rounded-full bg-accent flex items-center justify-center text-accent-foreground font-bold">
                 {getInitials()}
               </div>
               <div>
-                <h3 className="font-medium text-gray-800">{formData.firstName} {formData.lastName}</h3>
+                <h3 className="font-medium text-foreground">{formData.firstName} {formData.lastName}</h3>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {formData.types.map(type => (
                     <span key={type} className={`text-xs px-2 py-0.5 rounded-full ${
-                      type === 'work' ? 'bg-blue-100 text-blue-600' :
-                      'bg-green-100 text-green-600'
+                      type === 'work' ? 'bg-accent text-accent-foreground' :
+                      'bg-secondary text-secondary-foreground'
                     }`}>
                       {type}
                     </span>
                   ))}
                 </div>
                 {(formData.email || formData.phone) && (
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {formData.email && <div>📧 {formData.email}</div>}
                     {formData.phone && <div>📞 {formData.phone}</div>}
                   </div>
@@ -308,17 +402,17 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, editin
             </div>
 
             {formData.relationshipDescription && (
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <label className="block text-gray-700 text-sm font-medium mb-1">
+              <div className="mb-4 p-3 bg-muted rounded-lg">
+                <label className="block text-foreground text-sm font-medium mb-1">
                   Relationship Description
                 </label>
-                <p className="text-gray-600 text-sm">{formData.relationshipDescription}</p>
+                <p className="text-muted-foreground text-sm">{formData.relationshipDescription}</p>
               </div>
             )}
             
             <div className="space-y-4">
               <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1">
+                <label className="block text-foreground text-sm font-medium mb-1">
                   Additional Notes
                 </label>
                 <Textarea
@@ -338,7 +432,7 @@ const AddRelationshipModal = ({ isOpen, onClose, onSubmit, prefilledData, editin
                   Back
                 </Button>
                 <Button
-                  className="bg-orange-500 hover:bg-orange-600"
+                  className="bg-primary hover:bg-primary/90"
                   onClick={handleSubmit}
                 >
                   {isEditing ? 'Update Contact' : 'Create Relationship'}
