@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Contact, Upload, Smartphone } from "lucide-react";
+import { ChevronDown, Users, Upload, Smartphone } from "lucide-react";
 import { useContactImport, ImportedContact } from '@/hooks/useContactImport';
 
 interface ContactImportButtonProps {
@@ -53,7 +53,7 @@ const ContactImportButton: React.FC<ContactImportButtonProps> = ({
               disabled={disabled || isLoading}
               className="flex items-center gap-2"
             >
-              <Contact className="h-4 w-4" />
+              <Users className="h-4 w-4" />
               Import Contacts
               <ChevronDown className="h-4 w-4" />
             </Button>
