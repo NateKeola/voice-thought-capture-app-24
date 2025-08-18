@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Plus, Link, Edit, Trash2, ArrowLeft, User } from 'lucide-react';
+import { Plus, Link, Edit, Trash2, ArrowLeft, User, Users } from 'lucide-react';
 import BottomNavBar from '@/components/BottomNavBar';
 import AddRelationshipModal from '@/components/relationships/AddRelationshipModal';
 import { useProfiles } from '@/hooks/useProfiles';
@@ -12,6 +12,7 @@ import ProfileIconButton from '@/components/ProfileIconButton';
 import RecordButton from '@/components/RecordButton';
 import ProfileInterestsBadges from '@/components/profile/ProfileInterestsBadges';
 import AddProfileInterestsModal from '@/components/profile/AddProfileInterestsModal';
+import SharedRelationshipsTab from '@/components/relationships/SharedRelationshipsTab';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const REL_TYPE_COLORS = {
@@ -70,6 +71,7 @@ const RelationshipsPage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [globalTab, setGlobalTab] = useState('relationships');
   const [showAddInterestsModal, setShowAddInterestsModal] = useState(false);
+  const [mainTab, setMainTab] = useState<'personal' | 'shared'>('personal');
   const { memos, createMemo, updateMemo, refreshMemos } = useMemos();
   const [isRecordingMode, setIsRecordingMode] = useState(false);
   const [prefilledRelationshipData, setPrefilledRelationshipData] = useState(null);
@@ -444,114 +446,141 @@ const RelationshipsPage = () => {
       </div>
 
       <div className="px-4 pt-4">
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          {['all', 'work', 'personal'].map((tab) => (
-            <button
-              key={tab}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === tab ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
+        {/* Main tabs: Personal vs Shared */}
+        <div className="flex space-x-2 mb-4">
+          <button
+            className={`px-6 py-2 rounded-full text-sm font-medium flex items-center ${mainTab === 'personal' ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
+            onClick={() => setMainTab('personal')}
+          >
+            <User className="h-4 w-4 mr-2" />
+            Personal
+          </button>
+          <button
+            className={`px-6 py-2 rounded-full text-sm font-medium flex items-center ${mainTab === 'shared' ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
+            onClick={() => setMainTab('shared')}
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Shared
+          </button>
         </div>
+
+        {/* Sub-tabs for personal relationships */}
+        {mainTab === 'personal' && (
+          <div className="flex space-x-2 overflow-x-auto pb-2">
+            {['all', 'work', 'personal'].map((tab) => (
+              <button
+                key={tab}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === tab ? 'bg-orange-500 text-white' : 'bg-white text-gray-600'}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab === 'all' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex-1 px-4 py-4 overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="font-bold text-gray-800 text-lg">People ({filteredProfiles.length})</h2>
-          <Button
-            size="sm"
-            className="bg-orange-500 text-white"
-            onClick={() => setShowAddModal(true)}
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add
-          </Button>
-        </div>
-
-        <div className="space-y-3">
-          {isLoading ? (
-            <div className="p-6 text-center text-gray-500">Loading...</div>
-          ) : filteredProfiles.length === 0 ? (
-            <div className="p-8 text-center bg-white rounded-2xl shadow-sm">
-              <User className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 mb-4">No relationships found</p>
+        {mainTab === 'personal' ? (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-gray-800 text-lg">People ({filteredProfiles.length})</h2>
               <Button
+                size="sm"
                 className="bg-orange-500 text-white"
                 onClick={() => setShowAddModal(true)}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add New Contact
+                <Plus className="h-4 w-4 mr-1" />
+                Add
               </Button>
             </div>
-          ) : (
-            filteredProfiles.map(profile => (
-              <div
-                key={profile.id}
-                className="bg-white rounded-2xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-all active:scale-95"
-                onClick={() => handleProfileSelect(profile)}
-              >
-                <div className="flex items-center">
-                  <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center mr-4 flex-shrink-0">
-                    <span className="text-orange-600 font-bold text-lg">
-                      {`${profile.first_name[0]}${profile.last_name[0]}`}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-gray-800 font-semibold text-lg truncate">
-                        {`${profile.first_name} ${profile.last_name}`}
-                      </h3>
-                      <div className="flex gap-1 ml-2 flex-shrink-0">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditProfile(profile);
-                          }}
-                          className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
-                          title="Edit contact"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteProfile(profile);
-                          }}
-                          className="p-2 text-gray-400 hover:text-red-600 transition-colors"
-                          title="Delete contact"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-2 mb-2">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(profile.type)}`}>
-                        {profile.type}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {extractRelationshipMemos(memos, profile.id).length} memo(s)
-                      </span>
-                    </div>
-                    
-                    {(profile.email || profile.phone) && (
-                      <div className="text-xs text-gray-500 space-y-1">
-                        {profile.email && <div className="truncate">📧 {profile.email}</div>}
-                        {profile.phone && <div>📞 {profile.phone}</div>}
-                      </div>
-                    )}
-                    
-                    <p className="text-gray-400 text-xs mt-2">
-                      Last interaction: {new Date(profile.last_interaction).toLocaleDateString()}
-                    </p>
-                  </div>
+
+            <div className="space-y-3">
+              {isLoading ? (
+                <div className="p-6 text-center text-gray-500">Loading...</div>
+              ) : filteredProfiles.length === 0 ? (
+                <div className="p-8 text-center bg-white rounded-2xl shadow-sm">
+                  <User className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500 mb-4">No relationships found</p>
+                  <Button
+                    className="bg-orange-500 text-white"
+                    onClick={() => setShowAddModal(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add New Contact
+                  </Button>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ) : (
+                filteredProfiles.map(profile => (
+                  <div
+                    key={profile.id}
+                    className="bg-white rounded-2xl shadow-sm p-4 cursor-pointer hover:shadow-md transition-all active:scale-95"
+                    onClick={() => handleProfileSelect(profile)}
+                  >
+                    <div className="flex items-center">
+                      <div className="w-14 h-14 rounded-full bg-orange-100 flex items-center justify-center mr-4 flex-shrink-0">
+                        <span className="text-orange-600 font-bold text-lg">
+                          {`${profile.first_name[0]}${profile.last_name[0]}`}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="text-gray-800 font-semibold text-lg truncate">
+                            {`${profile.first_name} ${profile.last_name}`}
+                          </h3>
+                          <div className="flex gap-1 ml-2 flex-shrink-0">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditProfile(profile);
+                              }}
+                              className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                              title="Edit contact"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteProfile(profile);
+                              }}
+                              className="p-2 text-gray-400 hover:text-red-600 transition-colors"
+                              title="Delete contact"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getTypeColor(profile.type)}`}>
+                            {profile.type}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {extractRelationshipMemos(memos, profile.id).length} memo(s)
+                          </span>
+                        </div>
+                        
+                        {(profile.email || profile.phone) && (
+                          <div className="text-xs text-gray-500 space-y-1">
+                            {profile.email && <div className="truncate">📧 {profile.email}</div>}
+                            {profile.phone && <div>📞 {profile.phone}</div>}
+                          </div>
+                        )}
+                        
+                        <p className="text-gray-400 text-xs mt-2">
+                          Last interaction: {new Date(profile.last_interaction).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        ) : (
+          <SharedRelationshipsTab />
+        )}
       </div>
     </>
   );
