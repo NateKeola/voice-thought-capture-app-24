@@ -1,18 +1,37 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Users } from 'lucide-react';
+import { Plus, Users, UserPlus } from 'lucide-react';
 import { useSharedGroups } from '@/hooks/useSharedGroups';
 import SharedGroupCard from './SharedGroupCard';
 import CreateGroupDialog from './CreateGroupDialog';
 import JoinGroupDialog from './JoinGroupDialog';
+import SharedContactCard from './SharedContactCard';
+import AddContactDialog from './AddContactDialog';
+import EditContactDialog from './EditContactDialog';
 
 const SharedRelationshipsView: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showJoinDialog, setShowJoinDialog] = useState(false);
+  const [showAddContactDialog, setShowAddContactDialog] = useState(false);
+  const [showEditContactDialog, setShowEditContactDialog] = useState(false);
+  const [editingContact, setEditingContact] = useState(null);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   
-  const { groups, groupsLoading, leaveGroup } = useSharedGroups();
+  const { 
+    groups, 
+    groupsLoading, 
+    leaveGroup, 
+    getGroupContacts, 
+    createContact, 
+    updateContact, 
+    deleteContact 
+  } = useSharedGroups();
+
+  // Get contacts for selected group
+  const { data: groupContacts = [], isLoading: contactsLoading } = selectedGroupId 
+    ? getGroupContacts(selectedGroupId) 
+    : { data: [], isLoading: false };
 
   const handleLeaveGroup = async (groupId: string) => {
     if (confirm('Are you sure you want to leave this group?')) {
@@ -20,6 +39,40 @@ const SharedRelationshipsView: React.FC = () => {
       if (selectedGroupId === groupId) {
         setSelectedGroupId(null);
       }
+    }
+  };
+
+  const handleAddContact = async (contactData: any) => {
+    if (!selectedGroupId) return;
+    
+    try {
+      await createContact.mutateAsync({ groupId: selectedGroupId, contactData });
+      setShowAddContactDialog(false);
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  };
+
+  const handleEditContact = (contact: any) => {
+    setEditingContact(contact);
+    setShowEditContactDialog(true);
+  };
+
+  const handleUpdateContact = async (id: string, contactData: any) => {
+    try {
+      await updateContact.mutateAsync({ id, contactData });
+      setShowEditContactDialog(false);
+      setEditingContact(null);
+    } catch (error) {
+      // Error handling is done in the hook
+    }
+  };
+
+  const handleDeleteContact = async (contactId: string, groupId: string) => {
+    try {
+      await deleteContact.mutateAsync({ id: contactId, groupId });
+    } catch (error) {
+      // Error handling is done in the hook
     }
   };
 
@@ -105,15 +158,48 @@ const SharedRelationshipsView: React.FC = () => {
       {selectedGroupId && (
         <Card>
           <CardHeader>
-            <CardTitle>Group Details</CardTitle>
-            <CardDescription>
-              Manage shared contacts and view group activity
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Group Contacts</CardTitle>
+                <CardDescription>
+                  Manage shared contacts for this group
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={() => setShowAddContactDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <UserPlus className="w-4 h-4" />
+                Add Contact
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
-              Group management features will be available in the next phase.
-            </p>
+            {contactsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : groupContacts.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground mb-4">No contacts in this group yet</p>
+                <Button onClick={() => setShowAddContactDialog(true)}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add First Contact
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {groupContacts.map((contact) => (
+                  <SharedContactCard
+                    key={contact.id}
+                    contact={contact}
+                    onEdit={handleEditContact}
+                    onDelete={handleDeleteContact}
+                  />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -127,6 +213,23 @@ const SharedRelationshipsView: React.FC = () => {
         open={showJoinDialog}
         onOpenChange={setShowJoinDialog}
       />
+      {selectedGroupId && (
+        <>
+          <AddContactDialog
+            open={showAddContactDialog}
+            onOpenChange={setShowAddContactDialog}
+            onSubmit={handleAddContact}
+            isLoading={createContact.isPending}
+          />
+          <EditContactDialog
+            open={showEditContactDialog}
+            onOpenChange={setShowEditContactDialog}
+            contact={editingContact}
+            onSubmit={handleUpdateContact}
+            isLoading={updateContact.isPending}
+          />
+        </>
+      )}
     </div>
   );
 };

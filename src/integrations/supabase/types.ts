@@ -214,6 +214,50 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_contacts: {
+        Row: {
+          added_by: string
+          created_at: string
+          email: string | null
+          group_id: string
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          added_by: string
+          created_at?: string
+          email?: string | null
+          group_id: string
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          email?: string | null
+          group_id?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_contacts_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "shared_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_groups: {
         Row: {
           created_at: string

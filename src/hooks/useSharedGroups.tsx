@@ -19,6 +19,18 @@ export type GroupMember = {
   joined_at: string;
 };
 
+export type SharedContact = {
+  id: string;
+  group_id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
+  added_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export function useSharedGroups() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -198,12 +210,127 @@ export function useSharedGroups() {
     });
   };
 
+  const getGroupContacts = (groupId: string) => {
+    return useQuery({
+      queryKey: ['group-contacts', groupId],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from('shared_contacts')
+          .select('*')
+          .eq('group_id', groupId)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+      },
+      enabled: !!groupId
+    });
+  };
+
+  const createContact = useMutation({
+    mutationFn: async ({ groupId, contactData }: { 
+      groupId: string; 
+      contactData: Omit<SharedContact, 'id' | 'created_at' | 'updated_at' | 'added_by'> 
+    }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User must be logged in to add contacts');
+
+      const { data, error } = await supabase
+        .from('shared_contacts')
+        .insert([{ 
+          ...contactData,
+          group_id: groupId,
+          added_by: user.id 
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['group-contacts', variables.groupId] });
+      toast({
+        title: "Contact added",
+        description: "Contact has been added to the group successfully."
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error adding contact",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const updateContact = useMutation({
+    mutationFn: async ({ id, contactData }: { 
+      id: string; 
+      contactData: Partial<Omit<SharedContact, 'id' | 'created_at' | 'updated_at' | 'added_by'>>
+    }) => {
+      const { data, error } = await supabase
+        .from('shared_contacts')
+        .update(contactData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['group-contacts', data.group_id] });
+      toast({
+        title: "Contact updated",
+        description: "Contact has been updated successfully."
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating contact",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const deleteContact = useMutation({
+    mutationFn: async ({ id, groupId }: { id: string; groupId: string }) => {
+      const { error } = await supabase
+        .from('shared_contacts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return { id, groupId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['group-contacts', data.groupId] });
+      toast({
+        title: "Contact deleted",
+        description: "Contact has been removed from the group."
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error deleting contact",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   return {
     groups,
     groupsLoading,
     createGroup,
     joinGroup,
     leaveGroup,
-    getGroupMembers
+    getGroupMembers,
+    getGroupContacts,
+    createContact,
+    updateContact,
+    deleteContact
   };
 }
